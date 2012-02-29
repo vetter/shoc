@@ -7,9 +7,11 @@
 #include "MPI2DGridProgram.h"
 #include "InvalidArgValue.h"
 
+//----------------------------------------------------------------------------
+// MPI2DGridProgramBase methods
+//----------------------------------------------------------------------------
 
-template<class T>
-MPI2DGridProgram<T>::MPI2DGridProgram( size_t _mpiGridRows,
+MPI2DGridProgramBase::MPI2DGridProgramBase( size_t _mpiGridRows,
                                     size_t _mpiGridCols,
                                     unsigned int _nItersPerHaloExchange )
   : haloWidth( _nItersPerHaloExchange )
@@ -75,13 +77,91 @@ MPI2DGridProgram<T>::MPI2DGridProgram( size_t _mpiGridRows,
 }
 
 
-template<class T>
-MPI2DGridProgram<T>::~MPI2DGridProgram( void )
+void
+MPI2DGridProgramBase::AddOptions( OptionParser& opts )
 {
-    // nothing else to do
+    // rather than define a fixed 2D topology that will cause problems
+    // if the user didn't specify exactly the right number of processes,
+    // we build a topology based on the number of processes available.
+    // For now, we are taking a simple approach and making it a 2D grid,
+    // 2x(N/2) where N is the number of available processes.
+    // At most, we idle one process using this approach but we use a true
+    // 2D topology that forces halo exchanges in two or three directions
+    // (as opposed to using a 1xN topology that would involve halo exchanges
+    // across only one or two directions).
+    //
+    // A more sophisticated approach would determine a 2D topology that tries
+    // to be as "square" as possible while keeping the number of processes
+    // used <= the number of processes available.
+    //
+    int nprocs;
+    MPI_Comm_size( MPI_COMM_WORLD, &nprocs );
+    assert( nprocs > 0 );
+
+    std::ostringstream ostr;
+    if( nprocs > 1 )
+    {
+        int ny = (nprocs / 2);
+        assert( ny > 0 );
+        ostr << "2," << ny;
+    }
+    else
+    {
+        // We only have one process to work with - 
+        // our "2D" topology is a 1x1 degenerate grid.
+        ostr << "1,1";
+    }
+    opts.addOption( "msize", OPT_VECINT, ostr.str().c_str(), "MPI 2D grid topology dimensions" );
+    opts.addOption( "iters-per-exchange", OPT_INT, "1", "Number of local iterations between MPI boundary exchange operations (also, halo width)" );
 }
 
 
+
+void
+MPI2DGridProgramBase::CheckOptions( const OptionParser& opts )
+{
+    std::vector<long long> mpiDims = opts.getOptionVecInt( "msize" );
+    if( mpiDims.size() != 2 )
+    {
+        throw InvalidArgValue( "msize must be two-dimensional" );
+    }
+    if( (mpiDims[0] <= 0) || (mpiDims[1] <= 0) )
+    {
+        throw InvalidArgValue( "all msize dimensions must be positive" );
+    }
+
+    int cwsize;
+    MPI_Comm_size( MPI_COMM_WORLD, &cwsize );
+    if( mpiDims[0] * mpiDims[1] > cwsize )
+    {
+        throw InvalidArgValue( "msize dimensions specify more processes than are available" );
+    }
+
+    long nItersPerExchange = opts.getOptionInt( "iters-per-exchange" );
+    if( nItersPerExchange <= 0 )
+    {
+        throw InvalidArgValue( "iterations per exchange must be positive" );
+    }
+}
+
+
+void
+MPI2DGridProgramBase::ExtractOptions( const OptionParser& opts,
+                            size_t& mpiGridRows,
+                            size_t& mpiGridCols,
+                            unsigned int& nItersPerHaloExchange )
+{
+    std::vector<long long> mpiDims = opts.getOptionVecInt( "msize" );
+    mpiGridRows = (size_t)mpiDims[0];
+    mpiGridCols = (size_t)mpiDims[1];
+
+    nItersPerHaloExchange = opts.getOptionInt( "iters-per-exchange" );
+}
+
+
+//----------------------------------------------------------------------------
+// MPI2DGridProgram methods
+//----------------------------------------------------------------------------
 template<>
 MPI_Datatype
 MPI2DGridProgram<float>::GetMPIDataType( void ) const
@@ -249,62 +329,6 @@ MPI2DGridProgram<T>::DoHaloExchange( Matrix2D<T>& mtx )
 
     // since we did the NS exchange first, then the EW exchange, 
     // we swapped halo "corners"
-}
-
-
-
-
-template<class T>
-void
-MPI2DGridProgram<T>::AddOptions( OptionParser& opts )
-{
-    opts.addOption( "msize", OPT_VECINT, "2,2", "MPI 2D grid topology dimensions" );
-    opts.addOption( "iters-per-exchange", OPT_INT, "1", "Number of local iterations between MPI boundary exchange operations (also, halo width)" );
-}
-
-
-
-template<class T>
-void
-MPI2DGridProgram<T>::CheckOptions( const OptionParser& opts )
-{
-    std::vector<long long> mpiDims = opts.getOptionVecInt( "msize" );
-    if( mpiDims.size() != 2 )
-    {
-        throw InvalidArgValue( "msize must be two-dimensional" );
-    }
-    if( (mpiDims[0] <= 0) || (mpiDims[1] <= 0) )
-    {
-        throw InvalidArgValue( "all msize dimensions must be positive" );
-    }
-
-    int cwsize;
-    MPI_Comm_size( MPI_COMM_WORLD, &cwsize );
-    if( mpiDims[0] * mpiDims[1] > cwsize )
-    {
-        throw InvalidArgValue( "msize dimensions specify more processes than are available" );
-    }
-
-    long nItersPerExchange = opts.getOptionInt( "iters-per-exchange" );
-    if( nItersPerExchange <= 0 )
-    {
-        throw InvalidArgValue( "iterations per exchange must be positive" );
-    }
-}
-
-
-template<class T>
-void
-MPI2DGridProgram<T>::ExtractOptions( const OptionParser& opts,
-                            size_t& mpiGridRows,
-                            size_t& mpiGridCols,
-                            unsigned int& nItersPerHaloExchange )
-{
-    std::vector<long long> mpiDims = opts.getOptionVecInt( "msize" );
-    mpiGridRows = (size_t)mpiDims[0];
-    mpiGridCols = (size_t)mpiDims[1];
-
-    nItersPerHaloExchange = opts.getOptionInt( "iters-per-exchange" );
 }
 
 

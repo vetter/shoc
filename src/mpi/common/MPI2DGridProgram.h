@@ -6,7 +6,7 @@
 #include "OptionParser.h"
 
 // ****************************************************************************
-// Class:  MPI2DGridProgram
+// Class:  MPI2DGridProgramBase
 //
 // Purpose:
 //   Encapsulation of a program which operates on a 2D grid and uses MPI
@@ -16,10 +16,9 @@
 // Creation:    November 5, 2009
 //
 // ****************************************************************************
-template<class T>
-class MPI2DGridProgram
+class MPI2DGridProgramBase
 {
-private:
+protected:
     enum
     {
         haloExchangeToNorth = 7,
@@ -35,9 +34,7 @@ private:
     int coords[2];      // coordinates in 2D cartesian topology
     unsigned int haloWidth;
 
-    MPI_Datatype GetMPIDataType( void ) const;
 
-protected:
     unsigned int GetNumberIterationsPerHaloExchange( void ) const
         {
             return haloWidth;
@@ -63,12 +60,12 @@ protected:
             return ( coords[1] < (dims[1] - 1) );
         }
 
-    void DoHaloExchange( Matrix2D<T>& mtx );
-    void DumpData( std::ostream& s,
-                    const Matrix2D<T>& adata, 
-                    const char* desc );
     int GetCommWorldRank( void ) const  { return cwrank; }
     int GetCommWorldSize( void ) const  { return cwsize; }
+
+    MPI2DGridProgramBase( size_t mpiGridRows,
+                        size_t mpiGridCols,
+                        unsigned int nItersPerHaloExchange );
 
 public:
     static void AddOptions( OptionParser& opts );
@@ -78,12 +75,53 @@ public:
                             size_t& mpiGridCols,
                             unsigned int& nItersPerHaloExchange );
 
-    MPI2DGridProgram( size_t mpiGridRows,
-                        size_t mpiGridCols,
-                        unsigned int nItersPerHaloExchange );
-    virtual ~MPI2DGridProgram( void );
+    virtual ~MPI2DGridProgramBase( void )
+    {
+        // nothing else to do
+    }
 
     bool ParticipatingInProgram( void ) const   { return (coords[0] != -1); }
+};
+
+
+// ****************************************************************************
+// Class:  MPI2DGridProgram
+//
+// Purpose:
+//   An MPI2DGridProgram that knows how to work with matrices of a specific
+//   type T.
+//
+// Programmer:  Phil Roth
+// Creation:    Feb 29, 2012
+//
+// ****************************************************************************
+template<class T>
+class MPI2DGridProgram : public MPI2DGridProgramBase
+{
+private:
+    MPI_Datatype GetMPIDataType( void ) const;
+
+protected:
+    void DoHaloExchange( Matrix2D<T>& mtx );
+    void DumpData( std::ostream& s,
+                    const Matrix2D<T>& adata, 
+                    const char* desc );
+
+public:
+    MPI2DGridProgram( size_t _mpiGridRows,
+                        size_t _mpiGridCols,
+                        unsigned int _nItersPerHaloExchange )
+      : MPI2DGridProgramBase( _mpiGridRows,
+                                _mpiGridCols,
+                                _nItersPerHaloExchange )    
+    {
+        // nothing else to do
+    }
+
+    virtual ~MPI2DGridProgram( void )
+    {
+        // nothing else to do
+    }
 };
 
 #endif /* MPI2DGRIDPROGRAM_H */
