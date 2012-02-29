@@ -1,0 +1,527 @@
+\documentclass[11pt]{article}
+\usepackage{doc}
+\usepackage{fullpage}
+\usepackage{fancyvrb}
+\usepackage{pdfpages}
+\usepackage{url}
+\usepackage{color}
+\usepackage{hyperref}
+\hypersetup{
+     bookmarks=true,         % show bookmarks bar?
+     colorlinks=true,        % false: boxed links; true: colored links
+     linkcolor=red,          % color of internal links
+     citecolor=green,        % color of links to bibliography
+     filecolor=magenta,      % color of file links
+     urlcolor=cyan,          % color of external links
+     pdftitle={SHOC Manual},    % title
+     pdfauthor={The Dakar Team},     % author
+     pdfnewwindow=true,      % links in new window
+}
+
+\begin{document}
+\title{SHOC: The Scalable HeterOgeneous Computing Benchmark Suite}
+\author{Dakar Team\\Future Technologies Group\\Oak Ridge National Laboratory}
+\date{Version 1.1.3, December 2011}
+\maketitle
+%\tableofcontents
+
+\section{Introduction}
+
+The Scalable HeterOgeneous Computing benchmark suite (SHOC) is a collection of
+benchmark programs that tests the performance and stability of systems using 
+computing devices with non-traditional architectures for general purpose 
+computing, and the software used to program them. Its initial focus is on 
+systems containing Graphics Processing Units (GPUs) and multi-core 
+processors, and on the OpenCL\,\cite{openclspec} programming standard.
+It can be used on clusters as well as individual hosts.
+
+OpenCL is an open standard for programming a variety of types of computing 
+devices. The OpenCL specification describes a language for programming 
+\emph{kernels} to run on an OpenCL-capable device, and an 
+Application Programming Interface (API) for transferring data to such 
+devices and executing kernels on them. 
+
+%The OpenCL specification was ratified 
+%by The Khronos Group in late 2008. At the time of this writing, OpenCL 
+%implementations are just becoming publicly available. These early OpenCL 
+%implementations support running OpenCL kernels on GPUs and commodity multi-core
+%processors, though not all implementations support both device types.
+
+In addition to OpenCL-based benchmark programs, SHOC also includes
+Compute Unified Device Architecture (CUDA)\cite{cuda} versions
+of its benchmarks for comparison.
+
+%CUDA, developed by 
+%NVIDIA, is an approach for programming NVIDIA GPUs for general purpose 
+%computing that predates OpenCL. Like OpenCL, CUDA-based programs use 
+%a host program running on the system's CPU to run kernels on an 
+%accelerator device (in this case, a GPU).
+
+%This document describes how to build and use SHOC.
+%We first detail the supported platforms for using SHOC 
+%(Section\,\ref{sec:supported}),
+%followed by an overview of the SHOC source code (Section\,\ref{sec:source}),
+%how to configure it (Section\,\ref{sec:configuring}), build it 
+%(Section\,\ref{sec:building}), and run
+%it (Section\,\ref{sec:running}).
+
+% System hardware and software platforms
+\section{Supported Platforms}\label{sec:supported}
+
+The Dakar team intends SHOC to be useful on any platform with an
+OpenCL implementation. However, the Dakar team develops and tests
+SHOC primarily on UNIX-like platforms, specifically Linux and
+Mac OS X.
+This section lists software versions used for much of the SHOC development
+on these platforms.
+
+\subsection{Linux}
+
+\begin{itemize}
+\item A recent RedHat-family OS distribution (Fedora or RHEL).\footnote{
+Some Linux distributions may include a more recent GCC toolchain that is
+not yet supported by NVIDIA CUDA.  On such platforms, an earlier version of GCC
+must be used to compile SHOC, and the SHOC configuration files must be
+modified so that the --compiler-bindir switch is passed to nvcc to 
+indicate to nvcc the location of the GCC compiler binaries it should use.}
+\item A working OpenCL implementation. The Dakar team has tested SHOC
+using the following versions:
+    \begin{itemize}
+        \item NVIDIA GPU Computing SDK version 3.2 or later
+        \item AMD Accelerated Parallel Processing (APP) SDK version 2.5 or later
+    \end{itemize}
+\item (Optional) CUDA 3.2 or later
+\end{itemize}
+
+SHOC may work on other platforms with other OpenCL and CUDA versions
+than those listed here, but will most likely require modifications for
+differing OpenCL header and library paths, differing system library versions,
+and differing compiler versions/vendors.
+
+\subsection{Mac OS X}
+
+\begin{itemize}
+\item Mac OS X 10.6 (''Snow Leopard'').  The Dakar team has not yet tested SHOC on a Mac OS X 10.7 (``Lion'') system due to lack of availability.
+\item Xcode 3.2 or later.
+\item (Optional) CUDA 3.2 or later
+\end{itemize}
+
+\subsection{Clusters}
+In addition to individual systems, SHOC can also build parallel benchmark
+programs for clusters. Each cluster node must meet the requirements described
+earlier in this section for the OS distribution used on that node.
+Also, the cluster must have a working implementation of the 
+Message Passing Interface 
+(MPI)\,\cite{gropp-lusk-skjellum:using-mpi2nd,gropp-lusk-thakur:usingmpi2}
+library such as OpenMPI \url{www.open-mpi.org} or MPICH2 
+\url{www.mcs.anl.gov/mpi/mpich}.
+An OS X 10.6 system with Xcode installed contains an OpenMPI implementation
+sufficient for use by SHOC without the need to install additional software.
+
+
+\section{Configuring}\label{sec:configuring}
+
+Unlike previous SHOC versions, this version of SHOC uses a configuration script
+generated by GNU autoconf.  
+This script is located in the SHOC distribution's root directory.
+In the rest of this document, we presume this directory is called 
+\verb+$SHOC_ROOT+.
+
+By default, the configure script will try to determine whether the 
+target system has usable OpenCL, CUDA, and MPI installations.  
+The configure script depends on the PATH environment variable to find necessary
+binary programs like CUDA's \verb+nvcc+, so the PATH must be set before the
+configure script is run.
+Similarly, the configure script uses CPPFLAGS and LDFLAGS to find needed
+headers and libraries for OpenCL and CUDA.
+For instance, on a system with the NVIDIA CUDA/OpenCL software installed
+in \verb+/opt/cuda+ (a non-default location), the PATH should be updated to include
+\verb+/opt/cuda/bin+ and the configure script should be run as follows so that it can
+find the OpenCL headers:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ sh ./configure CPPFLAGS="-I/opt/cuda/include"
+\end{Verbatim}
+
+SHOC uses MPI compiler drivers (e.g., \verb+mpicxx+) to compile and link code
+that uses MPI functionality.
+The SHOC configure script depends on the PATH environment variable to find
+the MPI compiler drivers for the MPI installation it will use, so it is often
+helpful to use a command like \verb+which mpicxx+ before configuring SHOC
+to ensure that the PATH is set to find the desired MPI installation.
+Note that, unlike previous versions of SHOC that also required configuration
+script options to specify the location of MPI headers and libraries, current
+versions of SHOC do not support such options because the MPI compiler drivers
+automatically add the appropriate compiler and linker flags.
+
+If you desire not to use SHOC's OpenCL, CUDA, or MPI support (e.g., because
+no MPI implementation is available), use the \verb+--without-opencl+,
+\verb+--without-cuda+,
+and/or \verb+--without-mpi+ configure script flags.
+Note, however, that support for at least one of OpenCL and CUDA must be
+enabled to use SHOC.
+
+By default, SHOC does not explicitly specify a flag to the compiler and 
+linker to specify whether to build 32-bit or 64-bit executables.
+Thus, your SHOC executables will have the default bit-ness of the compiler 
+you used to build SHOC.
+If you want to specify a different bit-ness (e.g., 64-bit executables on 
+Mac OS X with the GNU compiler) you must specify the appropriate flag
+for your compiler in CPPFLAGS and LDFLAGS when configuring 
+SHOC.\footnote{Earlier versions of SHOC supported an --enable-m64 option 
+that automatically added the appropriate flag for the GNU compiler to generate
+64-bit executables.  Because this flag was specific to the GNU compiler, we have
+deprecated that configure option.}
+For example,
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ sh ./configure \
+    CXXFLAGS="-m64" \
+    CFLAGS="-m64" \
+    NVCXXFLAGS="-m64"
+\end{Verbatim}
+\noindent gives equivalent behavior to the \verb+--enable-m64+ configure flag
+supported by earlier versions of SHOC if the GNU compilers are being used.
+
+By default, SHOC builds a CUDA-based stability test.
+If you desire not to build the SHOC stability test (e.g., because CUDA is
+not available), use the \verb+--disable-stability+ configuration flag.
+
+See the output of \verb+sh ./configure --help+ for a full list of configuration 
+options.
+Also, see the example configuration scripts in \verb+$SHOC_ROOT\config+ for
+examples of configuring the SHOC benchmark suite.
+
+\subsection{Cross compiling}
+
+{\bf 
+Cross compilation support is experimental.
+The SHOC development team has had very limited opportunity to test the
+functionality for a wide variety of build and host systems, and has had
+virtually no opportunity to thoroughly test the executables produced through
+cross compiling.
+}
+
+SHOC has {\bf experimental} support for building executables that can run on
+a different type of system than was used to build them.
+For instance, on an x86 Linux system SHOC can be configured to build 
+executables that run on an ARM Linux system.
+This technique is commonly called {\em cross compiling}, the system
+used to build the software is called the {\em build} system, and the system
+that will run the executables is called the {\em host}.
+Note that SHOC only enables cross compiling, it does not provide
+the compilers, linkers, libraries, and support tools needed to produce
+executables for the host system.
+You will need to obtain, install, and preferably test a cross-compilation
+toolchain on the build system before configuring SHOC.
+
+To configure SHOC for cross compiling, pass a description of the target
+system using the \verb+--host=+{\em hostspec} option to SHOC's configure
+script.
+In its simplest form, this looks something like:
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ sh ./configure \
+    --host=arm-none-linux-gnueabi
+\end{Verbatim}
+\noindent See the {\tt config/conf-crossarm.sh} file for an example of 
+configuring SHOC to build ARM Linux executables on an x86\_64 Linux system
+using the Sourcery CodeBench Lite ARM toolchain.\footnote{Sourcery CodeBench
+Lite Edition is available from Mentor Graphics at 
+{\tt http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition}.}
+Note that in that example configure script we are only configuring to build
+serial OpenCL benchmark programs.
+
+
+
+\subsection{Regenerating the SHOC configure script}
+
+If desired, the SHOC configure script can be regenerated on the target system.
+Make sure that GNU autoconf and GNU automake (for aclocal) can be found with
+your PATH environment variable, and do the following:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ sh ./build-aux/bootstrap.sh
+\end{Verbatim}
+
+Once this command has finished building a new configure script, follow the
+instructions given earlier in this section to configure SHOC.
+
+
+% Building
+\section{Building}\label{sec:building}
+
+Once the SHOC benchmark suite has been configured, it is built using:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ make
+\end{Verbatim}
+
+Unlike previous versions of SHOC, control over whether to build the 
+OpenCL, CUDA, OpenCL+MPI, and CUDA+MPI versions of the benchmarks is
+exercised at configure time instead of build time.
+Therefore, commands like 'make cuda' are no longer supported.
+
+
+% Running
+\section{Running}\label{sec:running}
+
+SHOC includes a driver script for running either the CUDA or OpenCL versions
+of the benchmarks. The driver script assumes MPI is in your current path,
+so be sure to set the appropriate environement variables.
+
+\begin{Verbatim}[frame=single]
+$ export PATH=$PATH:/path/to/mpi/bin/dir
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/mpi/lib/dir
+\end{Verbatim}
+
+To run the benchmarks on a single device, execute the following. Be sure
+to specify \verb+-cuda+ or \verb+-opencl+ and a device number \verb+-d n+
+where \verb+n+ is the device you want to test. The example below shows how
+to test device zero with a small problem using CUDA.
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT/tools
+$ perl driver.pl -s 1 -cuda -d 0
+\end{Verbatim}
+
+To run on more than one node, supply the script with the number of nodes and 
+a comma separated list of the devices that you want to use on each node. For
+example, if running on 4 nodes that each have 2 devices, execute the following: 
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT/tools
+$ perl driver.pl -cuda -n 4 -d 0,1 -s 1 -cuda
+\end{Verbatim}
+
+Or, if on those same four nodes, you only wanted to test device one on each node:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT/tools
+$ perl driver.pl -cuda -n 4 -d 1 -s 1 -cuda
+\end{Verbatim}
+
+These scripts output benchmark results to a file in comma separated value (CSV) format.
+
+After building SHOC, individual benchmark programs will be left in the
+directory tree rooted at \verb+$SHOC_ROOT/bin+.
+Run single-process benchmark programs with commands like:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT/bin
+$ ./Serial/OpenCL/Scan 
+\end{Verbatim}
+
+and parallel benchmark programs with commands like:
+
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT/bin
+$ mpirun -np 8 ./EP/Scan
+\end{Verbatim}
+
+Use 1 MPI rank per GPU.  
+
+
+\section{Benchmark Programs}\label{sec:programs}
+% list and short description of benchmarks
+
+The SHOC benchmark suite currently contains benchmark programs, categoried
+based on complexity.  Some measure low-level ''feeds and speeds'' behavior
+(Level 0), some measure the performance of a higher-level operation such 
+as a Fast Fourier Transform (FFT) (Level 1), and the others measure 
+real application kernels (Level 2).
+
+\newpage 
+
+\begin{itemize}
+\item Level 0
+    \begin{itemize}
+        \item {\bf BusSpeedDownload}: measures bandwidth of transferring data 
+         across the PCIe bus to a device.
+        \item {\bf BusSpeedReadback}: measures bandwidth of reading data back
+        from a device.
+        \item {\bf DeviceMemory}: measures bandwidth of memory accesses to 
+        various types of device memory including global, local, and image 
+        memories.
+        \item {\bf KernelCompile}: measures compile time for several OpenCL
+        kernels, which range in complexity
+        \item {\bf MaxFlops}: measures maximum achievable floating point 
+        performance using a combination of auto-generated and hand coded 
+        kernels.
+        \item {\bf QueueDelay}: measures the overhead of using the OpenCL
+        command queue.
+    \end{itemize}
+
+\item Level 1
+    \begin{itemize}
+        \item {\bf BFS}: a breadth-first search, a common graph traversal. Requires a
+		a device which supports atomic oeprations. (CC $>$ 1.2)
+        \item {\bf FFT}: forward and reverse 1D FFT.
+        \item {\bf MD}: computation of the Lennard-Jones potential from
+        molecular dynamics
+        \item {\bf Reduction}: reduction operation on an array of single
+        or double precision floating point values.
+        \item {\bf SGEMM}: matrix-matrix multiply.
+        \item {\bf Scan}: scan (also known as parallel prefix sum) on an array 
+        of single or double precision floating point values.
+        \item {\bf Sort}: sorts an array of key-value pairs using a radix sort 
+        algorithm
+        \item {\bf Spmv}: sparse matrix-vector multiplication
+        \item {\bf Stencil2D}: a 9-point stencil operation applied to a 2D data
+        set. In the MPI version, data is distributed across MPI processes
+        organized in a 2D Cartesian topology, with periodic halo exchanges.
+        \item {\bf Triad}: a version of the STREAM Triad benchmark, implemented 
+        in OpenCL and CUDA. This version includes PCIe transfer time.
+    \end{itemize}
+\item{Level 2}
+    \begin{itemize}
+        \item {\bf S3D}: A computationally-intensive kernel from the 
+        S3D turbulent combustion simulation program\cite{s3d}.
+    \end{itemize}
+\end{itemize}
+    
+To see the options each program supports and their default values, run 
+{\it program} \verb+--help+ for serial versions and \verb+mpirun -np 1+ {\it program} \verb+--help+
+for parallel versions.
+
+Many SHOC benchmark programs test both single precision and double precision
+arithmetic.
+For programs that support both precisions, the program first runs the
+single precision benchmark test, then attempts to determine if the 
+OpenCL or CUDA device being used supports double precision arithmetic.
+If so, the program runs the double precision test.
+If the target device does not support double precision arithmetic, the 
+driver script reports ``NoResult'' as the result.
+If some error occurred when running the benchmark, the driver script reports
+``BenchmarkError.''
+In that case, please see the benchmark log files in 
+{\tt\$SHOC\_ROOT/tools/Logs} for more information about the error.
+Please also report such situations (including the contents of the appropriate
+log file) to the SHOC developers the following email address 
+\verb+shoc-help@elist.ornl.gov+.
+
+Benchmarks are built not only as serial programs (S) but also as 
+embarrassingly parallel (EP) or true parallel (TP) programs. 
+The following table indicates which versions of each program that 
+SHOC builds.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+ & \multicolumn{3}{c|}{\em OpenCL} & \multicolumn{3}{c|}{\em CUDA} \\
+\hline
+{\em Program} & {\em S} & {\em EP} & {\em TP} & {\em S} & {\em EP} & {\em TP} \\
+\hline\hline
+BusSpeedDownload    & x & x &   & x & x &   \\
+BusSpeedReadback    & x & x &   & x & x &   \\
+DeviceMemory        & x & x &   & x & x &   \\
+KernelCompile       & x & x &   &   &   &   \\
+MaxFlops            & x & x &   & x & x &   \\
+QueueDelay          & x & x &   &   &   &   \\
+BFS                 & x & x &   & x & x &   \\
+FFT                 & x & x &   & x & x &   \\
+MD                  & x & x &   & x & x &   \\
+Reduction           & x & x & x & x & x & x \\
+S3D                 & x & x &   & x & x &   \\
+SGEMM               & x & x &   & x & x &   \\
+Scan                & x & x & x & x & x & x \\
+Sort                & x & x &   & x & x &   \\
+Spmv                & x & x &   & x & x &   \\
+Stencil2D           & x &   & x & x &   & x \\
+Triad               & x & x &   & x & x &   \\
+BusCont             &   & x &   &   & x &   \\
+MTBusCont           &   & x &   &   & x &   \\
+\hline
+\end{tabular}
+\caption{Programming APIs and parallelism models of SHOC programs}
+\end{table}
+
+% Source code structure
+\section{Source Tree}\label{sec:source}
+
+SHOC is distributed as a compressed tar archive.
+Let \verb+$SHOC_ROOT+ represent the directory that will hold the SHOC source
+tree.
+The SHOC archive can be uncompressed and extracted using 
+\begin{Verbatim}[frame=single]
+$ cd $SHOC_ROOT
+$ tar xvzf shoc-x.y.tar.gz
+\end{Verbatim}
+
+\pagebreak
+
+The SHOC source tree directory structure is as follows:
+
+\begin{Verbatim}[frame=single]
+$SHOC_ROOT
+    bin     # benchmark executables are built here
+        EP  # "embarrassingly parallel" benchmarks
+            CUDA
+            OpenCL
+        TP  # true parallel benchmarks
+            CUDA
+            OpenCL
+        Serial  # single-node benchmarks
+            CUDA
+            OpenCL
+    config  # SHOC configuration files
+    doc     # SHOC documentation files
+    lib     # SHOC auxiliary libraries are built here
+    src     # SHOC source files
+        common  # programming-model independent helper code
+        cuda    # CUDA-based benchmarks
+            level0  # low-level CUDA benchmarks
+            level1  # higher-level CUDA benchmarks
+            level2  # application level CUDA benchmarks
+        mpi     # MPI-specific benchmarks
+            common  # code needed by programs using MPI
+            contention  # a contention benchmark
+            contention-mt  # a multithreaded version of the contention benchmark
+        opencl  # OpenCL benchmarks
+            common  # code needed for all OpenCL benchmarks
+            level0  # low-level OpenCL benchmarks
+            level1  # higher-level OpenCL benchmarks
+            level2  # application-level OpenCL benchmarks
+        stability   # a CUDA stability test
+\end{Verbatim}
+
+\section{Support}\label{sec:support}
+
+Support for SHOC is provided on a best-effort basis by the Dakar team members
+and eventually by its user community via several mailing lists.
+\begin{itemize}
+\item \verb+shoc-announce@elist.ornl.gov+: mailing list for announcements
+regarding new versions or important updates.
+\item \verb+shoc-help@elist.ornl.gov+: email address for requesting
+help in building or using SHOC, or for providing feedback about the benchmark 
+suite.
+\item \verb+shoc-dev@elist.ornl.gov+: mailing list for internal 
+development discussions by the SHOC development team.
+\end{itemize}
+
+
+\section*{Revision History}
+\begin{itemize}
+\item 0.1 September 2009
+\item 0.2 December 2009
+\item 0.3 June 2010
+\item 0.4 September 2010
+\item 0.5 October 2010
+\item 1.0 November 2010
+\item 1.01 January 2011
+\item 1.0.2 March 2011
+\item 1.0.3 March 2011
+\item 1.1.0 June 2011
+\item 1.1.1 July 2011
+\item 1.1.2 November 2011
+\item 1.1.3 December 2011
+\end{itemize}
+
+% References
+\bibliographystyle{plain}
+\bibliography{shoc}
+\end{document}

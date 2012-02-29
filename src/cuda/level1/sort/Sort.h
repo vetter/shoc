@@ -1,0 +1,37 @@
+#ifndef SORT_H_
+#define SORT_H_
+
+static const int SORT_BLOCK_SIZE = 128;
+static const int SCAN_BLOCK_SIZE = 256;
+static const int SORT_BITS = 32;
+
+void
+radixSortStep(uint nbits, uint startbit, uint4* keys, uint4* values,
+        uint4* tempKeys, uint4* tempValues, uint* counters,
+        uint* countersSum, uint* blockOffsets, uint** scanBlockSums,
+        uint numElements);
+
+void
+scanArrayRecursive(uint* outArray, uint* inArray, int numElements, int level,
+        uint** blockSums);
+
+bool
+verifySort(uint *keys, uint* vals, const size_t size);
+
+//Macro to catch CUDA errors
+#define CUDA_SAFE_CALL( call) do {                                            \
+   cudaError err = call;                                                      \
+   if (cudaSuccess != err) {                                                  \
+       fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",          \
+           __FILE__, __LINE__, cudaGetErrorString( err) );                    \
+       exit(EXIT_FAILURE);                                                    \
+   }                                                                          \
+} while (0)
+
+#ifdef __DEVICE_EMULATION__
+#define __SYNC __syncthreads();
+#else
+#define __SYNC ;
+#endif
+
+#endif // SORT_H_

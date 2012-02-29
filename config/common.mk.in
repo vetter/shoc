@@ -1,0 +1,35 @@
+# === Basics ===
+CC       = @CC@
+CXX      = @CXX@
+LD       = @CXX@
+AR       = @AR@
+RANLIB   = @RANLIB@
+
+CPPFLAGS += -I$(SHOC_ROOT)/src/common -I${SHOC_ROOT}/config @CPPFLAGS@
+CFLAGS   += @CFLAGS@
+CXXFLAGS += @CXXFLAGS@
+NVCXXFLAGS += @NVCXXFLAGS@
+ARFLAGS  = rcv
+LDFLAGS  = @LDFLAGS@
+LIBS     = -L$(SHOC_ROOT)/lib @LIBS@
+
+USE_MPI         = @USE_MPI@
+MPICXX          = @MPICXX@
+
+OCL_CPPFLAGS    += -I${SHOC_ROOT}/src/opencl/common
+OCL_LIBS        = @OPENCL_LIBS@
+
+NVCC            = @NVCC@
+CUDA_CXX        = @NVCC@
+CUDA_INC        = -I@CUDA_INCDIR@
+CUDA_CPPFLAGS   += @CUDA_CPPFLAGS@ -I${SHOC_ROOT}/src/cuda/include
+
+USE_CUDA        = @USE_CUDA@
+ifeq ($(USE_CUDA),yes)
+CUDA_LIBS       := $(shell @NVCC@ -dryrun bogus.cu 2>&1 | grep LIBRARIES | sed 's/^.*LIBRARIES=//')
+else
+CUDA_LIBS       =
+endif
+
+
+

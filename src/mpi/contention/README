@@ -1,0 +1,12 @@
+       The non-multi-threaded version of the contention benchmark
+
+This splits the process space into processes that do MPI communication and
+processes that do GPU communication. The processes that do GPU communication
+are equal to then number of devices on the node.
+
+Node Random Pairs: Forms pairs of nodes first, then pairs processes within the
+nodes. For example, if node 0 and 1 have 4 processes each, and 0 and 1 are
+paired, then process 0 on node 0 is paired with process 0 on node 1 which is
+MPI rank 4 (when nodes are not allocated in a round robin or any other weird
+way). Similarly, process 1 on node 0 is paired with process 1 on node 1 which
+is MPI rank 5. 

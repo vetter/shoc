@@ -1,0 +1,5 @@
+            Over-subscribed, multi-threaded contention benchmark
+
+The benchmark counts the number of GPU devices and spawns threads to do execute
+GPU benchmark and the main processes do the MPI Latency test. Sequential runs
+are initially performed to report the base case numbers. 
