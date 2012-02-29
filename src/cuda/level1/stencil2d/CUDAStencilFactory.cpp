@@ -13,11 +13,15 @@ CUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     T wCenter;
     T wCardinal;
     T wDiagonal;
+    size_t lRows;
+    size_t lCols;
     std::vector<long long int> devs;
     ExtractOptions( options,
                     wCenter,
                     wCardinal,
                     wDiagonal,
+                    lRows,
+                    lCols,
                     devs );
 
     // determine whcih device to use
@@ -30,6 +34,8 @@ CUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     return new CUDAStencil<T>( wCenter, 
                                 wCardinal, 
                                 wDiagonal, 
+                                lRows,
+                                lCols,
                                 chosenDevice );
 }
 

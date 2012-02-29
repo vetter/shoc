@@ -22,6 +22,8 @@ protected:
                             T& wCenter,
                             T& wCardinal,
                             T& wDiagonal,
+                            size_t& lRows,
+                            size_t& lCols,
                             std::vector<long long>& devices );
 
 public:

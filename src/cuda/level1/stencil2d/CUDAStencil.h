@@ -17,6 +17,8 @@ template<class T>
 class CUDAStencil : public Stencil<T>
 {
 private:
+    size_t lRows;
+    size_t lCols;
     int device;
 
 protected:
@@ -29,6 +31,8 @@ public:
     CUDAStencil( T _wCenter,
                     T _wCardinal,
                     T _wDiagonal,
+                    size_t _lRows,
+                    size_t _lCols,
                     int _device );
 
     virtual void operator()( Matrix2D<T>&, unsigned int nIters );

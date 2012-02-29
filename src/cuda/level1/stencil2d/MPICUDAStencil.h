@@ -33,6 +33,8 @@ public:
     MPICUDAStencil( T _wCenter,
                     T _wCardinal,
                     T _wDiagonal,
+                    size_t _lRows,
+                    size_t _lCols,
                     size_t _mpiGridRows,
                     size_t _mpiGridCols,
                     unsigned int _nItersPerHaloExchange,

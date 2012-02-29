@@ -13,6 +13,16 @@ CommonCUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     StencilFactory<T>::CheckOptions( opts );
 
     // check our options
+    std::vector<long long> shDims = opts.getOptionVecInt( "lsize" );
+    if( shDims.size() != 2 )
+    {
+        throw InvalidArgValue( "lsize must have two dimensions" );
+    }
+    if( (shDims[0] <= 0) || (shDims[1] <= 0) )
+    {
+        throw InvalidArgValue( "all lsize values must be positive" );
+    }
+
     std::vector<long long> arrayDims = opts.getOptionVecInt( "customSize" );
     assert( arrayDims.size() == 2 );
 
@@ -24,8 +34,8 @@ CommonCUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
 
     size_t gRows = (size_t)arrayDims[0];
     size_t gCols = (size_t)arrayDims[1];
-    size_t lRows = LROWS;
-    size_t lCols = LCOLS;
+    size_t lRows = (size_t)shDims[0];
+    size_t lCols = (size_t)shDims[1];
 
     // verify that local dimensions evenly divide global dimensions
     if( ((gRows % lRows) != 0) || (lRows > gRows) )
@@ -46,13 +56,18 @@ CommonCUDAStencilFactory<T>::ExtractOptions( const OptionParser& options,
                                             T& wCenter,
                                             T& wCardinal,
                                             T& wDiagonal,
+                                            size_t& lRows,
+                                            size_t& lCols,
                                             std::vector<long long>& devices )
 {
     // let base class extract its options
     StencilFactory<T>::ExtractOptions( options, wCenter, wCardinal, wDiagonal );
 
     // extract our options
-    // with hardcoded lsize, we no longer have any to extract
+    std::vector<long long> ldims = options.getOptionVecInt( "lsize" );
+    assert( ldims.size() == 2 );
+    lRows = (size_t)ldims[0];
+    lCols = (size_t)ldims[1];
 
     // determine which device to use
     // We would really prefer this to be done in main() but 

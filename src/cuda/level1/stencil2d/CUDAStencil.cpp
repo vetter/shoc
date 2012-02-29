@@ -4,8 +4,12 @@ template<class T>
 CUDAStencil<T>::CUDAStencil( T _wCenter,
                     T _wCardinal,
                     T _wDiagonal,
+                    size_t _lRows,
+                    size_t _lCols,
                     int _device )
   : Stencil<T>( _wCenter, _wCardinal, _wDiagonal ),
+    lRows( _lRows ),
+    lCols( _lCols ),
     device( _device )
 {
     // nothing else to do

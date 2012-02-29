@@ -4,7 +4,7 @@ include ${SHOC_ROOT}/config/config.mk
 VPATH:=../../common
 
 LDFLAGS     += ${CUDA_LDFLAGS}
-CPPFLAGS    += -DLROWS=1 -DLCOLS=256 ${CUDA_INC}
+CPPFLAGS    += ${CUDA_INC}
 LIBS        += ${CUDA_LIBS} -lSHOCCommon
 
 TARGET      = ${SHOC_ROOT}/bin/Serial/CUDA/Stencil2D

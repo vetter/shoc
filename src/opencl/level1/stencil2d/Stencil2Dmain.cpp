@@ -168,6 +168,7 @@ DoTest( std::string testName,
         float haloVal = (float)opts.getOptionFloat( "haloVal" );
 
         unsigned int nPasses = (unsigned int)opts.getOptionInt( "passes" );
+        unsigned int nWarmupPasses = (unsigned int)opts.getOptionInt( "warmupPasses" );
 
         // build a description of this experiment
         std::vector<long long> lDims = opts.getOptionVecInt( "lsize" );
@@ -300,6 +301,29 @@ DoTest( std::string testName,
         if( cwrank == 0 )
         {
 #endif // defined(PARALLEL)
+        std::cout << "Performing " << nWarmupPasses << " warmup passes...";
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+
+        for( unsigned int pass = 0; pass < nWarmupPasses; pass++ )
+        {
+            init(data);
+            (*testStencil)( data, nIters );
+        }
+#if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
+        std::cout << "done." << std::endl;
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+
+#if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
         std::cout << "\nPerforming stencil operation on chosen OpenCL device, " 
             << nPasses << " passes.\n"
             << "Depending on chosen device, this may take a while."
@@ -314,6 +338,10 @@ DoTest( std::string testName,
 #endif // !defined(PARALLEL)
         for( unsigned int pass = 0; pass < nPasses; pass++ )
         {
+#if !defined(PARALLEL)
+            std::cout << "pass " << pass << ": ";
+#endif // !defined(PARALLEL)
+
             init( data );
 
             int timerHandle = Timer::Start();
@@ -341,9 +369,6 @@ DoTest( std::string testName,
             StencilValidater<T>* validater = new SerialStencilValidater<T>;
 #endif // defined(PARALLEL)
 
-#if !defined(PARALLEL)
-            std::cout << "pass " << pass << ": ";
-#endif // !defined(PARALLEL)
             validater->ValidateResult( expected,
                             data,
                             valErrThreshold,
@@ -434,6 +459,8 @@ RunBenchmark( cl::Device& dev,
                                 FLT_MAX );
         }
     }
+
+    std::cout << '\n' << std::endl;
 }
 
 
@@ -442,7 +469,7 @@ void
 addBenchmarkSpecOptions( OptionParser& opts )
 {
     opts.addOption("customSize", OPT_VECINT, "0,0", "specify custom problem size x,y");
-    opts.addOption( "lsize", OPT_VECINT, "1,256", "work-item dimensions" );
+    opts.addOption( "lsize", OPT_VECINT, "8,256", "work-item dimensions" );
     opts.addOption( "num-iters", OPT_INT, "1000", "number of stencil iterations" );
     opts.addOption( "weight-center", OPT_FLOAT, "0.25", "center value weight" );
     opts.addOption( "weight-cardinal", OPT_FLOAT, "0.15", "cardinal values weight" );
@@ -454,6 +481,9 @@ addBenchmarkSpecOptions( OptionParser& opts )
 
     opts.addOption( "expMatrixFile", OPT_STRING, "", "Basename for file(s) holding expected matrices" );
     opts.addOption( "saveExpMatrixFile", OPT_STRING, "", "Basename for output file(s) that will hold expected matrices" );
+
+    opts.addOption( "warmupPasses", OPT_INT, "1", "Number of warmup passes to do before starting timings", 'w' );
+
 
 #if defined(PARALLEL)
     // rather than define a fixed 2D topology that will cause problems
@@ -510,6 +540,12 @@ CheckOptions( const OptionParser& opts )
     if( nErrsToPrint < 0 )
     {
         throw InvalidArgValue( "number of validation errors to print must be non-negative" );
+    }
+
+    int nWarmupPasses = opts.getOptionInt( "warmupPasses" );
+    if( nWarmupPasses < 0 )
+    {
+        throw InvalidArgValue( "number of warmup passes must be non-negative" );
     }
 }
 

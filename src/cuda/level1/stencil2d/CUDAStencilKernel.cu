@@ -3,31 +3,77 @@
 // workaround for CUDA 2.3a + gcc 4.2.1 problem 
 // (undefined __sync_fetch_and_add) on Snow Leopard
 //
-#if defined(__APPLE__)
-#if _GLIBCXX_ATOMIC_BUILTINS == 1
-#undef _GLIBCXX_ATOMIC_BUILTINS
-#endif // _GLIBCXX_ATOMIC_BUILTINS
-#endif // __APPLE__
+// #if defined(__APPLE__)
+// #if _GLIBCXX_ATOMIC_BUILTINS == 1
+// #undef _GLIBCXX_ATOMIC_BUILTINS
+// #endif // _GLIBCXX_ATOMIC_BUILTINS
+// #endif // __APPLE__
 
 #include <assert.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "cudacommon.h"
 #include "CUDAStencil.cpp"
+
+
+//
+// We are using the "trick" illustrated by the NVIDIA simpleTemplates example
+// for accessing dynamically-allocated shared memory from a templatized 
+// function.  The strategy uses a templatized struct with specialized
+// accessor functions that declare the actual symbol with the type in 
+// their type name (to avoid naming conflicts).
+//
+template<typename T>
+struct SharedMemory
+{
+    // Should never be instantiated.
+    // We enforce this at compile time.
+    __device__ T* GetPointer( void )
+    {
+        extern __device__ void error( void );
+        error();
+        return NULL;
+    }
+};
+
+// specializations for types we use
+template<>
+struct SharedMemory<float>
+{
+    __device__ float* GetPointer( void )
+    {
+        extern __shared__ float sh_float[];
+        // printf( "sh_float=%p\n", sh_float );
+        return sh_float;
+    }
+};
+
+template<>
+struct SharedMemory<double>
+{
+    __device__ double* GetPointer( void )
+    {
+        extern __shared__ double sh_double[];
+        // printf( "sh_double=%p\n", sh_double );
+        return sh_double;
+    }
+};
+
 
 
 
 __device__
 int
-ToGlobalRow( int gidRow, int lidRow )
+ToGlobalRow( int gidRow, int lszRow, int lidRow )
 {
-    return gidRow * LROWS + lidRow;
+    return gidRow * lszRow + lidRow;
 }
 
 __device__
 int
-ToGlobalCol( int gidCol, int lidCol )
+ToGlobalCol( int gidCol, int lszCol, int lidCol )
 {
-    return gidCol * LCOLS + lidCol;
+    return gidCol * lszCol + lidCol;
 }
 
 __device__
@@ -40,12 +86,14 @@ ToFlatIdx( int row, int col, int rowWidth )
 }
 
 
+
 template<class T>
 __global__
 void
 StencilKernel( T* data,
                 T* newData,
-                int pad,
+                int alignment,
+                int nStripItems,
                 T wCenter,
                 T wCardinal,
                 T wDiagonal )
@@ -59,72 +107,79 @@ StencilKernel( T* data,
     int gszCol = gridDim.y;
     int lidRow = threadIdx.x;
     int lidCol = threadIdx.y;
+    int lszRow = nStripItems;
+    int lszCol = blockDim.y;
 
     // determine our logical global data coordinates (without halo)
-    int gRow = ToGlobalRow( gidRow, lidRow );
-    int gCol = ToGlobalCol( gidCol, lidCol );
+    int gRow = ToGlobalRow( gidRow, lszRow, lidRow );
+    int gCol = ToGlobalCol( gidCol, lszCol, lidCol );
 
     // determine pitch of rows (without halo)
-    int nCols = gszCol * LCOLS + 2;     // assume halo is there for computing padding
-    int nPaddedCols = nCols + (((nCols % pad) == 0) ? 0 : (pad - (nCols % pad)));
+    int nCols = gszCol * lszCol + 2;     // assume halo is there for computing padding
+    int nPaddedCols = nCols + (((nCols % alignment) == 0) ? 0 : (alignment - (nCols % alignment)));
     int gRowWidth = nPaddedCols - 2;    // remove the halo
 
-
-    // determine our coodinate in the flattened data (with halo)
-    int gidx = ToFlatIdx( gRow, gCol, gRowWidth );
-
-    // copy my global data item to a shared local buffer
-    // sh is (LROWS + 2) x (LCOLS + 2) values
-    // (i.e., it is same size as our local block but with halo of width 1)
-    __shared__ T sh[LROWS+2][LCOLS+2];
-    sh[lidRow+1][lidCol+1] = data[gidx];
-
-    // copy halo data
-    // We follow the approach of Micikevicius (NVIDIA) from the
-    // GPGPU-2 Workshop, 3/8/2009.
-    // We leave many threads idle while those along two of the edges
-    // copy the boundary data for all four edges. This seems to be
-    // a performance win even with the idle threads because it 
-    // limits the branching logic.
-    if( lidRow == 0 )
+    // Copy my global data item to a shared local buffer.
+    // That local buffer is passed to us.
+    // We assume it is large enough to hold all the data computed by
+    // our thread block, plus a halo of width 1.
+    SharedMemory<T> shobj;
+    T* sh = shobj.GetPointer();
+    int lRowWidth = lszCol;
+    for( int i = 0; i < (lszRow + 2); i++ )
     {
-        sh[0][lidCol+1] = data[ToFlatIdx(gRow-1, gCol, gRowWidth)];
-        sh[LROWS+1][lidCol+1] = data[ToFlatIdx(gRow+LROWS, gCol, gRowWidth)];
+        int lidx = ToFlatIdx( lidRow - 1 + i, lidCol, lRowWidth );
+        int gidx = ToFlatIdx( gRow - 1 + i, gCol, gRowWidth );
+        sh[lidx] = data[gidx];
     }
+
+    // Copy the "left" and "right" halo rows into our local memory buffer.
+    // Only two threads are involved (first column and last column).
     if( lidCol == 0 )
     {
-        sh[lidRow+1][0] = data[ToFlatIdx(gRow, gCol-1, gRowWidth)];
-        sh[lidRow+1][LCOLS+1] = data[ToFlatIdx(gRow, gCol+LCOLS, gRowWidth)];
+        for( int i = 0; i < (lszRow + 2); i++ )
+        {
+            int lidx = ToFlatIdx(lidRow - 1 + i, lidCol - 1, lRowWidth );
+            int gidx = ToFlatIdx(gRow - 1 + i, gCol - 1, gRowWidth );
+            sh[lidx] = data[gidx];
+        }
     }
-    if( (lidRow == 0) && (lidCol == 0) )
+    else if( lidCol == (lszCol - 1) )
     {
-        // since we are doing 9-pt stencil, we have to copy corner elements.
-        // Note: stencil used by Micikevicius did not use 'diagonals' - 
-        // in 2D, it would be a 5-pt stencil. But these loads are costly.
-        sh[0][0] = data[ToFlatIdx(gRow-1,gCol-1,gRowWidth)];
-        sh[LROWS+1][0] = data[ToFlatIdx(gRow+LROWS,gCol-1, gRowWidth)];
-        sh[0][LCOLS+1] = data[ToFlatIdx(gRow-1,gCol+LCOLS,gRowWidth)];
-        sh[LROWS+1][LCOLS+1] = data[ToFlatIdx(gRow+LROWS,gCol+LCOLS, gRowWidth)];
+        for( int i = 0; i < (lszRow + 2); i++ )
+        {
+            int lidx = ToFlatIdx(lidRow - 1 + i, lidCol + 1, lRowWidth );
+            int gidx = ToFlatIdx(gRow - 1 + i, gCol + 1, gRowWidth );
+            sh[lidx] = data[gidx];
+        }
     }
 
     // let all those loads finish
     __syncthreads();
 
     // do my part of the smoothing operation
-    T centerValue = sh[lidRow+1][lidCol+1];
-    T cardinalValueSum = sh[lidRow][lidCol+1] +
-                        sh[lidRow+2][lidCol+1] +
-                        sh[lidRow+1][lidCol] +
-                        sh[lidRow+1][lidCol+2];
-    T diagonalValueSum = sh[lidRow][lidCol] +
-                        sh[lidRow][lidCol+2] +
-                        sh[lidRow+2][lidCol] +
-                        sh[lidRow+2][lidCol+2];
+    for( int i = 0; i < lszRow; i++ )
+    {
+        int cidx  = ToFlatIdx( lidRow     + i, lidCol    , lRowWidth );
+        int nidx  = ToFlatIdx( lidRow - 1 + i, lidCol    , lRowWidth );
+        int sidx  = ToFlatIdx( lidRow + 1 + i, lidCol    , lRowWidth );
+        int eidx  = ToFlatIdx( lidRow     + i, lidCol + 1, lRowWidth );
+        int widx  = ToFlatIdx( lidRow     + i, lidCol - 1, lRowWidth );
+        int neidx = ToFlatIdx( lidRow - 1 + i, lidCol + 1, lRowWidth );
+        int seidx = ToFlatIdx( lidRow + 1 + i, lidCol + 1, lRowWidth );
+        int nwidx = ToFlatIdx( lidRow - 1 + i, lidCol - 1, lRowWidth );
+        int swidx = ToFlatIdx( lidRow + 1 + i, lidCol - 1, lRowWidth );
 
-    newData[gidx] = wCenter * centerValue +
-            wCardinal * cardinalValueSum + 
-            wDiagonal * diagonalValueSum;
+        T centerValue = sh[cidx];
+        T cardinalValueSum = sh[nidx] + sh[sidx] + sh[eidx] + sh[widx];
+        T diagonalValueSum = sh[neidx] + sh[seidx] + sh[nwidx] + sh[swidx];
+
+        newData[ToFlatIdx(gRow + i, gCol, gRowWidth)] = wCenter * centerValue +
+                wCardinal * cardinalValueSum +
+                wDiagonal * diagonalValueSum;
+    }
 }
+
 
 
 template <class T>
@@ -134,8 +189,8 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // assume a 1-wide halo
     size_t gRows = mtx.GetNumRows() - 2;
     size_t gCols = mtx.GetNumColumns() - 2;
-    assert( gRows % LROWS == 0 );
-    assert( gCols % LCOLS == 0 );
+    assert( gRows % lRows == 0 );
+    assert( gCols % lCols == 0 );
 
     // Note: this is confusing.  C/C++ code on the host and CUDA C on
     // the device use row-major ordering where the first dimension is
@@ -146,12 +201,15 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     //   .x == row (first dimension)
     //   .y == column (second dimension)
     // 
-    dim3 dimGrid( gRows / LROWS, gCols / LCOLS );
-    dim3 dimBlock( LROWS, LCOLS );
+    // Since each GPU thread is responsible for a strip of data
+    // from the original, our index space is scaled smaller in
+    // one dimension relative to the actual data
+    dim3 dimGrid( gRows / lRows, gCols / lCols );
+    dim3 dimBlock( 1, lCols );
 
     // size of data to transfer to/from device - assume 1-wide halo
     size_t matDataSize = mtx.GetDataSize();
-    size_t localDataSize = sizeof(T) * (dimBlock.x + 2) * (dimBlock.y + 2);
+    size_t localDataSize = sizeof(T) * (lRows + 2) * (lCols + 2);
     T* da = NULL;
     T* db = NULL;
 
@@ -214,9 +272,12 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         StencilKernel<<<dimGrid, dimBlock, localDataSize>>>( currData, 
             newData, 
             mtx.GetPad(),
+            lRows,
             this->wCenter, 
             this->wCardinal, 
             this->wDiagonal );
+
+        CHECK_CUDA_ERROR(); 
 
         // swap our notion of which buffer holds the "real" data
         if( currData == da )
@@ -255,11 +316,11 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 void
 EnsureStencilInstantiation( void )
 {
-    CUDAStencil<float> csf( 0, 0, 0, 0 );
+    CUDAStencil<float> csf( 0, 0, 0, 0, 0, 0 );
     Matrix2D<float> mf( 2, 2 );
     csf( mf, 0 );
 
-    CUDAStencil<double> csd( 0, 0, 0, 0 );
+    CUDAStencil<double> csd( 0, 0, 0, 0, 0, 0 );
     Matrix2D<double> md( 2, 2 );
     csd( md, 0 );
 }

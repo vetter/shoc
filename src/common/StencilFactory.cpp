@@ -34,7 +34,7 @@ template<class T>
 std::vector<long long>
 StencilFactory<T>::GetStandardProblemSize( int sizeClass )
 {
-    const int probSizes[4] = { 768, 1408, 2048, 4096 };
+    const int probSizes[4] = { 512, 1024, 2048, 4096 };
     if (!(sizeClass >= 0 && sizeClass < 5))
     {
         throw InvalidArgValue( "Size class must be between 1-4" );

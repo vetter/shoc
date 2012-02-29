@@ -16,11 +16,15 @@ MPICUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     T wCenter;
     T wCardinal;
     T wDiagonal;
+    size_t lRows;
+    size_t lCols;
     std::vector<long long> devs;
     CommonCUDAStencilFactory<T>::ExtractOptions( options,
                                                 wCenter,
                                                 wCardinal,
                                                 wDiagonal,
+                                                lRows,
+                                                lCols,
                                                 devs );
 
     size_t mpiGridRows;
@@ -46,6 +50,8 @@ MPICUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     return new MPICUDAStencil<T>( wCenter, 
                                 wCardinal, 
                                 wDiagonal, 
+                                lRows,
+                                lCols,
                                 mpiGridRows,
                                 mpiGridCols,
                                 nItersPerHaloExchange,
@@ -62,6 +68,7 @@ MPICUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     CommonCUDAStencilFactory<T>::CheckOptions( opts );
 
     // check our options
+    std::vector<long long> shDims = opts.getOptionVecInt( "lsize" );
     std::vector<long long> arrayDims = opts.getOptionVecInt( "customSize" );
     if( arrayDims[0] == 0 )
     {
@@ -69,12 +76,13 @@ MPICUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
         int sizeClass = opts.getOptionInt("size");
         arrayDims = StencilFactory<T>::GetStandardProblemSize( sizeClass );
     }
+    assert( shDims.size() == 2 );
     assert( arrayDims.size() == 2 );
 
     size_t gRows = (size_t)arrayDims[0];
     size_t gCols = (size_t)arrayDims[1];
-    size_t lRows = LROWS;
-    size_t lCols = LCOLS;
+    size_t lRows = shDims[0];
+    size_t lCols = shDims[1];
 
     unsigned int haloWidth = (unsigned int)opts.getOptionInt( "iters-per-exchange" );
 

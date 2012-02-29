@@ -151,15 +151,9 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         }
         if (arrayDims[0] == 0) // User has not specified a custom size
         {
-            const int probSizes[4] = { 768, 1408, 2048, 4096 };
             int sizeClass = opts.getOptionInt("size");
-            if (!(sizeClass >= 0 && sizeClass < 5))
-            {
-                throw InvalidArgValue( "Size class must be between 1-4" );
-            }
-            arrayDims[0] = arrayDims[1] = probSizes[sizeClass - 1];
+            arrayDims = StencilFactory<T>::GetStandardProblemSize( sizeClass );
         }
-
         long int seed = (long)opts.getOptionInt( "seed" );
         bool beVerbose = opts.getOptionBool( "verbose" );
         unsigned int nIters = (unsigned int)opts.getOptionInt( "num-iters" );
@@ -175,13 +169,16 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         float haloVal = (float)opts.getOptionFloat( "haloVal" );
 
         // build a description of this experiment
+        std::vector<long long> lDims = opts.getOptionVecInt( "lsize" );
+        assert( lDims.size() == 2 );
         std::ostringstream experimentDescriptionStr;
         experimentDescriptionStr 
             << nIters << ':'
             << arrayDims[0] << 'x' << arrayDims[1] << ':'
-            << LROWS << 'x' << LCOLS;
+            << lDims[0] << 'x' << lDims[1];
 
         unsigned int nPasses = (unsigned int)opts.getOptionInt( "passes" );
+        unsigned int nWarmupPasses = (unsigned int)opts.getOptionInt( "warmupPasses" );
 
 
         // compute the expected result on the host
@@ -303,6 +300,29 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         unsigned long nflops = npts * 11 * nIters;
 
 #if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
+        std::cout << "Performing " << nWarmupPasses << " warmup passes...";
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+        
+        for( unsigned int pass = 0; pass < nWarmupPasses; pass++ )
+        {
+            init(data);
+            (*testStencil)( data, nIters );
+        }
+#if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
+        std::cout << "done." << std::endl;
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+
+#if defined(PARALLEL)
         MPI_Comm_rank( MPI_COMM_WORLD, &cwrank );
         if( cwrank == 0 )
         {
@@ -319,8 +339,13 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output." 
             << std::endl;
 #endif // !defined(PARALLEL)
+
+
         for( unsigned int pass = 0; pass < nPasses; pass++ )
         {
+#if !defined(PARALLEL)
+            std::cout << "pass " << pass << ": ";
+#endif // !defined(PARALLEL)
             init( data );
 
             int timerHandle = Timer::Start();
@@ -408,7 +433,7 @@ RunBenchmark( ResultDatabase& resultDB, OptionParser& opts )
         if( cwrank == 0 )
         {
 #endif // defined(PARALLEL)
-            std::cout << "DP supported" << std::endl;
+            std::cout << "\n\nDP supported" << std::endl;
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
@@ -431,6 +456,8 @@ RunBenchmark( ResultDatabase& resultDB, OptionParser& opts )
             resultDB.AddResult( (const char*)"DP_Sten2D", "N/A", "GFLOPS", FLT_MAX );
         }
     }
+
+    std::cout << "\n" << std::endl;
 }
 
 
@@ -439,6 +466,7 @@ void
 addBenchmarkSpecOptions( OptionParser& opts )
 {
     opts.addOption("customSize", OPT_VECINT, "0,0", "specify custom problem size");
+    opts.addOption( "lsize", OPT_VECINT, "8,256", "block dimensions" );
     opts.addOption( "num-iters", OPT_INT, "1000", "number of stencil iterations" );
     opts.addOption( "weight-center", OPT_FLOAT, "0.25", "center value weight" );
     opts.addOption( "weight-cardinal", OPT_FLOAT, "0.15", "cardinal values weight" );
@@ -450,6 +478,8 @@ addBenchmarkSpecOptions( OptionParser& opts )
 
     opts.addOption( "expMatrixFile", OPT_STRING, "", "Basename for file(s) holding expected matrices" );
     opts.addOption( "saveExpMatrixFile", OPT_STRING, "", "Basename for output file(s) that will hold expected matrices" );
+
+    opts.addOption( "warmupPasses", OPT_INT, "1", "Number of warmup passes to do before starting timings", 'w' );
 
 
 #if defined(PARALLEL)
@@ -507,6 +537,12 @@ CheckOptions( const OptionParser& opts )
     if( nErrsToPrint < 0 )
     {
         throw InvalidArgValue( "number of validation errors to print must be non-negative" );
+    }
+
+    int nWarmupPasses = opts.getOptionInt( "warmupPasses" );
+    if( nWarmupPasses < 0 )
+    {
+        throw InvalidArgValue( "number of warmup passes must be non-negative" );
     }
 }
 

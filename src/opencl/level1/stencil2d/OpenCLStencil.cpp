@@ -69,7 +69,19 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
     buildOptions << "-DLROWS=" << lRows 
                 << " -DLCOLS=" << lCols
                 << " -D" << precision;
-    prog.build( context.getInfo<CL_CONTEXT_DEVICES>(), buildOptions.str().c_str() );
+    try
+    {
+        prog.build( context.getInfo<CL_CONTEXT_DEVICES>(), buildOptions.str().c_str() );
+    }
+    catch( ... )
+    {
+        // the build failed - why?
+        std::cerr << "Failed to build OpenCL program.  Build log:\n"
+            << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>( device )
+            << std::endl;
+
+        throw;
+    }
 
     kernel = cl::Kernel( prog, "StencilKernel" );
     copyRectKernel = cl::Kernel( prog, "CopyRect" );
@@ -87,9 +99,14 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
     // determine local workgroup size
     // assumes mtx has been padded with halo of width >= 1
+    //
+    // Since each GPU thread is responsible for a strip of data
+    // from the original, our index space is scaled smaller 
+    // in one dimension relative to the actual data
+    assert( ((mtx.GetNumRows() - 2) % lRows) == 0 );
     cl::KernelFunctor func = kernel.bind( queue,
-        cl::NDRange( mtx.GetNumRows() - 2, mtx.GetNumColumns() - 2 ),
-        cl::NDRange( lRows, lCols ) );
+        cl::NDRange( (mtx.GetNumRows() - 2) / lRows, mtx.GetNumColumns() - 2 ),
+        cl::NDRange( 1, lCols ) );
 
     // create buffers for our data on the device
     cl::Buffer dataBuf1( context, CL_MEM_READ_WRITE, mtx.GetDataSize() );
@@ -184,12 +201,15 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         // We have one optimization for the final iteration - 
         // in that case we enqueue the read buffer command and
         // make it dependent on the completion of the last iteration.
+        //
+        size_t localDataSize = (lRows + 2) * (lCols + 2) * sizeof(T);
         cl::Event evt = func( *currData,
                                     *newData,
                                     (cl_int)(mtx.GetPad()),
                                     this->wCenter, 
                                     this->wCardinal, 
-                                    this->wDiagonal );
+                                    this->wDiagonal,
+                                    cl::__local( localDataSize ) );
 
         if( iter == nIters-1 )
         {
