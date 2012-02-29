@@ -41,20 +41,33 @@ void comm_broadcast( void *ptr, int cnt, int type, int source){
 }
 
 
-void comm_find_winner(int *max_card, int *winner_node, int *winner_index, int cwrank, int node_count){
+void comm_barrier(){
 #if defined(PARALLEL)
-    int glb_max_card, i_am_in=node_count;
+    MPI_Barrier (_qtc_mpi_communicator);
+#endif
+    return;
+}
+
+void comm_find_winner(int *max_card, int *winner_node, int *winner_index, int cwrank, int max_index){
+#if defined(PARALLEL)
+    int glb_max_card = 0, index = *winner_index;
     // Reduce the cardinalities to see what the highest value is.
     MPI_Allreduce (max_card, &glb_max_card, 1, MPI_INT, MPI_MAX, _qtc_mpi_communicator);
 
-    // Find which node produced the largest cluster
-    if(*max_card == glb_max_card)
-        i_am_in = cwrank;
-    MPI_Allreduce (&i_am_in, winner_node, 1, MPI_INT, MPI_MIN, _qtc_mpi_communicator);
+    // If I'm not one of the winners, set my index to max
+    if(*max_card != glb_max_card)
+        index = max_index;
+        
+    MPI_Allreduce (&index, winner_index, 1, MPI_INT, MPI_MIN, _qtc_mpi_communicator);
+
     *max_card = glb_max_card;
 
-    // Broadcast the seed index that produced the largest cluster
-    MPI_Bcast (winner_index, sizeof(int), MPI_INT, *winner_node, _qtc_mpi_communicator );
+    if( index == *winner_index ){
+        *winner_node = cwrank;
+    }else{
+        *winner_node = -1;
+    }
+
 #else
     *winner_node = 0;
 #endif // defined(PARALLEL)

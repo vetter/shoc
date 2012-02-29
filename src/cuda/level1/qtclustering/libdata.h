@@ -4,14 +4,7 @@
 #include "support.h"
 #include "qtclib.h"
 
-#if defined(N_SQUARE)
-float *fake_BLAST_data(float **rslt_mtrx, int *max_degree, float threshold, int N);
-#else
-float *fake_BLAST_data(float **rslt_mtrx, int **index_mtrx, int *max_degree, float threshold, int N);
-#endif
-int read_BLAST_data(float **dist_mtrx, int *max_degree, float threshold, const char *fname);
-int read_BLAST_data(float **dist_mtrx, int *max_degree, float threshold, const char *fname, int maxN);
+float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float threshold, int N, int type);
+int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float threshold, const char *fname, int maxN, int matrix_type_mask);
 
-template <class T2>
-void generatePoints(T2 *array, int clusterCount, unsigned long pointCount);
 #endif
