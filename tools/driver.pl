@@ -742,7 +742,7 @@ sub buildCommand {
 
    # Add size and maybe device options
    $command .= " -s $sizeClass";
-   $command .= " -p $platformList" if($platformList ne "");
+   $command .= " -p $platformList" if($platformList ne "" && $mode eq "opencl");
    $command .= " -d $deviceList" if ($deviceList ne "");
 
    # Output redirection

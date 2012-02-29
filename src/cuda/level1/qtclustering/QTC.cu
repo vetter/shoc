@@ -20,27 +20,13 @@
 
 #include "comm.h"
 
-#if defined(N_SQUARE)
-texture<float, 2, cudaReadModeElementType> texWork;
-#else
-# if defined(USE_TEXTURES)
-texture<float, 2, cudaReadModeElementType> texDenseDist;
-# endif
-#endif
-
-#include "codelets.h"
+texture<float, 2, cudaReadModeElementType> texDistance;
 
 using namespace std;
 
-#ifdef MIN
-# undef MIN
-#endif
-#define MIN(_X, _Y) ( ((_X) < (_Y)) ? (_X) : (_Y) )
-
-#ifdef MAX
-# undef MAX
-#endif
-#define MAX(_X, _Y) ( ((_X) > (_Y)) ? (_X) : (_Y) )
+#include "kernels_common.h"
+#include "kernels_sparse.h"
+#include "kernels_dense.h"
 
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions
@@ -59,11 +45,14 @@ using namespace std;
 //
 // ****************************************************************************
 void addBenchmarkSpecOptions(OptionParser &op){
-    op.addOption("POINTS", OPT_INT, "0", "point count");
-    op.addOption("Threshold", OPT_FLOAT, "0.01", "cluster diameter threshold");
-    op.addOption("File", OPT_STRING, "data.ssv", "BLAST data input file name");
+    op.addOption("PointCount", OPT_INT, "4096", "point count");
+    op.addOption("DataFile", OPT_STRING, "///", "BLAST data input file name");
+    op.addOption("Threshold", OPT_FLOAT, "1", "cluster diameter threshold");
     op.addOption("SaveOutput", OPT_BOOL, "", "BLAST data input file name");
-    op.addOption("Verbose", OPT_BOOL, "", "Print Cluster Cardinalities");
+    op.addOption("Verbose", OPT_BOOL, "", "Print cluster cardinalities");
+    op.addOption("TextureMem", OPT_BOOL, "0", "Use Texture memory for distance matrix");
+    op.addOption("Dense", OPT_BOOL, "0", "Use dense distance matrix regardless of problem size");
+            
 }
 
 // ****************************************************************************
@@ -91,7 +80,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op){
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, qtcDevice);
 
-    runTest("SP-QTC", resultDB, op);
+    runTest("QTC", resultDB, op);
 }
 
 
@@ -118,9 +107,9 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op){
 // Creation: May 25, 2011
 //
 // ****************************************************************************
-void calculate_participants(int point_count, int node_count, int cwrank, int *thread_block_count, int *total_thread_block_count, int *active_node_count, int *node_offset){
+void calculate_participants(int point_count, int node_count, int cwrank, int *thread_block_count, int *total_thread_block_count, int *active_node_count){
 
-    int ac_nd_cnt, offset, thr_blc_cnt, total_thr_blc_cnt;
+    int ac_nd_cnt, thr_blc_cnt, total_thr_blc_cnt;
 
     ac_nd_cnt = node_count;
     if( point_count <= (node_count-1) * SM_COUNT * GPU_MIN_SATURATION_FACTOR ){
@@ -131,23 +120,62 @@ void calculate_participants(int point_count, int node_count, int cwrank, int *th
     if( point_count >= ac_nd_cnt * SM_COUNT * OVR_SBSCR_FACTOR ){
         thr_blc_cnt = SM_COUNT * OVR_SBSCR_FACTOR;
         total_thr_blc_cnt = thr_blc_cnt * ac_nd_cnt;
-        offset = cwrank*thr_blc_cnt;
     }else{
         thr_blc_cnt = point_count/ac_nd_cnt;
         if( cwrank < point_count%ac_nd_cnt ){
             thr_blc_cnt++;
-            offset = cwrank*thr_blc_cnt;
-        }else{
-            offset = cwrank*thr_blc_cnt + point_count%ac_nd_cnt;
         }
         total_thr_blc_cnt = point_count;
     }
 
-
     *active_node_count  = ac_nd_cnt;
-    *node_offset = offset;
     *thread_block_count = thr_blc_cnt;
     *total_thread_block_count = total_thr_blc_cnt;
+
+    return;
+}
+
+unsigned long int estimate_memory_for_sparse(unsigned long int pnt_cnt, float d){
+    unsigned long total, thread_block_count, max_degree;
+    float density;
+
+    thread_block_count = (unsigned long int)SM_COUNT * OVR_SBSCR_FACTOR;
+
+    // The density calculations assume that we are dealing with generated Euclidean points
+    // (as opposed to externally provided scientific data) that are constraint in a 20x20 2D square.
+    density = 3.14159*(d*d)/(20.0*20.0);
+    if(density > 1.0 ) density = 1.0;
+    max_degree = (unsigned long int)((float)pnt_cnt*density); // average number of points in a cirlce with radius d.
+    max_degree *= 10; // The distribution of points is not uniform, so throw in a factor of 10 for max/average.
+    if( max_degree > pnt_cnt )
+        max_degree = pnt_cnt;
+    // Due to the point generation algorithm, a cluster can have up to N/30 elements in an arbitratiry small radius.
+    if( max_degree < pnt_cnt/30 )
+        max_degree = pnt_cnt/30;
+    
+    total = 0;
+    total += pnt_cnt*pnt_cnt*sizeof(float); // Sparse distance matrix
+    total += pnt_cnt*max_degree*sizeof(int); // Indirection matrix
+    total += pnt_cnt*thread_block_count*sizeof(char); // Current candidate cluster mask
+    total += pnt_cnt*sizeof(int); // Ungrouped elements indirection vector
+    total += pnt_cnt*sizeof(int); // Degrees vector
+    total += pnt_cnt*sizeof(int); // Result
+
+    return total;
+}
+
+void findMemCharacteristics(unsigned long int *gmem, unsigned long int *text){
+    int device;
+    cudaDeviceProp deviceProp;
+
+    cudaGetDevice(&device);
+    CHECK_CUDA_ERROR();
+
+    cudaGetDeviceProperties(&deviceProp, device);
+    CHECK_CUDA_ERROR();
+
+    *gmem = (unsigned long int)(0.75*(float)deviceProp.totalGlobalMem);
+    *text = (unsigned long int)deviceProp.maxTexture2D[1];
 
     return;
 }
@@ -172,91 +200,142 @@ void calculate_participants(int point_count, int node_count, int cwrank, int *th
 
 void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
 {    
-    int *output;
-    ofstream debug_out, debug2_out, seeds_out;
-    void *Ai_mask, *cardnl, *ungrpd_pnts_indr, *clustered_pnts_mask, *result, *dist_to_clust;
-    bool save_clusters, be_verbose;
-    void *degrees; 
-#if defined(N_SQUARE)
-    cudaArray *work;
-    float *source;
-#else
-# if defined(USE_TEXTURES)
-    cudaArray *dense_dist_matrix;
-# else
-    void *dense_dist_matrix;
-# endif
-    float *dist_source;
-    int *indr_mtrx_host;
-#endif
-    void *indr_mtrx;
+    unsigned long int point_count, max_avail_memory, max_texture_dimension, needed_mem;
+    int matrix_type = 0x0;
     float threshold;
-    int *ungrpd_pnts_indr_host, *cardinalities;
+    bool use_texture = false, use_dense = false;
+
+    point_count = op.getOptionInt("PointCount");
+    threshold = op.getOptionFloat("Threshold");
+    use_texture = op.getOptionFloat("TextureMem");
+    use_dense = op.getOptionFloat("Dense");
+
+    if( comm_get_rank() == 0 ){
+        // Make a reasonable estimate of the actual memory I can allocate as well as the max texture size.
+        findMemCharacteristics(&max_avail_memory, &max_texture_dimension);
+
+        needed_mem = estimate_memory_for_sparse(point_count, threshold);
+
+        // see if we can fit the distance matrix in texture memory
+        if( (point_count >= max_texture_dimension) || !use_texture ){
+            printf("Using global memory for distance matrix\n");
+            matrix_type |= GLOBAL_MEMORY;
+        }else{
+            printf("Using texture memory for distance matrix\n");
+            matrix_type |= TEXTUR_MEMORY;
+        }
+
+        // find out what type of distance matrix we will be using.
+        if( (max_avail_memory > needed_mem) && !use_dense ){
+            printf("Using sparse distance matrix algorithm\n");
+            matrix_type |= SPARS_MATRIX;
+        }else{
+            printf("Using dense distance matrix algorithm\n");
+            matrix_type |= DENSE_MATRIX;
+        }
+    }
+    comm_broadcast ( &matrix_type, 1, COMM_TYPE_INT, 0);
+
+    QTC(name, resultDB, op, matrix_type);
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int matrix_type){
+    ofstream debug_out, seeds_out;
+    void *Ai_mask, *cardnl, *ungrpd_pnts_indr, *clustered_pnts_mask, *result, *dist_to_clust;
+    void *indr_mtrx, *degrees; 
+    int *indr_mtrx_host, *ungrpd_pnts_indr_host, *cardinalities, *output;
+    bool save_clusters, be_verbose, can_use_texture, synthetic_data;
+    cudaArray *distance_matrix_txt;
+    void *distance_matrix_gmem, *distance_matrix;
+    float *dist_source, *pnts;
+    float threshold;
     int i, max_degree, thread_block_count, total_thread_block_count, active_node_count;
-    int node_offset, cwrank=0, node_count=1, tpb;
-    int max_card, iter=0;
-    double t_krn, t_comm, t_trim, t_updt, t_redc;
-    unsigned long point_count = 0, max_point_count;
-    unsigned long used_bytes;
-    float *pnts;
+    int cwrank=0, node_count=1, tpb, max_card, iter=0;
+    double t_krn, t_comm, t_trim, t_updt, t_redc, t_sync;
+    unsigned long int dst_matrix_elems, point_count, max_point_count;
+    string fname;
+
+    point_count = op.getOptionInt("PointCount");
+    threshold = op.getOptionFloat("Threshold");
+    save_clusters = op.getOptionBool("SaveOutput");
+    be_verbose = op.getOptionBool("Verbose");
+    fname = op.getOptionString("DataFile");
+    if( fname.compare("///") == 0 ){
+        synthetic_data = true;
+    }else{
+        synthetic_data = false;
+        save_clusters = false;
+    }
+
+    can_use_texture = !!(matrix_type & TEXTUR_MEMORY);
 
     cwrank = comm_get_rank();
     node_count = comm_get_size();
 
-    point_count = op.getOptionInt("POINTS");
-    threshold = op.getOptionFloat("Threshold");
-    save_clusters = op.getOptionBool("SaveOutput");
-    be_verbose = op.getOptionBool("Verbose");
     if( cwrank == 0 ){
-#if defined(N_SQUARE)
-        pnts = fake_BLAST_data(&source, &max_degree, threshold, point_count);
-#else
-        pnts = fake_BLAST_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, point_count);
-#endif
+        if( synthetic_data )
+            pnts = generate_synthetic_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, point_count, matrix_type);
+        else
+            (void)read_BLAST_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, fname.c_str(), point_count, matrix_type);
     }
 
     comm_broadcast ( &point_count, 1, COMM_TYPE_INT, 0);
     comm_broadcast ( &max_degree, 1, COMM_TYPE_INT, 0);
-    if( cwrank != 0 ){ // For all nodes except zero, in a distributed run.
-#if defined(N_SQUARE)
-        allocHostBuffer((void **)&source, point_count*point_count*sizeof(float));
-#else
-        allocHostBuffer((void **)&dist_source, point_count*max_degree*sizeof(float));
-        allocHostBuffer((void **)&indr_mtrx_host, point_count*max_degree*sizeof(int));
-#endif
+
+    if( matrix_type & SPARS_MATRIX ){
+        dst_matrix_elems = point_count*point_count;
+    }else{
+        dst_matrix_elems = point_count*max_degree;
     }
 
-#if defined(N_SQUARE)
-    comm_broadcast ( source, point_count*point_count, COMM_TYPE_FLOAT, 0);
-#else
-    comm_broadcast ( dist_source, point_count*max_degree, COMM_TYPE_FLOAT, 0);
+    if( cwrank != 0 ){ // For all nodes except zero, in a distributed run.
+        allocHostBuffer((void **)&dist_source, dst_matrix_elems*sizeof(float));
+        allocHostBuffer((void **)&indr_mtrx_host, point_count*max_degree*sizeof(int));
+    }
+    // If we need to print the actual clusters later on, we'll need to have all points in all nodes.
+    if( save_clusters ){
+        if( cwrank != 0 ){
+            pnts = (float *)malloc( 2*point_count*sizeof(float) );
+        }
+        comm_broadcast ( pnts, 2*point_count, COMM_TYPE_FLOAT, 0);
+    }
+
+    comm_broadcast ( dist_source, dst_matrix_elems, COMM_TYPE_FLOAT, 0);
     comm_broadcast ( indr_mtrx_host, point_count*max_degree, COMM_TYPE_INT, 0);
-#endif
     
     assert( max_degree > 0 );
 
     init(op);
 
-    calculate_participants(point_count, node_count, cwrank, &thread_block_count, &total_thread_block_count, &active_node_count, &node_offset);
-
-    // allocate host and device memory
-    // If we don't have coordinates but we're working with BLAST data, we don't need
-    // to allocate "source", because "read_BLAST_data()" will do that for us.
-#if defined(N_SQUARE)
-    // Allocate an N^2 array for the distance data.
-    used_bytes = sizeof(float) * point_count * point_count;
-#else
-    // Allocate an N*Delta array for the distance data.
-    used_bytes = sizeof(float) * point_count * max_degree;
-#endif
+    calculate_participants(point_count, node_count, cwrank, &thread_block_count, &total_thread_block_count, &active_node_count);
 
     allocHostBuffer((void**)&ungrpd_pnts_indr_host, point_count*sizeof(int));
     for(int i=0; i<point_count; i++){
 	ungrpd_pnts_indr_host[i] = i;
     }
 
-    allocHostBuffer((void**)&cardinalities, thread_block_count*2*sizeof(int));
-    allocHostBuffer((void**)&output, point_count*sizeof(int));
+    allocHostBuffer((void**)&cardinalities, 2*sizeof(int));
+    allocHostBuffer((void**)&output, max_degree*sizeof(int));
+
+    if( can_use_texture ){
+        texDistance.addressMode[0] = cudaAddressModeClamp;
+        texDistance.addressMode[1] = cudaAddressModeClamp;
+        texDistance.filterMode = cudaFilterModePoint;
+        texDistance.normalized = false; // do not normalize coordinates
+        // This is the actual distance matrix (dst_matrix_elems should be "point_count^2, or point_count*max_degree)
+        printf("Allocating: %dMB (%dx%dx%d) bytes in texture memory\n", dst_matrix_elems*sizeof(float)/(1024*1024),
+                                                                        dst_matrix_elems/point_count, point_count, sizeof(float));
+        cudaMallocArray(&distance_matrix_txt, &texDistance.channelDesc, dst_matrix_elems/point_count, point_count);
+    }else{
+        allocDeviceBuffer(&distance_matrix_gmem, dst_matrix_elems*sizeof(float));
+    }
+    CHECK_CUDA_ERROR();
+
+    // This is the N*Delta indirection matrix
+    allocDeviceBuffer(&indr_mtrx, point_count*max_degree*sizeof(int));
 
     allocDeviceBuffer(&degrees,             point_count*sizeof(int));
     allocDeviceBuffer(&ungrpd_pnts_indr,    point_count*sizeof(int));
@@ -266,47 +345,18 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     allocDeviceBuffer(&cardnl,              thread_block_count*2*sizeof(int));
     allocDeviceBuffer(&result,              point_count*sizeof(int));
 
-#if defined(N_SQUARE)
-    // Set texture parameters (default)
-    texWork.addressMode[0] = cudaAddressModeClamp;
-    texWork.addressMode[1] = cudaAddressModeClamp;
-    texWork.filterMode = cudaFilterModePoint;
-    texWork.normalized = false; // do not normalize coordinates
-    // This is the N*N distance matrix
-    cudaMallocArray(&work, &texWork.channelDesc, point_count, point_count);
-#else
-# if defined(USE_TEXTURES)
-    texDenseDist.addressMode[0] = cudaAddressModeClamp;
-    texDenseDist.addressMode[1] = cudaAddressModeClamp;
-    texDenseDist.filterMode = cudaFilterModePoint;
-    texDenseDist.normalized = false; // do not normalize coordinates
-    // This is the N*D distance matrix
-    cudaMallocArray(&dense_dist_matrix, &texDenseDist.channelDesc, max_degree, point_count);
-# else
-    allocDeviceBuffer(&dense_dist_matrix, used_bytes);
-# endif
-#endif
-    CHECK_CUDA_ERROR();
-
-    // This is the N*Delta indirection matrix
-    allocDeviceBuffer(&indr_mtrx, point_count*max_degree*sizeof(int));
-
     // Copy to device, and record transfer time
     int pcie_TH = Timer::Start();
-#if defined(N_SQUARE)
-    cudaMemcpyToArray(work, 0, 0, source, used_bytes, cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
-    cudaBindTextureToArray(texWork, work);
-#else
-# if defined(USE_TEXTURES)
-    cudaMemcpyToArray(dense_dist_matrix, 0, 0, dist_source, used_bytes, cudaMemcpyHostToDevice);
-    CHECK_CUDA_ERROR();
-    cudaBindTextureToArray(texDenseDist, dense_dist_matrix);
-# else
-    copyToDevice(dense_dist_matrix, dist_source, used_bytes);
-# endif
+
+    if( can_use_texture ){
+        cudaMemcpyToArray(distance_matrix_txt, 0, 0, dist_source, dst_matrix_elems*sizeof(float), cudaMemcpyHostToDevice);
+        CHECK_CUDA_ERROR();
+        cudaBindTextureToArray(texDistance, distance_matrix_txt);
+    }else{
+        copyToDevice(distance_matrix_gmem, dist_source, dst_matrix_elems*sizeof(float));
+    }
+
     copyToDevice(indr_mtrx, indr_mtrx_host, point_count*max_degree*sizeof(int));
-#endif
 
     copyToDevice(ungrpd_pnts_indr, ungrpd_pnts_indr_host, point_count*sizeof(int));
     cudaMemset(clustered_pnts_mask, 0, point_count*sizeof(char));
@@ -314,12 +364,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     double transfer_time = Timer::Stop(pcie_TH, "PCIe Transfer Time");
 
     tpb = ( point_count > THREADSPERBLOCK )? THREADSPERBLOCK : point_count;
-#if defined(N_SQUARE)
-    populate_dense_indirection_matrix<<<grid2D(thread_block_count), tpb>>>((int *)indr_mtrx, (float *)work, (int *)degrees, threshold, point_count, max_degree);
-#else
-    // In this case "populate" is a misnomer, the kernel merely counts the degree of each seed.
-    populate_dense_indirection_matrix<<<grid2D(thread_block_count), tpb>>>((int *)indr_mtrx, (int *)degrees, point_count, max_degree);
-#endif
+    compute_degrees<<<grid2D(thread_block_count), tpb>>>((int *)indr_mtrx, (int *)degrees, point_count, max_degree);
     cudaThreadSynchronize();
     CHECK_CUDA_ERROR();
 
@@ -328,16 +373,16 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     ss << "PointCount=" << (long)point_count;
     sizeStr = strdup(ss.str().c_str());
 
-    if( save_clusters ){
-        debug_out.open("p");
-        for(i=0; i<point_count; i++){
-            debug_out << pnts[2*i] << " " << pnts[2*i+1] << endl;
-        }
-        debug_out.close();
-        seeds_out.open("p_seeds");
-    }
-
     if( 0 == cwrank ){
+        if( save_clusters ){
+            debug_out.open("p");
+            for(i=0; i<point_count; i++){
+                debug_out << pnts[2*i] << " " << pnts[2*i+1] << endl;
+            }
+            debug_out.close();
+            seeds_out.open("p_seeds");
+        }
+
         cout << "\nInitial ThreadBlockCount: " << thread_block_count;
         cout << " PointCount: " << point_count;
         cout << " Max degree: " << max_degree << "\n" << endl;
@@ -348,6 +393,12 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
 
     tpb = THREADSPERBLOCK;
 
+    if( can_use_texture ){
+        distance_matrix = distance_matrix_txt;
+    }else{
+        distance_matrix = distance_matrix_gmem;
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -356,41 +407,35 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     int TH = Timer::Start();
     do{
         stringstream ss;
-        int winner_node=0;
+        int winner_node=-1;
         int winner_index=-1;
         bool this_node_participates = true;
+
         ++iter;
 
-        calculate_participants(point_count, node_count, cwrank, &thread_block_count, &total_thread_block_count, &active_node_count, &node_offset);
+        calculate_participants(point_count, node_count, cwrank, &thread_block_count, &total_thread_block_count, &active_node_count);
 
+        // If there are only a few elements left to cluster, reduce the number of participating nodes (GPUs).
         if( cwrank >= active_node_count ){
             this_node_participates = false;
         }
-
         comm_update_communicator(cwrank, active_node_count);
-
         if( !this_node_participates )
             break;
+        cwrank = comm_get_rank();
 
-        max_card = 0;
-
-        int Tkernel = Timer::Start();
         dim3 grid = grid2D(thread_block_count);
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        ////////// ---------        Entry point to the main kernel        --------- //////////
-#if defined(N_SQUARE)
-        QTC_device<<<grid, tpb>>>( (float*)work, (char *)Ai_mask, (char *)clustered_pnts_mask,
-                                   (int *)indr_mtrx, (int *)cardnl, (int *)ungrpd_pnts_indr, (float *)dist_to_clust,
-                                   (int *)degrees, point_count, max_point_count, max_degree, threshold, cwrank, node_offset,
-                                   total_thread_block_count);
-#else
-        QTC_device<<<grid, tpb>>>( (float*)dense_dist_matrix, (char *)Ai_mask, (char *)clustered_pnts_mask,
-                                   (int *)indr_mtrx, (int *)cardnl, (int *)ungrpd_pnts_indr, (float *)dist_to_clust,
-                                   (int *)degrees, point_count, max_point_count, max_degree, threshold, cwrank, node_offset,
-                                   total_thread_block_count);
-#endif
-
+        int Tkernel = Timer::Start();
+        ////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////// -----------------               Main kernel                ----------------- /////////
+        QTC_device<<<grid, tpb>>>((float*)distance_matrix, (char *)Ai_mask, (char *)clustered_pnts_mask,
+                                  (int *)indr_mtrx, (int *)cardnl, (int *)ungrpd_pnts_indr,
+                                  (float *)dist_to_clust, (int *)degrees, point_count, max_point_count,
+                                  max_degree, threshold, cwrank, active_node_count, 
+                                  total_thread_block_count, matrix_type, can_use_texture);
+        ///////// -----------------               Main kernel                ----------------- /////////
+        ////////////////////////////////////////////////////////////////////////////////////////////////
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
         t_krn += Timer::Stop(Tkernel, "Kernel Only");
@@ -408,8 +453,12 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         winner_index = cardinalities[1];
         t_redc += Timer::Stop(Tredc, "Reduce Only");
 
+        int Tsync = Timer::Start();
+        comm_barrier();
+        t_sync += Timer::Stop(Tsync, "Sync Only");
+
         int Tcomm = Timer::Start();
-        comm_find_winner(&max_card, &winner_node, &winner_index, cwrank, node_count);
+        comm_find_winner(&max_card, &winner_node, &winner_index, cwrank, max_point_count+1);
         t_comm += Timer::Stop(Tcomm, "Comm Only");
 
         if( be_verbose && cwrank == winner_node){ // for non-parallel cases, both "cwrank" and "winner_node" should be zero.
@@ -417,17 +466,10 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         }
 
         int Ttrim = Timer::Start();
-#if defined(N_SQUARE)
-        trim_ungrouped_pnts_indr_array<<<grid2D(1), tpb>>>(winner_index, (int*)ungrpd_pnts_indr, (float*)work,
+        trim_ungrouped_pnts_indr_array<<<grid2D(1), tpb>>>(winner_index, (int*)ungrpd_pnts_indr, (float*)distance_matrix,
                                           (int *)result, (char *)Ai_mask, (char *)clustered_pnts_mask,
                                           (int *)indr_mtrx, (int *)cardnl, (float *)dist_to_clust, (int *)degrees,
-                                          point_count, max_point_count, max_degree, threshold );
-#else
-        trim_ungrouped_pnts_indr_array<<<grid2D(1), tpb>>>(winner_index, (int*)ungrpd_pnts_indr, (float*)dense_dist_matrix,
-                                          (int *)result, (char *)Ai_mask, (char *)clustered_pnts_mask,
-                                          (int *)indr_mtrx, (int *)cardnl, (float *)dist_to_clust, (int *)degrees,
-                                          point_count, max_point_count, max_degree, threshold );
-#endif
+                                          point_count, max_point_count, max_degree, threshold, matrix_type, can_use_texture );
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
         t_trim += Timer::Stop(Ttrim, "Trim Only");
@@ -472,28 +514,32 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         cout.flush();
     }
 
-    resultDB.AddResult(name+"_comm", sizeStr, "Time", t_comm);
-    resultDB.AddResult(name+"_krnl", sizeStr, "Time", t_krn);
-    resultDB.AddResult(name+"_trim", sizeStr, "Time", t_trim);
-    resultDB.AddResult(name+"_updt", sizeStr, "Time", t_updt);
-    resultDB.AddResult(name+"_redc", sizeStr, "Time", t_redc);
-    resultDB.AddResult(name, sizeStr, "Time", t);
-    resultDB.AddResult(name+"_PCIe", sizeStr, "Time", t+transfer_time);
+    resultDB.AddResult(name+"_Synchron.", sizeStr, "Time", t_sync);
+    resultDB.AddResult(name+"_Communic.", sizeStr, "Time", t_comm);
+    resultDB.AddResult(name+"_Kernel", sizeStr, "Time", t_krn);
+    resultDB.AddResult(name+"_Trimming", sizeStr, "Time", t_trim);
+    resultDB.AddResult(name+"_Update", sizeStr, "Time", t_updt);
+    resultDB.AddResult(name+"_Reduction", sizeStr, "Time", t_redc);
+    resultDB.AddResult(name+"_Algorithm", sizeStr, "Time", t);
+    resultDB.AddResult(name+"+PCI_Trans.", sizeStr, "Time", t+transfer_time);
 
-#if defined(N_SQUARE)
-    cudaFreeArray(work);
-    freeHostBuffer(source);
-    cudaUnbindTexture(texWork);
-#else
     freeHostBuffer(dist_source);
     freeHostBuffer(indr_mtrx_host);
-# if defined(USE_TEXTURES)
-    cudaFreeArray(dense_dist_matrix);
-    cudaUnbindTexture(texDenseDist);
-# else
-    freeDeviceBuffer(dense_dist_matrix);
-# endif
+/*
+#if defined(USE_TEXTURE_MEM)
+    cudaFreeArray(distance_matrix);
+    cudaUnbindTexture(texDistance);
+#else
+    freeDeviceBuffer(distance_matrix);
 #endif
+*/
+    if( can_use_texture ){
+        cudaFreeArray(distance_matrix_txt);
+        cudaUnbindTexture(texDistance);
+    }else{
+        freeDeviceBuffer(distance_matrix_gmem);
+    }
+
     CHECK_CUDA_ERROR();
 
     freeDeviceBuffer(indr_mtrx);
