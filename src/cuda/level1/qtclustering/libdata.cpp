@@ -62,7 +62,7 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
     //allocHostBuffer((void **)&dist_mtrx, N*N*sizeof(float));
 
     /* new */
-    if( matrix_type_mask & SPARS_MATRIX ){
+    if( matrix_type_mask & FULL_STORAGE_MATRIX ){
         bound = N;
     }else{
         bound = D;
@@ -109,7 +109,7 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
                 delta++;
 	    assert(delta <= D);
             index_mtrx[p1*D+delta] = p2;
-            if( matrix_type_mask & SPARS_MATRIX ){
+            if( matrix_type_mask & FULL_STORAGE_MATRIX ){
                 dist_mtrx[p1*N+p2] = dist;
                 dist_mtrx[p2*N+p1] = dist;
             }else{
@@ -239,7 +239,7 @@ float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degr
             D = delta;
     }
 
-    if( matrix_type_mask & SPARS_MATRIX ){
+    if( matrix_type_mask & FULL_STORAGE_MATRIX ){
         bound = N;
     }else{
         bound = D;
@@ -274,7 +274,7 @@ float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degr
             if( dist_sq < threshold_sq ){
                 float dist = (float)sqrt((double)dist_sq);
                 index_mtrx[i*D+delta] = j;
-                if( matrix_type_mask & SPARS_MATRIX ){
+                if( matrix_type_mask & FULL_STORAGE_MATRIX ){
                     dist_mtrx[i*N+j] = dist;
                     dist_mtrx[j*N+i] = dist;
                 }else{

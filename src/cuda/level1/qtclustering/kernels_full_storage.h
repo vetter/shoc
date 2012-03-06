@@ -1,5 +1,5 @@
-#ifndef _KERNELS_SPARSE_H_
-#define _KERNELS_SPARSE_H_
+#ifndef _KERNELS_FULL_STORAGE_H_
+#define _KERNELS_FULL_STORAGE_H_
 
 inline __device__
 int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, float threshold, bool can_use_texture){
@@ -79,7 +79,7 @@ do{ \
 
 
 inline __device__
-int generate_candidate_cluster_sparse(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture)
+int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture)
 {
     bool flag;
     int cnt, latest_point;

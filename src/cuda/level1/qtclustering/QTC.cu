@@ -25,8 +25,8 @@ texture<float, 2, cudaReadModeElementType> texDistance;
 using namespace std;
 
 #include "kernels_common.h"
-#include "kernels_sparse.h"
-#include "kernels_dense.h"
+#include "kernels_full_storage.h"
+#include "kernels_compact_storage.h"
 
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions
@@ -45,13 +45,14 @@ using namespace std;
 //
 // ****************************************************************************
 void addBenchmarkSpecOptions(OptionParser &op){
+    op.addOption("s", OPT_INT, "-1", "preselected problem sizes");
     op.addOption("PointCount", OPT_INT, "4096", "point count");
     op.addOption("DataFile", OPT_STRING, "///", "BLAST data input file name");
     op.addOption("Threshold", OPT_FLOAT, "1", "cluster diameter threshold");
     op.addOption("SaveOutput", OPT_BOOL, "", "BLAST data input file name");
     op.addOption("Verbose", OPT_BOOL, "", "Print cluster cardinalities");
     op.addOption("TextureMem", OPT_BOOL, "0", "Use Texture memory for distance matrix");
-    op.addOption("Dense", OPT_BOOL, "0", "Use dense distance matrix regardless of problem size");
+    op.addOption("CompactStorage", OPT_BOOL, "0", "Use compact storage distance matrix regardless of problem size");
             
 }
 
@@ -135,7 +136,7 @@ void calculate_participants(int point_count, int node_count, int cwrank, int *th
     return;
 }
 
-unsigned long int estimate_memory_for_sparse(unsigned long int pnt_cnt, float d){
+unsigned long int estimate_memory_for_full_storage(unsigned long int pnt_cnt, float d){
     unsigned long total, thread_block_count, max_degree;
     float density;
 
@@ -201,20 +202,54 @@ void findMemCharacteristics(unsigned long int *gmem, unsigned long int *text){
 void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
 {    
     unsigned long int point_count, max_avail_memory, max_texture_dimension, needed_mem;
-    int matrix_type = 0x0;
+    int def_size = -1, matrix_type = 0x0;
     float threshold;
-    bool use_texture = false, use_dense = false;
+    bool use_texture = true, use_compact_storage = false;
 
+    def_size    = op.getOptionInt("s");
     point_count = op.getOptionInt("PointCount");
-    threshold = op.getOptionFloat("Threshold");
+    threshold   = op.getOptionFloat("Threshold");
     use_texture = op.getOptionFloat("TextureMem");
-    use_dense = op.getOptionFloat("Dense");
+    use_compact_storage = op.getOptionFloat("CompactStorage");
+    if( use_compact_storage ){
+        use_texture = false;
+    }
 
-    if( comm_get_rank() == 0 ){
-        // Make a reasonable estimate of the actual memory I can allocate as well as the max texture size.
+    switch( def_size ){
+        case 1:
+            point_count = 8*1024;
+            threshold   = 1;
+            use_texture = true;
+            use_compact_storage = false;
+            break;
+        case 2:
+            point_count = 16*1024;
+            threshold   = 1;
+            use_texture = true;
+            use_compact_storage = false;
+            break;
+        case 3:
+            point_count = 16*1024;
+            threshold   = 4;
+            use_texture = true;
+            use_compact_storage = false;
+            break;
+        case 4:
+            point_count = 26*1024;
+            threshold   = 1;
+            use_texture = false;
+            use_compact_storage = true;
+            break;
+        default:
+            break;
+    }
+
+    if( 0 == comm_get_rank() ){
+        // Make a reasonable estimate of the actual memory I can allocate
+        // as well as the max texture size.
         findMemCharacteristics(&max_avail_memory, &max_texture_dimension);
 
-        needed_mem = estimate_memory_for_sparse(point_count, threshold);
+        needed_mem = estimate_memory_for_full_storage(point_count, threshold);
 
         // see if we can fit the distance matrix in texture memory
         if( (point_count >= max_texture_dimension) || !use_texture ){
@@ -226,12 +261,12 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         }
 
         // find out what type of distance matrix we will be using.
-        if( (max_avail_memory > needed_mem) && !use_dense ){
-            printf("Using sparse distance matrix algorithm\n");
-            matrix_type |= SPARS_MATRIX;
+        if( (max_avail_memory > needed_mem) && !use_compact_storage ){
+            printf("Using full storage distance matrix algorithm\n");
+            matrix_type |= FULL_STORAGE_MATRIX;
         }else{
-            printf("Using dense distance matrix algorithm\n");
-            matrix_type |= DENSE_MATRIX;
+            printf("Using compact storage distance matrix algorithm\n");
+            matrix_type |= COMPACT_STORAGE_MATRIX;
         }
     }
     comm_broadcast ( &matrix_type, 1, COMM_TYPE_INT, 0);
@@ -272,6 +307,39 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     can_use_texture = !!(matrix_type & TEXTUR_MEMORY);
 
+    switch( op.getOptionInt("s") ){
+        case 1:
+            point_count    = 8*1024;
+            threshold      = 1;
+            save_clusters  = false;
+            be_verbose     = false;
+            synthetic_data = true;
+            break;
+        case 2:
+            point_count    = 16*1024;
+            threshold      = 1;
+            save_clusters  = false;
+            be_verbose     = false;
+            synthetic_data = true;
+            break;
+        case 3:
+            point_count    = 16*1024;
+            threshold      = 4;
+            save_clusters  = false;
+            be_verbose     = false;
+            synthetic_data = true;
+            break;
+        case 4:
+            point_count    = 26*1024;
+            threshold      = 1;
+            save_clusters  = false;
+            be_verbose     = false;
+            synthetic_data = true;
+            break;
+        default:
+            break;
+    }
+
     cwrank = comm_get_rank();
     node_count = comm_get_size();
 
@@ -285,7 +353,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     comm_broadcast ( &point_count, 1, COMM_TYPE_INT, 0);
     comm_broadcast ( &max_degree, 1, COMM_TYPE_INT, 0);
 
-    if( matrix_type & SPARS_MATRIX ){
+    if( matrix_type & FULL_STORAGE_MATRIX ){
         dst_matrix_elems = point_count*point_count;
     }else{
         dst_matrix_elems = point_count*max_degree;
@@ -525,14 +593,6 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     freeHostBuffer(dist_source);
     freeHostBuffer(indr_mtrx_host);
-/*
-#if defined(USE_TEXTURE_MEM)
-    cudaFreeArray(distance_matrix);
-    cudaUnbindTexture(texDistance);
-#else
-    freeDeviceBuffer(distance_matrix);
-#endif
-*/
     if( can_use_texture ){
         cudaFreeArray(distance_matrix_txt);
         cudaUnbindTexture(texDistance);

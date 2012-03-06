@@ -14,9 +14,9 @@
 // Forward declarations
 __global__ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int cwrank, int node_rank, int node_count, int total_thread_block_count, bool can_use_texture);
 
-__device__ int generate_candidate_cluster_dense(int seed_point, int degree, char *Ai_mask, float *dense_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
+__device__ int generate_candidate_cluster_compact_storage(int seed_point, int degree, char *Ai_mask, float *compact_storage_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
 
-__device__ int generate_candidate_cluster_sparse(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
+__device__ int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
 
 __device__ int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, float threshold);
 
@@ -145,11 +145,11 @@ trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dis
     __shared__ int tmp_pnts[THREADSPERBLOCK];
 
     int degree = degrees[seed_index];
-    if( matrix_type_mask & SPARS_MATRIX ){
-        (void)generate_candidate_cluster_sparse(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
+    if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+        (void)generate_candidate_cluster_full_storage(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
                                                dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture);
     }else{
-        (void)generate_candidate_cluster_dense(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
+        (void)generate_candidate_cluster_compact_storage(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
                                                dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture);
     }
 
@@ -220,13 +220,13 @@ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, i
         int seed_index = ungrpd_pnts_indr[i];
         int degree = degrees[seed_index];
         if( degree <= max_cardinality ) continue;
-        if( matrix_type_mask & SPARS_MATRIX ){
-            cnt = generate_candidate_cluster_sparse(seed_index, degree, Ai_mask, dist_matrix,
+        if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+            cnt = generate_candidate_cluster_full_storage(seed_index, degree, Ai_mask, dist_matrix,
                                                     clustered_pnts_mask, indr_mtrx, dist_to_clust,
                                                     point_count, N0, max_degree, NULL, threshold,
                                                     can_use_texture);
         }else{
-            cnt = generate_candidate_cluster_dense( seed_index, degree, Ai_mask, dist_matrix,
+            cnt = generate_candidate_cluster_compact_storage( seed_index, degree, Ai_mask, dist_matrix,
                                                     clustered_pnts_mask, indr_mtrx, dist_to_clust,
                                                     point_count, N0, max_degree, NULL, threshold,
                                                     can_use_texture);
