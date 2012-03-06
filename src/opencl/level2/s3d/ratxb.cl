@@ -159,7 +159,7 @@ ratxb_kernel(__global const real* T, __global const real* C, __global real* RF,
     PR = RKLOW(15) * DIV(CTB_10, RF(145));
     PCOR = DIV(PR, (1.0 + PR));
     PRLOG = LOG10(MAX(PR,SMALL));
-    FCENT = CPREC(8.25e-1)*EXP(DIV(-TEMP,CPREC(1.3406e3))) + CPREC(1.75e-1)*EXP(DIV(-TEMP,6.e4))
+    FCENT = CPREC(8.25e-1)*EXP(DIV(-TEMP,CPREC(1.3406e3))) + CPREC(1.75e-1)*EXP(DIV(-TEMP,CPREC(6.e4)))
     + EXP(DIV(-CPREC(1.01398e4),TEMP));
     FCLOG = LOG10(MAX(FCENT,SMALL));
     XN    = 0.75 - 1.27*FCLOG;
@@ -249,7 +249,7 @@ ratxb_kernel(__global const real* T, __global const real* C, __global real* RF,
     PR = RKLOW(21) * DIV(CTB_190, RF(190));
     PCOR = DIV(PR, (1.0 + PR));
     PRLOG = LOG10(MAX(PR,SMALL));
-    FCENT = 0.e0*EXP(DIV(-TEMP,1.e3)) + 1.e0*EXP(DIV(-TEMP,CPREC(1.31e3)))
+    FCENT = 0.e0*EXP(DIV(-TEMP,CPREC(1.e3))) + 1.e0*EXP(DIV(-TEMP,CPREC(1.31e3)))
     + EXP(DIV(-CPREC(4.8097e4),TEMP));
     FCLOG = LOG10(MAX(FCENT,SMALL));
     XN    = 0.75 - 1.27*FCLOG;
