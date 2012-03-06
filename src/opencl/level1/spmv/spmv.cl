@@ -12,7 +12,7 @@
 
 #ifdef USE_TEXTURE
 __constant sampler_t texFetchSampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-FPTYPE texFetch(const image2d_t image, const int idx) {
+FPTYPE texFetch(image2d_t image, const int idx) {
       int2 coord={idx%MAX_IMG_WIDTH,idx/MAX_IMG_WIDTH};
 #ifdef SINGLE_PRECISION
         return read_imagef(image,texFetchSampler,coord).x;
@@ -53,7 +53,7 @@ FPTYPE texFetch(const image2d_t image, const int idx) {
 __kernel void 
 spmv_csr_scalar_kernel( __global const FPTYPE * restrict val, 
 #ifdef USE_TEXTURE
-                        __global const image2d_t vec, 
+                        image2d_t vec, 
 #else
                         __global const FPTYPE * restrict vec, 
 #endif
@@ -111,7 +111,7 @@ spmv_csr_scalar_kernel( __global const FPTYPE * restrict val,
 __kernel void 
 spmv_csr_vector_kernel(__global const FPTYPE * restrict val, 
 #ifdef USE_TEXTURE
-                       __global const image2d_t vec, 
+                       image2d_t vec, 
 #else
                        __global const FPTYPE * restrict vec, 
 #endif
@@ -200,7 +200,7 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
 __kernel void
 spmv_ellpackr_kernel(__global const FPTYPE * restrict val, 
 #ifdef USE_TEXTURE
-                     __global const image2d_t vec, 
+                     image2d_t vec, 
 #else
                      __global const  FPTYPE * restrict vec,                      
 #endif

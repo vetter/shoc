@@ -428,14 +428,15 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
 
     // Build the openCL kernels
     err = clBuildProgram(prog, 1, &dev, compileFlags.c_str(), NULL, NULL);
-    CL_CHECK_ERROR(err);
+    // CL_CHECK_ERROR(err);  // if we check and fail here, we never get to see
+                            // the OpenCL compiler's build log
 
     // If there is a build error, print the output and return
     if (err != CL_SUCCESS)
     {
         char log[5000];
         size_t retsize = 0;
-        err = clGetProgramBuildInfo(prog, dev, CL_PROGRAM_BUILD_LOG, 50000
+        err = clGetProgramBuildInfo(prog, dev, CL_PROGRAM_BUILD_LOG, 5000
                 * sizeof(char), log, &retsize);
         CL_CHECK_ERROR(err);
         cout << "Retsize: " << retsize << endl;
