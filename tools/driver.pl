@@ -846,7 +846,7 @@ sub printDevInfo {
    for ( $i = 0 ; $i < $platforms ; $i++ ) {
        print "Number of available devices on platform $i ", 
            $platformNames[$i] ,": ", $n[$i], "\n";
-       for ( $j = 0 ; $j < $n[$j] ; $j++ ) {
+       for ( $j = 0 ; $j < $n[$i] ; $j++ ) {
            print "Device $j: ", $deviceNames[$i][$j], "\n";
        }
    }
