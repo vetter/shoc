@@ -483,29 +483,7 @@ addBenchmarkSpecOptions( OptionParser& opts )
 
 
 #if defined(PARALLEL)
-    // rather than define a fixed 2D topology that will cause problems
-    // if the user didn't specify exactly the right number of processes,
-    // we build a topology based on the number of processes available.
-    // For now, we are taking a simple approach and making it a 2D grid,
-    // 2x(N/2) where N is the number of available processes.
-    // At most, we idle one process using this approach but we use a true
-    // 2D topology that forces halo exchanges in two or three directions
-    // (as opposed to using a 1xN topology that would involve halo exchanges
-    // across only one or two directions).
-    //
-    // A more sophisticated approach would determine a 2D topology that tries
-    // to be as "square" as possible while keeping the number of processes
-    // used <= the number of processes available.
-    //
-    int nprocs;
-    MPI_Comm_size( MPI_COMM_WORLD, &nprocs );
-    assert( nprocs > 0 );
-    int ny = (nprocs / 2);
-    assert( ny > 0 );
-    std::ostringstream ostr;
-    ostr << "2," << ny;
-    opts.addOption( "msize", OPT_VECINT, ostr.str().c_str(), "MPI 2D grid topology dimensions" );
-    opts.addOption( "iters-per-exchange", OPT_INT, "1", "Number of local iterations between MPI boundary exchange operations (also, halo width)" );
+    MPI2DGridProgramBase::AddOptions( opts );
 #endif // defined(PARALLEL)
 }
 

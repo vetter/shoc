@@ -10,9 +10,8 @@
 #define FPTYPE double
 #endif
 
-__constant sampler_t texFetchSampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-
 #ifdef USE_TEXTURE
+__constant sampler_t texFetchSampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 FPTYPE texFetch(const image2d_t image, const int idx) {
       int2 coord={idx%MAX_IMG_WIDTH,idx/MAX_IMG_WIDTH};
 #ifdef SINGLE_PRECISION

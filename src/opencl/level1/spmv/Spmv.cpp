@@ -742,7 +742,7 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
              ResultDatabase &resultDB, OptionParser &op, string compileFlags, 
              int nRows=0) 
 {
-    // Determine if the device is capable of using texture memory
+    // Determine if the device is capable of using images in general
     cl_device_id device_id;
     cl_bool deviceSupportsImages;
     int err = 0;
@@ -758,6 +758,23 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
     err = clGetDeviceInfo(device_id, CL_DEVICE_IMAGE2D_MAX_WIDTH,
             sizeof(size_t), &maxImgWidth, NULL);
     CL_CHECK_ERROR(err);
+
+    // Make sure our sampler type is supported
+    cl_sampler sampler;
+    sampler = clCreateSampler(ctx, CL_FALSE, CL_ADDRESS_NONE, 
+            CL_FILTER_NEAREST, &err);
+    if (err != CL_SUCCESS)
+    {
+        cout << "Warning: Device does not support required sampler type";
+        cout << " falling back to global memory\n";
+        deviceSupportsImages = false;
+    } else 
+    {
+        clReleaseSampler(sampler);
+    }
+
+    
+
 
     // Host data structures
     // array of values in the sparse matrix
@@ -798,6 +815,27 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
         strcpy(filename, inFileName.c_str());
         readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
                 &nItems, &numRows);
+    }
+    
+    // Final Image Check -- Make sure the image format is supported.
+    int imgHeight = (numRows+maxImgWidth-1)/maxImgWidth;
+    cl_image_format fmt; 
+    fmt.image_channel_data_type = CL_FLOAT;
+    if(sizeof(floatType)==4) 
+    {
+        fmt.image_channel_order=CL_R;
+    }
+    else
+    {
+        fmt.image_channel_order=CL_RG;
+    }
+    cl_mem d_vec = clCreateImage2D(ctx, CL_MEM_READ_ONLY, &fmt, maxImgWidth,  
+            imgHeight, 0, NULL, &err); 
+    if (err != CL_SUCCESS) 
+    {
+        deviceSupportsImages = false;
+    } else {
+        clReleaseMemObject(d_vec); 
     }
 
     // Set up remaining host data
