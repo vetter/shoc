@@ -493,7 +493,20 @@ foreach my $bench (@$benchmarks)
     else
     {
         print "Running benchmark $program\n";
-        system($command) if ($command ne "");
+        if ($command ne "" )
+        {
+            my $rc = system($command);
+            my $q = $?;
+            if ($q == -1)
+            {
+                printf "failed to execute: $!\n";
+            }
+            elsif( $? & 127 ) 
+            {
+                my $estr = sprintf "terminated with signal %d; exiting\n", ($q & 127);
+                die $estr
+            }
+        }
     }
 
     my $numResults = ($#$bench) - 3;
