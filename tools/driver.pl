@@ -428,13 +428,9 @@ if ($platformList eq "")
 else
 {
     print "Specified platform IDs: $platformList\n";
-
-    if ($deviceList eq "")
-    {
-        printDevInfo($mode);
-    }
 }
 
+printDevInfo($mode);
 if ($deviceList eq "")
 {
    print "Device selection not specified: defaulting to device #0.\n";   
@@ -443,7 +439,6 @@ if ($deviceList eq "")
 }
 else
 {
-    printDevInfo($mode);
     print "Specified $numDevices device IDs: $deviceList\n";
 }
 
