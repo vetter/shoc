@@ -1,4 +1,4 @@
-SUBDIRS=bfs fft sgemm stencil2d md qtclustering reduction scan sort spmv triad
+SUBDIRS=bfs fft sgemm stencil2d md reduction scan sort spmv triad
 
 SHOC_ROOT=../../../
 include $(SHOC_ROOT)/config/dirtargets.mk

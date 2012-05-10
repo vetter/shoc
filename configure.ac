@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([SHOC], [1.1.3], [shoc-help@elist.ornl.gov])
+AC_INIT([SHOC], [1.1.4], [shoc-help@elist.ornl.gov])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/common/Timer.h])
 AC_CONFIG_HEADERS([config/config.h])
@@ -337,7 +337,6 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/bfs/Makefile
                  src/cuda/level1/fft/Makefile
                  src/cuda/level1/md/Makefile
-                 src/cuda/level1/qtclustering/Makefile
                  src/cuda/level1/reduction/Makefile
                  src/cuda/level1/scan/Makefile
                  src/cuda/level1/sgemm/Makefile
@@ -346,6 +345,7 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/stencil2d/Makefile
                  src/cuda/level1/triad/Makefile
                  src/cuda/level2/Makefile
+                 src/cuda/level2/qtclustering/Makefile
                  src/cuda/level2/s3d/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
