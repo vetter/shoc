@@ -604,14 +604,14 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         cout.flush();
     }
 
-    resultDB.AddResult(name+"_Synchron.", sizeStr, "Time", t_sync);
-    resultDB.AddResult(name+"_Communic.", sizeStr, "Time", t_comm);
-    resultDB.AddResult(name+"_Kernel", sizeStr, "Time", t_krn);
-    resultDB.AddResult(name+"_Trimming", sizeStr, "Time", t_trim);
-    resultDB.AddResult(name+"_Update", sizeStr, "Time", t_updt);
-    resultDB.AddResult(name+"_Reduction", sizeStr, "Time", t_redc);
-    resultDB.AddResult(name+"_Algorithm", sizeStr, "Time", t);
-    resultDB.AddResult(name+"+PCI_Trans.", sizeStr, "Time", t+transfer_time);
+    resultDB.AddResult(name+"_Synchron.", sizeStr, "s", t_sync);
+    resultDB.AddResult(name+"_Communic.", sizeStr, "s", t_comm);
+    resultDB.AddResult(name+"_Kernel", sizeStr, "s", t_krn);
+    resultDB.AddResult(name+"_Trimming", sizeStr, "s", t_trim);
+    resultDB.AddResult(name+"_Update", sizeStr, "s", t_updt);
+    resultDB.AddResult(name+"_Reduction", sizeStr, "s", t_redc);
+    resultDB.AddResult(name+"_Algorithm", sizeStr, "s", t);
+    resultDB.AddResult(name+"+PCI_Trans.", sizeStr, "s", t+transfer_time);
 
     freeHostBuffer(dist_source);
     freeHostBuffer(indr_mtrx_host);

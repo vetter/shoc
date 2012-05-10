@@ -29,6 +29,8 @@
 //    returns a handle to a timer.  Pass this handle, and a description,
 //    into the timer Stop routine.  Timers can nest and output will
 //    be displayed in a tree format.
+//    
+//    Externally, Timer represents time in units of seconds.
 //
 //  Programmer:  Jeremy Meredith
 //  Creation:    August  6, 2004
@@ -40,6 +42,9 @@ class Timer
     static Timer *Instance();
 
     static int    Start();
+
+    // Returns time since start of corresponding timer (determined by handle),
+    // in seconds.
     static double Stop(int handle, const std::string &descr);
     static void   Insert(const std::string &descr, double value);
 
