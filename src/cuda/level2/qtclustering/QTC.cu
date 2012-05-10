@@ -45,7 +45,6 @@ using namespace std;
 //
 // ****************************************************************************
 void addBenchmarkSpecOptions(OptionParser &op){
-    op.addOption("s", OPT_INT, "-1", "preselected problem sizes");
     op.addOption("PointCount", OPT_INT, "4096", "point count");
     op.addOption("DataFile", OPT_STRING, "///", "BLAST data input file name");
     op.addOption("Threshold", OPT_FLOAT, "1", "cluster diameter threshold");
@@ -206,42 +205,52 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     float threshold;
     bool use_texture = true, use_compact_storage = false;
 
-    def_size    = op.getOptionInt("s");
+    def_size    = op.getOptionInt("size");
     point_count = op.getOptionInt("PointCount");
     threshold   = op.getOptionFloat("Threshold");
-    use_texture = op.getOptionFloat("TextureMem");
-    use_compact_storage = op.getOptionFloat("CompactStorage");
+    use_texture = op.getOptionBool("TextureMem");
+    use_compact_storage = op.getOptionBool("CompactStorage");
     if( use_compact_storage ){
         use_texture = false;
     }
 
     switch( def_size ){
         case 1:
-            point_count = 8*1024;
+            // size == 1 should match default values of PointCount,
+            // Threshold, TextureMem, and CompactStorage parameters.
+            // (i.e., -s 1 is the default)
+            point_count = 4*1024;
             threshold   = 1;
-            use_texture = true;
+            use_texture = false;
             use_compact_storage = false;
             break;
         case 2:
-            point_count = 16*1024;
+            point_count = 8*1024;
             threshold   = 1;
             use_texture = true;
             use_compact_storage = false;
             break;
         case 3:
             point_count = 16*1024;
-            threshold   = 4;
+            threshold   = 1;
             use_texture = true;
             use_compact_storage = false;
             break;
         case 4:
+            point_count = 16*1024;
+            threshold   = 4;
+            use_texture = true;
+            use_compact_storage = false;
+            break;
+        case 5:
             point_count = 26*1024;
             threshold   = 1;
             use_texture = false;
             use_compact_storage = true;
             break;
         default:
-            break;
+            fprintf( stderr, "unsupported size %d given; terminating\n", def_size );
+            return;
     }
 
     if( 0 == comm_get_rank() ){
@@ -307,16 +316,21 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     can_use_texture = !!(matrix_type & TEXTUR_MEMORY);
 
-    switch( op.getOptionInt("s") ){
+    // TODO - only deal with this size-switch once
+    int def_size = op.getOptionInt("size");
+    switch( def_size ) {
         case 1:
-            point_count    = 8*1024;
-            threshold      = 1;
-            save_clusters  = false;
-            be_verbose     = false;
-            synthetic_data = true;
+            // size == 1 should match default values of PointCount,
+            // Threshold, TextureMem, and CompactStorage parameters.
+            // (i.e., -s 1 is the default)
+            point_count     = 4*1024;
+            threshold       = 1;
+            save_clusters   = false;
+            be_verbose      = false;
+            synthetic_data  = true;
             break;
         case 2:
-            point_count    = 16*1024;
+            point_count    = 8*1024;
             threshold      = 1;
             save_clusters  = false;
             be_verbose     = false;
@@ -324,12 +338,19 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
             break;
         case 3:
             point_count    = 16*1024;
-            threshold      = 4;
+            threshold      = 1;
             save_clusters  = false;
             be_verbose     = false;
             synthetic_data = true;
             break;
         case 4:
+            point_count    = 16*1024;
+            threshold      = 4;
+            save_clusters  = false;
+            be_verbose     = false;
+            synthetic_data = true;
+            break;
+        case 5:
             point_count    = 26*1024;
             threshold      = 1;
             save_clusters  = false;
@@ -337,7 +358,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
             synthetic_data = true;
             break;
         default:
-            break;
+            fprintf( stderr, "unsupported size %d given; terminating\n", def_size );
+            return;
     }
 
     cwrank = comm_get_rank();
@@ -394,8 +416,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         texDistance.filterMode = cudaFilterModePoint;
         texDistance.normalized = false; // do not normalize coordinates
         // This is the actual distance matrix (dst_matrix_elems should be "point_count^2, or point_count*max_degree)
-        printf("Allocating: %dMB (%dx%dx%d) bytes in texture memory\n", dst_matrix_elems*sizeof(float)/(1024*1024),
-                                                                        dst_matrix_elems/point_count, point_count, sizeof(float));
+        printf("Allocating: %luMB (%lux%lux%lu) bytes in texture memory\n", dst_matrix_elems*sizeof(float)/(1024*1024),
+                                                                        dst_matrix_elems/point_count, point_count, (long unsigned int)sizeof(float));
         cudaMallocArray(&distance_matrix_txt, &texDistance.channelDesc, dst_matrix_elems/point_count, point_count);
     }else{
         allocDeviceBuffer(&distance_matrix_gmem, dst_matrix_elems*sizeof(float));
