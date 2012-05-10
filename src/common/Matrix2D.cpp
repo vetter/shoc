@@ -1,3 +1,6 @@
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif // HAVE_STDINT_H
 #include "Matrix2D.h"
 
 
