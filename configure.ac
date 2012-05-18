@@ -268,7 +268,7 @@ AC_ARG_WITH([mpi],
 USE_MPI=no
 AS_IF([test "x$with_mpi" != xno],
     [ 
-        AC_PATH_PROGS([MPICXX], [mpicxx mpic++ mpiCC])
+        AC_PATH_PROGS([MPICXX], [[$MPICXX] mpicxx mpic++ mpiCC])
         savedCXX=$CXX
         CXX=$MPICXX
         AS_IF([test "x$MPICXX" != "x"],
