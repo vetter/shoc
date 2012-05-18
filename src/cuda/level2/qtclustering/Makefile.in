@@ -34,7 +34,7 @@ endif
 all: ${TARGETS}
 
 $(SHOC_ROOT)/bin/Serial/CUDA/%: %.o  $(LIBDEP)
-	$(CUDA_CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS)
+	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS) $(CUDA_LIBS)
 
 $(SHOC_ROOT)/bin/TP/CUDA/%: %.o  $(LIBDEP)
 	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS) $(CUDA_LIBS)
