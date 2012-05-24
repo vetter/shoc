@@ -1,6 +1,5 @@
 #!/bin/sh
-
-# "ion" is an Ubuntu 12.04 system with gcc 4.6.x
+# note: "ion" is an Ubuntu 12.04 system with gcc 4.6.x
 
 PATH="/usr/local/cuda42/cuda/bin:$PATH"
 CPPFLAGS="-I/usr/local/cuda42/cuda/include/" \
