@@ -4,7 +4,7 @@ include $(SHOC_ROOT)/config/config.mk
 VPATH := ../common
 
 LDFLAGS+=$(CUDA_LDFLAGS)
-LIBS+=$(CUDA_LIBS)
+LIBS:=$(CUDA_LIBS) $(LIBS)
 CPPFLAGS+=$(CUDA_INC)
 
 

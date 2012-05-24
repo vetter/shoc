@@ -5,7 +5,7 @@ VPATH := ../../common
 
 LDFLAGS+=$(CUDA_LDFLAGS)
 CPPFLAGS+=$(CUDA_INC) -I../../include
-LIBS+= -lSHOCCommon
+LIBS:= -lSHOCCommon $(LIBS)
 LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
 
 TARGET     = ${SHOC_ROOT}/bin/Serial/CUDA/Scan

@@ -1,7 +1,7 @@
 SHOC_ROOT=../../..
 include $(SHOC_ROOT)/config/config.mk
 
-LIBS+=$(OCL_LIBS)
+LIBS := $(OCL_LIBS) $(LIBS)
 CPPFLAGS+=$(OCL_CPPFLAGS)
 
 OBJ= \

@@ -20,7 +20,7 @@ COMMONOBJ= \
 COMMONOBJ_MPI= \
  main_mpi.o fftlib.o 
 
-LIBS+= -lSHOCCommon -lcufft
+LIBS:= -lSHOCCommon -lcufft $(LIBS)
 LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
 
 ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)

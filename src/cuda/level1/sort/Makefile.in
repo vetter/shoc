@@ -20,7 +20,7 @@ COMMONOBJ_MPI= \
  main_mpi.o \
  sort_kernel.o
 
-LIBS+= -lSHOCCommon
+LIBS:= -lSHOCCommon $(LIBS)
 
 ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
 TARGETS=${BENCHMARKPROG}

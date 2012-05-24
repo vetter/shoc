@@ -5,7 +5,7 @@ VPATH:=../../common
 
 LDFLAGS     += ${OCL_LDFLAGS}
 CPPFLAGS    += ${OCL_CPPFLAGS} -I${SHOC_ROOT}/src/common 
-LIBS        += -lSHOCCommonOpenCL -lSHOCCommon ${OCL_LIBS}
+LIBS        := -lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
 
 TARGET      = ${SHOC_ROOT}/bin/Serial/OpenCL/Stencil2D
 MPITARGET   = ${SHOC_ROOT}/bin/TP/OpenCL/Stencil2D

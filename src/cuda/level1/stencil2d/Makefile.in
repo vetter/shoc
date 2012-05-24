@@ -5,7 +5,7 @@ VPATH:=../../common
 
 LDFLAGS     += ${CUDA_LDFLAGS}
 CPPFLAGS    += ${CUDA_INC}
-LIBS        += ${CUDA_LIBS} -lSHOCCommon
+LIBS        := ${CUDA_LIBS} -lSHOCCommon $(LIBS)
 
 TARGET      = ${SHOC_ROOT}/bin/Serial/CUDA/Stencil2D
 MPITARGET   = ${SHOC_ROOT}/bin/TP/CUDA/Stencil2D

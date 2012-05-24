@@ -5,7 +5,7 @@ VPATH:= ../../common
 
 LDFLAGS+=$(OCL_LDFLAGS)
 CPPFLAGS+=$(OCL_CPPFLAGS) -I${SHOC_ROOT}/src/mpi/common
-LIBS+=-lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS)
+LIBS:=-lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
 
 BENCHMARKOBJ=  \
  Sort.o

@@ -22,7 +22,7 @@ COMMONOBJ_MPI= \
  bfs_kernel.o \
  Graph.o
 
-LIBS+= -lSHOCCommon $(CUDA_LIBS)
+LIBS:= -lSHOCCommon $(CUDA_LIBS) $(LIBS)
 LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
 
 ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)

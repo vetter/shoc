@@ -19,7 +19,7 @@ COMMONOBJ= \
 COMMONOBJ_MPI= \
  main_mpi.o libdata.o comm_mpi.o
 
-LIBS+= -lSHOCCommon
+LIBS:= -lSHOCCommon $(LIBS)
 LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
 
 ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
