@@ -170,7 +170,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     if (devSupportsImages) 
     {
         char texflags[64];
-        sprintf(texflags," -DUSE_TEXTURE -DMAX_IMG_WIDTH=%d", maxImgWidth);
+        sprintf(texflags," -DUSE_TEXTURE -DMAX_IMG_WIDTH=%ld", maxImgWidth);
         compileFlags+=string(texflags);
     }
     
@@ -416,7 +416,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
     if (devSupportsImages) 
     {
         char texflags[64];
-        sprintf(texflags," -DUSE_TEXTURE -DMAX_IMG_WIDTH=%d", maxImgWidth);
+        sprintf(texflags," -DUSE_TEXTURE -DMAX_IMG_WIDTH=%ld", maxImgWidth);
         compileFlags+=string(texflags);
     }
     // Set up OpenCL Program Object
