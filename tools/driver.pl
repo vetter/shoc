@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 
-my $SHOC_VERSION = "1.1.3";
+my $SHOC_VERSION = "1.1.4";
 
 # ----------------------------------------------------------------------------
 #  Output for the .csv results file
