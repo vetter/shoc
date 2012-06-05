@@ -138,59 +138,64 @@ reduce(const T* __restrict__ g_idata, T* __restrict__ g_odata,
     }
 }
 
-template <class T>
-__device__ T scanLocalMem(const T val, volatile T* s_data)
+
+template <class T, int blockSize>
+__device__ T scanLocalMem(const T val, volatile T* s_data) 
 {
-    // Set second half of shared memory to zero,
-    // to make room for scanning
-    s_data[threadIdx.x + blockDim.x] = 0.0f;
+    // Set first half of local memory to zero to make room for scanning
+    int idx = threadIdx.x;
+    s_data[idx] = 0.0f;
+                
+    // Set second half to block sums from global memory, but don't go out
+    // of bounds
+    idx += blockSize;
+    s_data[idx] = val;
     __syncthreads();
-
-    // Compute the number of elems each raking thread will handle.
-    // Assumes blockDim.x is divisible by warpSize (32)
-    int nsteps = blockDim.x / warpSize;
-    // Compute pad for shared memory to reduce bank conflicts
-    int pad = threadIdx.x / nsteps;
-
-    // Set first half to the initial values
-    s_data[threadIdx.x + pad] = val;
-    __syncthreads();
-
-    // "Rake" warp 0 across the shared memory
-    if (threadIdx.x < warpSize)
-    {
-        int start = threadIdx.x * (nsteps+1); //+1 is due to pads
-        int stop  = start + nsteps;
-        T sum = 0.0f;
-        for (int i = start+1; i < stop; i++) {
-            sum = s_data[i] += s_data[i-1];
-        }
-        // Sums are finished, copy into smem's highest 32 words
-        int idx = ((blockDim.x*2) - warpSize) + threadIdx.x;
-        s_data[idx] = sum;
+   
+    // Now, perform Kogge-Stone scan
+    T t;
+    t = s_data[idx -  1];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
         
-        // Now, perform Kogge-Stone warpscan on those upper 32 words
-        T t;
-        t = s_data[idx -  1]; 
-        s_data[idx] += t;     
-        t = s_data[idx -  2]; 
-        s_data[idx] += t;      
-        t = s_data[idx -  4];  
-        s_data[idx] += t;      
-        t = s_data[idx -  8];  
-        s_data[idx] += t;      
-        t = s_data[idx - 16];  
-        s_data[idx] += t;      
-    }
-    __syncthreads();
-    // Update smem with the result of the warpscan
-    s_data[threadIdx.x+pad] += s_data[((blockDim.x*2) - warpSize) + (threadIdx.x / nsteps)-1];
-    __syncthreads();
+    t = s_data[idx -  2];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+ 
+    t = s_data[idx -  4];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
 
-    // Make the scan exclusive and factor the padding into the
-    // address calculation.
-    int pad_factor = (threadIdx.x % nsteps == 0) ? 2 : 1;
-    return (threadIdx.x == 0) ? 0.0f : s_data[threadIdx.x+pad-pad_factor];
+    t = s_data[idx -  8];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+
+    t = s_data[idx -  16]; __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+
+    if (blockSize > 32) 
+    {
+        t = s_data[idx -  32];  __syncthreads();
+        s_data[idx] += t;       __syncthreads();
+    }
+    if (blockSize > 64)
+    {
+        t = s_data[idx -  64];  __syncthreads();
+        s_data[idx] += t;       __syncthreads();
+    }
+    if (blockSize > 128)
+    {
+        t = s_data[idx -  128]; __syncthreads();
+        s_data[idx] += t;       __syncthreads();
+    }
+    if (blockSize > 256)
+    {
+        t = s_data[idx -  256]; __syncthreads();
+        s_data[idx] += t;       __syncthreads();
+    }
+    if (blockSize > 512)
+    {
+        t = s_data[idx -  512]; __syncthreads();
+        s_data[idx] += t;       __syncthreads();
+    }
+
+    return s_data[idx-1]; // exclusive
 }
 
 template <class T, int blockSize>
@@ -213,7 +218,7 @@ __global__ void scan_single_block(T* __restrict__ g_block_sums, const int n)
     
     T val = (threadIdx.x < n) ? g_block_sums[threadIdx.x] : 0.0f;
     
-    val = scanLocalMem(val, (volatile T*) s_data);
+    val = scanLocalMem<T, blockSize>(val, (volatile T*) s_data);
 
     // Write out to global memory
     if (threadIdx.x < n)
@@ -222,7 +227,7 @@ __global__ void scan_single_block(T* __restrict__ g_block_sums, const int n)
     }
 }
 
-template <class T, class vecT>
+template <class T, class vecT, int blockSize>
 __global__ void
 bottom_scan(const T* __restrict__ g_idata, 
                   T* __restrict__ g_odata,
@@ -236,7 +241,6 @@ bottom_scan(const T* __restrict__ g_idata,
     // memory and incorrect results are obtained.  This explicit macro
     // works around this issue. Further, it is acceptable to specify
     // float, since CC's < 1.3 do not support double precision.
-
 #if __CUDA_ARCH__ <= 130
     extern volatile __shared__ float sdata[]; 
 #else
@@ -264,7 +268,7 @@ bottom_scan(const T* __restrict__ g_idata,
 
     // Seed the bottom scan with the results from the top scan (i.e. load the per
     // block sums from the previous kernel)
-    T seed = g_block_sums[blockIdx.x];
+    if (threadIdx.x == 0) s_seed = g_block_sums[blockIdx.x];
 
     // Scan multiple elements per thread
     while (window < block_stop)
@@ -283,37 +287,30 @@ bottom_scan(const T* __restrict__ g_idata,
         }
         
         // Serial scan in registers
-        //val_4.x += seed;
         val_4.y += val_4.x;
         val_4.z += val_4.y;
         val_4.w += val_4.z;
         
         // ExScan sums in shared memory
-        T res = scanLocalMem(val_4.w, (volatile T*) sdata);
-        __syncthreads();
+        T res = scanLocalMem<T, blockSize>(val_4.w, (volatile T*) sdata);
 
         // Update and write out to global memory
-        val_4.x += res + seed;
-        val_4.y += res + seed;
-        val_4.z += res + seed;
-        val_4.w += res + seed;
+        val_4.x += res + s_seed;
+        val_4.y += res + s_seed;
+        val_4.z += res + s_seed;
+        val_4.w += res + s_seed;
 
-        if (i < block_stop) // Make sure we don't write out of bounds
-        {
+        // Make sure we don't write out of bounds
+        if (i < block_stop)         {
             g_odata4[i] = val_4;
         }
                 
         // Next seed will be the last value
-        // Last thread puts seed into smem.
-        if (threadIdx.x == blockDim.x-1) s_seed = val_4.w;
-        __syncthreads();
+        if (threadIdx.x == blockSize-1) s_seed = val_4.w;
         
-        // Broadcast seed to all threads
-        seed = s_seed;
-
         // Advance window
-        window += blockDim.x;
-        i += blockDim.x;
+        window += blockSize;
+        i += blockSize;
     }
 }
 

@@ -111,8 +111,8 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     cout << "Initializing host memory." << endl;
     for (int i = 0; i < size; i++)
     {
-        h_idata[i] = i % 3; // Fill with some pattern
-        h_odata[i] = i % 3;
+        h_idata[i] = i % 2; // Fill with some pattern
+        h_odata[i] = -1;
     }
 
     // Thread configuration
@@ -156,17 +156,17 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
             
             // Each thread block gets an equal portion of the
             // input array, and computes the sum.
-            reduce<T,256><<<num_blocks, num_threads, smem_size>>>
+            reduce<T, 256><<<num_blocks, num_threads, smem_size>>>
                 (d_idata, d_block_sums, size);
 
             // Next, a top-level exclusive scan is performed on the array
             // of block sums
-            scan_single_block<T,256><<<1, num_threads, smem_size*2>>>
+            scan_single_block<T, 256><<<1, num_threads, smem_size*2>>>
                 (d_block_sums, num_blocks);
  
             // Finally, a bottom-level scan is performed by each block
             // that is seeded with the scanned value in block sums
-            bottom_scan<T, vecT><<<num_blocks, num_threads, 2*smem_size>>>
+            bottom_scan<T, vecT, 256><<<num_blocks, num_threads, 2*smem_size>>>
                 (d_idata, d_odata, d_block_sums, size);
         }
         CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
