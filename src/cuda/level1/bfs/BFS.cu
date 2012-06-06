@@ -308,14 +308,14 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
             resultDB.AddResult("BFS_visited_vertices",atts,"N",FLT_MAX);
         }
 
-        std::cout << "Test ";
+        std::cout << "Verification of GPU results: ";
         if (unmatched_verts==0)
         {
             std::cout << "Passed"; 
         }
         else
         {
-            std::cout << "Failed"; 
+            std::cout << "Failed\n"; 
             return;
         } 
         std::cout << endl;
@@ -629,14 +629,14 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         }
 
 
-        std::cout << endl << "Test ";
+        std::cout << endl << "Verification of GPU results: ";
         if(unmatched_verts==0)
         {
             std::cout<<"Passed"; 
         }
         else
         {
-            std::cout<<"Failed"; 
+            std::cout<<"Failed\n"; 
             return;
         }
         cout << endl;
