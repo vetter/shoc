@@ -73,9 +73,9 @@ my @CSVResults = (
 "ocl_queue",
 "bfs",
 "bfs_pcie",
-"bfs_teps",
-"qtc",
-"qtc_kernel"
+"bfs_teps"
+#"qtc",
+#"qtc_kernel"
 );
 
 # ----------------------------------------------------------------------------
@@ -205,11 +205,11 @@ my @SerialBenchmarks = (
   ["s3d_pcie",                    \&findmax,     "S3D-SP_PCIe"],
   ["s3d_dp",                      \&findmax,     "S3D-DP"],
   ["s3d_dp_pcie",                 \&findmax,     "S3D-DP_PCIe"]
-],
-[ "QTC",               1, 0, 1,
-  ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
-  ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
-]
+]#,
+#[ "QTC",               1, 0, 1,
+#  ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
+#  ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
+#]
 );
 
 # ----------------------------------------------------------------------------
