@@ -4969,12 +4969,14 @@ fi
 
         if test "x$with_cuda" = xyes; then :
   if test "x$CUDA_CPPFLAGS" = x; then :
-                                                     CUDA_CPPFLAGS="-gencode=arch=compute_10,code=sm_10 \
- -gencode=arch=compute_11,code=sm_11 \
+                                                                      CUDA_CPPFLAGS="-gencode=arch=compute_12,code=sm_12 \
  -gencode=arch=compute_13,code=sm_13 \
  -gencode=arch=compute_20,code=sm_20 \
  -gencode=arch=compute_20,code=compute_20"
-                 echo "using CUDA_CPPFLAGS=$CUDA_CPPFLAGS"
+                 { $as_echo "$as_me:${as_lineno-$LINENO}: using CUDA_CPPFLAGS=$CUDA_CPPFLAGS" >&5
+$as_echo "$as_me: using CUDA_CPPFLAGS=$CUDA_CPPFLAGS" >&6;}
+                 { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: *** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and specify them in CUDA_CPPFLAGS when re-configuring SHOC. ***" >&5
+$as_echo "$as_me: WARNING: *** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and specify them in CUDA_CPPFLAGS when re-configuring SHOC. ***" >&2;}
 
 
 fi
