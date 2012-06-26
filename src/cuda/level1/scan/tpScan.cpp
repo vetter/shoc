@@ -255,13 +255,13 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                              d_block_sums,
                              num_blocks );
 
-        LaunchBottomScanKernel<T, vecT>( num_blocks, 
-                                         num_threads, 
-                                         smem_size * 2,
-                                         d_idata,
-                                         d_odata,
-                                         d_block_sums,
-                                         size );
+        LaunchBottomScanKernel<T, vecT, 256>( num_blocks, 
+                                              num_threads, 
+                                              smem_size * 2,
+                                              d_idata,
+                                              d_odata,
+                                              d_block_sums,
+                                              size );
         CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
         cudaEventElapsedTime(&temp, start, stop);

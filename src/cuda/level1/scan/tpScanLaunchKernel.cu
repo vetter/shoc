@@ -29,7 +29,7 @@ LaunchTopScanKernel( int num_blocks,
         (d_block_sums, size);
 }
 
-template<class T, class vecT>
+template<class T, class vecT, int blockSize>
 void
 LaunchBottomScanKernel( int num_blocks, 
                         int num_threads, 
@@ -41,7 +41,7 @@ LaunchBottomScanKernel( int num_blocks,
 {
     // In CUDA 4.0 we will be able to remove this level of indirection
     // if we use the cuConfigureCall and cuLaunchKernel functions.
-    bottom_scan<T, vecT><<<num_blocks,num_threads,smem_size>>>(g_idata, g_odata,
+    bottom_scan<T, vecT, blockSize><<<num_blocks,num_threads,smem_size>>>(g_idata, g_odata,
         d_block_sums, size);
 }
 
@@ -56,6 +56,6 @@ template void LaunchReduceKernel<double>( int, int, int, double*, double*, int )
 template void LaunchTopScanKernel<float>( int, int, int, float*, int );
 template void LaunchTopScanKernel<double>( int, int, int, double*, int );
     
-template void LaunchBottomScanKernel<float,float4>( int, int, int, float*, float*, float*, int );
-template void LaunchBottomScanKernel<double,double4>( int, int, int, double*, double*, double*, int );
+template void LaunchBottomScanKernel<float,float4,256>( int, int, int, float*, float*, float*, int );
+template void LaunchBottomScanKernel<double,double4,256>( int, int, int, double*, double*, double*, int );
 

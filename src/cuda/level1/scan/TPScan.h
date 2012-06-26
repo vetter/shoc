@@ -42,7 +42,7 @@ LaunchTopScanKernel( int num_blocks,
                      T* d_block_sums,
                      int size );
 
-template<class T, class vecT>
+template<class T, class vecT, int blockSize>
 void
 LaunchBottomScanKernel( int num_blocks, 
                         int num_threads, 
