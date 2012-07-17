@@ -55,12 +55,12 @@ MPIHostStencil<T>::DoPreIterationWork( Matrix2D<T>& mtx, unsigned int iter )
     {
         if( dumpData )
         {
-            DumpData( ofs, mtx, "before halo exchange" );
+            this->DumpData( ofs, mtx, "before halo exchange" );
         }
-        DoHaloExchange( mtx );
+        this->DoHaloExchange( mtx );
         if( dumpData )
         {
-            DumpData( ofs, mtx, "after halo exchange" );
+            this->DumpData( ofs, mtx, "after halo exchange" );
         }
     }
 }

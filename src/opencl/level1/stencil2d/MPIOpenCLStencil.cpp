@@ -62,7 +62,7 @@ MPIOpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         {
             this->DumpData( ofs, mtx, "before halo exchange" );
         }
-        DoHaloExchange( mtx );
+        this->DoHaloExchange( mtx );
         if( dumpData )
         {
             this->DumpData( ofs, mtx, "after halo exchange" );
@@ -246,7 +246,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         {
             this->DumpData( ofs, mtx, "before halo exchange" );
         }
-        DoHaloExchange( mtx );
+        this->DoHaloExchange( mtx );
         if( dumpData )
         {
             this->DumpData( ofs, mtx, "after halo exchange" );

@@ -50,7 +50,7 @@ MPICUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         {
             this->DumpData( ofs, mtx, "before initial halo exchange" );
         }
-        DoHaloExchange( mtx );
+        this->DoHaloExchange( mtx );
         if( dumpData )
         {
             this->DumpData( ofs, mtx, "after initial halo exchange" );
@@ -60,7 +60,7 @@ MPICUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         CUDAStencil<T>::operator()( mtx, nIters );
         if( dumpData )
         {
-            DumpData( ofs, mtx, "after all iterations" );
+            this->DumpData( ofs, mtx, "after all iterations" );
         }
     }
     MPI_Barrier( MPI_COMM_WORLD );
@@ -144,12 +144,12 @@ MPICUDAStencil<T>::DoPreIterationWork( T* currBuf,  // in device global memory
         //
         if( dumpData )
         {
-            DumpData( ofs, mtx, "before halo exchange" );
+            this->DumpData( ofs, mtx, "before halo exchange" );
         }
-        DoHaloExchange( mtx );
+        this->DoHaloExchange( mtx );
         if( dumpData )
         {
-            DumpData( ofs, mtx, "after halo exchange" );
+            this->DumpData( ofs, mtx, "after halo exchange" );
         }
 
         //

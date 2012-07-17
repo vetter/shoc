@@ -34,7 +34,7 @@ MPIStencilValidater<T>::ValidateResult( const Matrix2D<T>& exp,
         if( (totalValErrors > 0) && (nValErrsToPrint > 0) )
         {
             unsigned int valErrPrintsRemaining = nValErrsToPrint;
-            PrintValidationErrors( valResultStr, validationErrors, valErrPrintsRemaining );
+            this->PrintValidationErrors( valResultStr, validationErrors, valErrPrintsRemaining );
             if( validationErrors.size() <= valErrPrintsRemaining )
             {
                 // TODO do we want to collect validation errors from

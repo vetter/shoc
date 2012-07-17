@@ -39,6 +39,11 @@ public:
         // nothing else to do
     }
 
+    virtual ~Stencil( void )
+    {
+        // nothing to do
+    }
+
 
     /*
      * This is a 9-point stencil using three weights:
