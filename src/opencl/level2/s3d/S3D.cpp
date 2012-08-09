@@ -23,7 +23,8 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
              cl_command_queue queue, ResultDatabase &resultDB,
              OptionParser &op, string& compileFlags);
 
-template <class T> inline std::string toString (const T& t){
+template <class T> inline std::string toString (const T& t)
+{
     std::stringstream ss;
     ss << t;
     return ss.str();
@@ -277,152 +278,165 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
         size_t globalWorkSize = n;
         size_t localWorkSize = 128;
 
-	// -------------------- phase 1 -----------------
+        // -------------------- phase 1 -----------------
 
-	// Setup Program Objects (phase 1)
-	clProg(gr_prog, cl_source_gr_base);
-	clProg(rdsmh_prog, cl_source_rdsmh);
-	clProg(ratt_prog, cl_source_ratt);
-	clProg(ratt2_prog, cl_source_ratt2);
-	clProg(ratt3_prog, cl_source_ratt3);
-	clProg(ratt4_prog, cl_source_ratt4);
-	clProg(ratt5_prog, cl_source_ratt5);
-	clProg(ratt6_prog, cl_source_ratt6);
-	clProg(ratt7_prog, cl_source_ratt7);
-	clProg(ratt8_prog, cl_source_ratt8);
-	clProg(ratt9_prog, cl_source_ratt9);
-	clProg(ratt10_prog, cl_source_ratt10);
-	clProg(ratx_prog, cl_source_ratx);
-	clProg(ratxb_prog, cl_source_ratxb);
-	clProg(ratx2_prog, cl_source_ratx2);
-	clProg(ratx4_prog, cl_source_ratx4);
+        // Setup Program Objects (phase 1)
+        clProg(gr_prog, cl_source_gr_base);
+        clProg(rdsmh_prog, cl_source_rdsmh);
+        clProg(ratt_prog, cl_source_ratt);
+        clProg(ratt2_prog, cl_source_ratt2);
+        clProg(ratt3_prog, cl_source_ratt3);
+        clProg(ratt4_prog, cl_source_ratt4);
+        clProg(ratt5_prog, cl_source_ratt5);
+        clProg(ratt6_prog, cl_source_ratt6);
+        clProg(ratt7_prog, cl_source_ratt7);
+        clProg(ratt8_prog, cl_source_ratt8);
+        clProg(ratt9_prog, cl_source_ratt9);
+        clProg(ratt10_prog, cl_source_ratt10);
+        clProg(ratx_prog, cl_source_ratx);
+        clProg(ratxb_prog, cl_source_ratxb);
+        clProg(ratx2_prog, cl_source_ratx2);
+        clProg(ratx4_prog, cl_source_ratx4);
 
-	// Build the kernels (phase 1)
-	cout << "Compiling kernels (phase 1)...";
-	cout.flush();
+        // Build the kernels (phase 1)
+        cout << "Compiling kernels (phase 1)...";
+        cout.flush();
 
-	clBuild(gr_prog);
-	clBuild(rdsmh_prog);
-	clBuild(ratt_prog);
-	clBuild(ratt2_prog);
-	clBuild(ratt3_prog);
-	clBuild(ratt4_prog);
-	clBuild(ratt5_prog);
-	clBuild(ratt6_prog);
-	clBuild(ratt7_prog);
-	clBuild(ratt8_prog);
-	clBuild(ratt9_prog);
-	clBuild(ratt10_prog);
-	clBuild(ratx_prog);
-	clBuild(ratxb_prog);
-	clBuild(ratx2_prog);
-	clBuild(ratx4_prog);
+        clBuild(gr_prog);
+        clBuild(rdsmh_prog);
+        clBuild(ratt_prog);
+        clBuild(ratt2_prog);
+        clBuild(ratt3_prog);
+        clBuild(ratt4_prog);
+        clBuild(ratt5_prog);
+        clBuild(ratt6_prog);
+        clBuild(ratt7_prog);
+        clBuild(ratt8_prog);
+        clBuild(ratt9_prog);
+        clBuild(ratt10_prog);
+        clBuild(ratx_prog);
+        clBuild(ratxb_prog);
+        clBuild(ratx2_prog);
+        clBuild(ratx4_prog);
 
-	cout << "done." << endl;
+        cout << "done." << endl;
 
-	// Extract out kernel objects (phase 1)
-	cout << "Generating OpenCL Kernel Objects (phase 1)...";
-	cout.flush();
+        // Extract out kernel objects (phase 1)
+        cout << "Generating OpenCL Kernel Objects (phase 1)...";
+        cout.flush();
 
-	// GR Base Kernels
-	cl_kernel grBase_kernel = clCreateKernel(gr_prog, "gr_base", &err);
-	CL_CHECK_ERROR(err);
+        // GR Base Kernels
+        cl_kernel grBase_kernel = clCreateKernel(gr_prog, "gr_base", &err);
+        CL_CHECK_ERROR(err);
 
-	// RDSMH Kernels
-	cl_kernel rdsmh_kernel = clCreateKernel(rdsmh_prog, "rdsmh_kernel", &err);
-	CL_CHECK_ERROR(err);
+        // RDSMH Kernels
+        cl_kernel rdsmh_kernel = clCreateKernel(rdsmh_prog, "rdsmh_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
 
-	// RATT Kernels
-	cl_kernel ratt_kernel = clCreateKernel(ratt_prog, "ratt_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt2_kernel = clCreateKernel(ratt2_prog, "ratt2_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt3_kernel = clCreateKernel(ratt3_prog, "ratt3_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt4_kernel = clCreateKernel(ratt4_prog, "ratt4_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt5_kernel = clCreateKernel(ratt5_prog, "ratt5_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt6_kernel = clCreateKernel(ratt6_prog, "ratt6_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt7_kernel = clCreateKernel(ratt7_prog, "ratt7_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt8_kernel = clCreateKernel(ratt8_prog, "ratt8_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt9_kernel = clCreateKernel(ratt9_prog, "ratt9_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratt10_kernel = clCreateKernel(ratt10_prog, "ratt10_kernel", &err);
-	CL_CHECK_ERROR(err);
+        // RATT Kernels
+        cl_kernel ratt_kernel = clCreateKernel(ratt_prog, "ratt_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt2_kernel = clCreateKernel(ratt2_prog, "ratt2_kernel",
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt3_kernel = clCreateKernel(ratt3_prog, "ratt3_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt4_kernel = clCreateKernel(ratt4_prog, "ratt4_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt5_kernel = clCreateKernel(ratt5_prog, "ratt5_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt6_kernel = clCreateKernel(ratt6_prog, "ratt6_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt7_kernel = clCreateKernel(ratt7_prog, "ratt7_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt8_kernel = clCreateKernel(ratt8_prog, "ratt8_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt9_kernel = clCreateKernel(ratt9_prog, "ratt9_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratt10_kernel = clCreateKernel(ratt10_prog, "ratt10_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
 
-	// RATX Kernels
-	cl_kernel ratx_kernel = clCreateKernel(ratx_prog, "ratx_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratxb_kernel = clCreateKernel(ratxb_prog, "ratxb_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratx2_kernel = clCreateKernel(ratx2_prog, "ratx2_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel ratx4_kernel = clCreateKernel(ratx4_prog, "ratx4_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cout << "done." << endl;
+        // RATX Kernels
+        cl_kernel ratx_kernel = clCreateKernel(ratx_prog, "ratx_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratxb_kernel = clCreateKernel(ratxb_prog, "ratxb_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratx2_kernel = clCreateKernel(ratx2_prog, "ratx2_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel ratx4_kernel = clCreateKernel(ratx4_prog, "ratx4_kernel", 
+                &err);
+        CL_CHECK_ERROR(err);
+        cout << "done." << endl;
 
-	//Set kernel arguments (phase 1)
-	err = clSetKernelArg(grBase_kernel, 0, sizeof(cl_mem), (void*)&d_p);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(grBase_kernel, 1, sizeof(cl_mem), (void*)&d_t);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(grBase_kernel, 2, sizeof(cl_mem), (void*)&d_y);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(grBase_kernel, 3, sizeof(cl_mem), (void*)&d_c);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(grBase_kernel, 4, sizeof(T), (void*)&tconv);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(grBase_kernel, 5, sizeof(T), (void*)&pconv);
-	CL_CHECK_ERROR(err);
+        //Set kernel arguments (phase 1)
+        err = clSetKernelArg(grBase_kernel, 0, sizeof(cl_mem), (void*)&d_p);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(grBase_kernel, 1, sizeof(cl_mem), (void*)&d_t);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(grBase_kernel, 2, sizeof(cl_mem), (void*)&d_y);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(grBase_kernel, 3, sizeof(cl_mem), (void*)&d_c);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(grBase_kernel, 4, sizeof(T), (void*)&tconv);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(grBase_kernel, 5, sizeof(T), (void*)&pconv);
+        CL_CHECK_ERROR(err);
 
-	err = clSetKernelArg(rdsmh_kernel, 0, sizeof(cl_mem), (void*)&d_t);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(rdsmh_kernel, 1, sizeof(cl_mem), (void*)&d_eg);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(rdsmh_kernel, 2, sizeof(T), (void*)&tconv);
-	CL_CHECK_ERROR(err);
+        err = clSetKernelArg(rdsmh_kernel, 0, sizeof(cl_mem), (void*)&d_t);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(rdsmh_kernel, 1, sizeof(cl_mem), (void*)&d_eg);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(rdsmh_kernel, 2, sizeof(T), (void*)&tconv);
+        CL_CHECK_ERROR(err);
 
-	err = clSetKernelArg(ratt_kernel, 0, sizeof(cl_mem), (void*)&d_t);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratt_kernel, 1, sizeof(cl_mem), (void*)&d_rf);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratt_kernel, 2, sizeof(T), (void*)&tconv);
-	CL_CHECK_ERROR(err);
-	clSetRattArg(ratt2_kernel);
-	clSetRattArg(ratt3_kernel);
-	clSetRattArg(ratt4_kernel);
-	clSetRattArg(ratt5_kernel);
-	clSetRattArg(ratt6_kernel);
-	clSetRattArg(ratt7_kernel);
-	clSetRattArg(ratt8_kernel);
-	clSetRattArg(ratt9_kernel);
-	err = clSetKernelArg(ratt10_kernel, 0, sizeof(cl_mem), (void*)&d_t);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratt10_kernel, 1, sizeof(cl_mem), (void*)&d_rklow);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratt10_kernel, 2, sizeof(T), (void*)&tconv);
-	CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratt_kernel, 0, sizeof(cl_mem), (void*)&d_t);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratt_kernel, 1, sizeof(cl_mem), (void*)&d_rf);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratt_kernel, 2, sizeof(T), (void*)&tconv);
+        CL_CHECK_ERROR(err);
+        clSetRattArg(ratt2_kernel);
+        clSetRattArg(ratt3_kernel);
+        clSetRattArg(ratt4_kernel);
+        clSetRattArg(ratt5_kernel);
+        clSetRattArg(ratt6_kernel);
+        clSetRattArg(ratt7_kernel);
+        clSetRattArg(ratt8_kernel);
+        clSetRattArg(ratt9_kernel);
+        err = clSetKernelArg(ratt10_kernel, 0, sizeof(cl_mem), (void*)&d_t);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratt10_kernel, 1, sizeof(cl_mem), (void*)&d_rklow);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratt10_kernel, 2, sizeof(T), (void*)&tconv);
+        CL_CHECK_ERROR(err);
 
-	clSetRatxArg(ratx_kernel);
-	clSetRatxArg(ratxb_kernel);
+        clSetRatxArg(ratx_kernel);
+        clSetRatxArg(ratxb_kernel);
 
-	err = clSetKernelArg(ratx2_kernel, 0, sizeof(cl_mem), (void*)&d_c);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratx2_kernel, 1, sizeof(cl_mem), (void*)&d_rf);
-	CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratx2_kernel, 0, sizeof(cl_mem), (void*)&d_c);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratx2_kernel, 1, sizeof(cl_mem), (void*)&d_rf);
+        CL_CHECK_ERROR(err);
 
-	err = clSetKernelArg(ratx4_kernel, 0, sizeof(cl_mem), (void*)&d_c);
-	CL_CHECK_ERROR(err);
-	err = clSetKernelArg(ratx4_kernel, 1, sizeof(cl_mem), (void*)&d_rb);
-	CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratx4_kernel, 0, sizeof(cl_mem), (void*)&d_c);
+        CL_CHECK_ERROR(err);
+        err = clSetKernelArg(ratx4_kernel, 1, sizeof(cl_mem), (void*)&d_rb);
+        CL_CHECK_ERROR(err);
 
         // Execute kernels (phase 1)
-	cout << "Executing kernels (phase 1)...";
-	cout.flush();
+        cout << "Executing kernels (phase 1)...";
+        cout.flush();
 
         Event evFirst_1("first kernel phase 1");
         Event evLast_1("last kernel phase 1");
@@ -448,136 +462,138 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
 
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
-	cout << "done. " << endl;
+        cout << "done. " << endl;
 
         evFirst_1.FillTimingInfo();
         evLast_1.FillTimingInfo();
         double total_phase1 = evLast_1.EndTime() - evFirst_1.StartTime();
 
-	// Release Kernels (phase 1)
-	clReleaseKernel(grBase_kernel);
-	clReleaseKernel(rdsmh_kernel);
-	clReleaseKernel(ratt_kernel);
-	clReleaseKernel(ratt2_kernel);
-	clReleaseKernel(ratt3_kernel);
-	clReleaseKernel(ratt4_kernel);
-	clReleaseKernel(ratt5_kernel);
-	clReleaseKernel(ratt6_kernel);
-	clReleaseKernel(ratt7_kernel);
-	clReleaseKernel(ratt8_kernel);
-	clReleaseKernel(ratt9_kernel);
-	clReleaseKernel(ratt10_kernel);
-	clReleaseKernel(ratx_kernel);
-	clReleaseKernel(ratxb_kernel);
-	clReleaseKernel(ratx2_kernel);
-	clReleaseKernel(ratx4_kernel);
+        // Release Kernels (phase 1)
+        clReleaseKernel(grBase_kernel);
+        clReleaseKernel(rdsmh_kernel);
+        clReleaseKernel(ratt_kernel);
+        clReleaseKernel(ratt2_kernel);
+        clReleaseKernel(ratt3_kernel);
+        clReleaseKernel(ratt4_kernel);
+        clReleaseKernel(ratt5_kernel);
+        clReleaseKernel(ratt6_kernel);
+        clReleaseKernel(ratt7_kernel);
+        clReleaseKernel(ratt8_kernel);
+        clReleaseKernel(ratt9_kernel);
+        clReleaseKernel(ratt10_kernel);
+        clReleaseKernel(ratx_kernel);
+        clReleaseKernel(ratxb_kernel);
+        clReleaseKernel(ratx2_kernel);
+        clReleaseKernel(ratx4_kernel);
 
-	// Release Programs (phase 1)
-	clReleaseProgram(gr_prog);
-	clReleaseProgram(rdsmh_prog);
-	clReleaseProgram(ratt_prog);
-	clReleaseProgram(ratt2_prog);
-	clReleaseProgram(ratt3_prog);
-	clReleaseProgram(ratt4_prog);
-	clReleaseProgram(ratt5_prog);
-	clReleaseProgram(ratt6_prog);
-	clReleaseProgram(ratt7_prog);
-	clReleaseProgram(ratt8_prog);
-	clReleaseProgram(ratt9_prog);
-	clReleaseProgram(ratt10_prog);
-	clReleaseProgram(ratx_prog);
-	clReleaseProgram(ratxb_prog);
-	clReleaseProgram(ratx2_prog);
-	clReleaseProgram(ratx4_prog);
+        // Release Programs (phase 1)
+        clReleaseProgram(gr_prog);
+        clReleaseProgram(rdsmh_prog);
+        clReleaseProgram(ratt_prog);
+        clReleaseProgram(ratt2_prog);
+        clReleaseProgram(ratt3_prog);
+        clReleaseProgram(ratt4_prog);
+        clReleaseProgram(ratt5_prog);
+        clReleaseProgram(ratt6_prog);
+        clReleaseProgram(ratt7_prog);
+        clReleaseProgram(ratt8_prog);
+        clReleaseProgram(ratt9_prog);
+        clReleaseProgram(ratt10_prog);
+        clReleaseProgram(ratx_prog);
+        clReleaseProgram(ratxb_prog);
+        clReleaseProgram(ratx2_prog);
+        clReleaseProgram(ratx4_prog);
 
-	// -------------------- phase 2 -----------------
-	// Setup Program Objects (phase 2)
-	clProg(qssa_prog, cl_source_qssa);
-	clProg(qssab_prog, cl_source_qssab);
-	clProg(qssa2_prog, cl_source_qssa2);
-	clProg(rdwdot_prog, cl_source_rdwdot);
-	clProg(rdwdot2_prog, cl_source_rdwdot2);
-	clProg(rdwdot3_prog, cl_source_rdwdot3);
-	clProg(rdwdot6_prog, cl_source_rdwdot6);
-	clProg(rdwdot7_prog, cl_source_rdwdot7);
-	clProg(rdwdot8_prog, cl_source_rdwdot8);
-	clProg(rdwdot9_prog, cl_source_rdwdot9);
-	clProg(rdwdot10_prog, cl_source_rdwdot10);
+        // -------------------- phase 2 -----------------
+        // Setup Program Objects (phase 2)
+        clProg(qssa_prog, cl_source_qssa);
+        clProg(qssab_prog, cl_source_qssab);
+        clProg(qssa2_prog, cl_source_qssa2);
+        clProg(rdwdot_prog, cl_source_rdwdot);
+        clProg(rdwdot2_prog, cl_source_rdwdot2);
+        clProg(rdwdot3_prog, cl_source_rdwdot3);
+        clProg(rdwdot6_prog, cl_source_rdwdot6);
+        clProg(rdwdot7_prog, cl_source_rdwdot7);
+        clProg(rdwdot8_prog, cl_source_rdwdot8);
+        clProg(rdwdot9_prog, cl_source_rdwdot9);
+        clProg(rdwdot10_prog, cl_source_rdwdot10);
 
-	// Build the kernels (phase 2)
-	cout << "Compiling kernels (phase 2)...";
-	cout.flush();
+        // Build the kernels (phase 2)
+        cout << "Compiling kernels (phase 2)...";
+        cout.flush();
 
-	clBuild(qssa_prog);
-	clBuild(qssab_prog);
-	clBuild(qssa2_prog);
-	clBuild(rdwdot_prog);
-	clBuild(rdwdot2_prog);
-	clBuild(rdwdot3_prog);
-	clBuild(rdwdot6_prog);
-	clBuild(rdwdot7_prog);
-	clBuild(rdwdot8_prog);
-	clBuild(rdwdot9_prog);
-	clBuild(rdwdot10_prog);
-    
-	cout << "done." << endl;
+        clBuild(qssa_prog);
+        clBuild(qssab_prog);
+        clBuild(qssa2_prog);
+        clBuild(rdwdot_prog);
+        clBuild(rdwdot2_prog);
+        clBuild(rdwdot3_prog);
+        clBuild(rdwdot6_prog);
+        clBuild(rdwdot7_prog);
+        clBuild(rdwdot8_prog);
+        clBuild(rdwdot9_prog);
+        clBuild(rdwdot10_prog);
 
-	// Extract out kernel objects (phase 2)
-	cout << "Generating OpenCL Kernel Objects (phase 2)...";
-	cout.flush();
+        cout << "done." << endl;
 
-	// QSSA Kernels
-	cl_kernel qssa_kernel = clCreateKernel(qssa_prog, "qssa_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel qssab_kernel = clCreateKernel(qssab_prog, "qssab_kernel", &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel qssa2_kernel = clCreateKernel(qssa2_prog, "qssa2_kernel", &err);
-	CL_CHECK_ERROR(err);
+        // Extract out kernel objects (phase 2)
+        cout << "Generating OpenCL Kernel Objects (phase 2)...";
+        cout.flush();
 
-	// RDWDOT Kernels
-	cl_kernel rdwdot_kernel = clCreateKernel(rdwdot_prog, "rdwdot_kernel",
-						 &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot2_kernel = clCreateKernel(rdwdot2_prog, "rdwdot2_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot3_kernel = clCreateKernel(rdwdot3_prog, "rdwdot3_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot6_kernel = clCreateKernel(rdwdot6_prog, "rdwdot6_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot7_kernel = clCreateKernel(rdwdot7_prog, "rdwdot7_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot8_kernel = clCreateKernel(rdwdot8_prog, "rdwdot8_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot9_kernel = clCreateKernel(rdwdot9_prog, "rdwdot9_kernel",
-						  &err);
-	CL_CHECK_ERROR(err);
-	cl_kernel rdwdot10_kernel = clCreateKernel(rdwdot10_prog, "rdwdot10_kernel",
-						   &err);
-	CL_CHECK_ERROR(err);
-	cout << "done." << endl;
+        // QSSA Kernels
+        cl_kernel qssa_kernel = clCreateKernel(qssa_prog, "qssa_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel qssab_kernel = clCreateKernel(qssab_prog, "qssab_kernel",
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel qssa2_kernel = clCreateKernel(qssa2_prog, "qssa2_kernel",
+                &err);
+        CL_CHECK_ERROR(err);
 
-	//Set kernel arguments (phase 2)
-	clSetQssaArg(qssa_kernel);
-	clSetQssaArg(qssab_kernel);
-	clSetQssaArg(qssa2_kernel);
+        // RDWDOT Kernels
+        cl_kernel rdwdot_kernel = clCreateKernel(rdwdot_prog, "rdwdot_kernel",
+                &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot2_kernel = clCreateKernel(rdwdot2_prog, 
+                "rdwdot2_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot3_kernel = clCreateKernel(rdwdot3_prog, 
+                "rdwdot3_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot6_kernel = clCreateKernel(rdwdot6_prog, 
+                "rdwdot6_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot7_kernel = clCreateKernel(rdwdot7_prog, 
+                "rdwdot7_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot8_kernel = clCreateKernel(rdwdot8_prog, 
+                "rdwdot8_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot9_kernel = clCreateKernel(rdwdot9_prog, 
+                "rdwdot9_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cl_kernel rdwdot10_kernel = clCreateKernel(rdwdot10_prog,
+                "rdwdot10_kernel", &err);
+        CL_CHECK_ERROR(err);
+        cout << "done." << endl;
 
-	clSetRdwdotArg(rdwdot_kernel);
-	clSetRdwdotArg(rdwdot2_kernel);
-	clSetRdwdotArg(rdwdot3_kernel);
-	clSetRdwdotArg(rdwdot6_kernel);
-	clSetRdwdotArg(rdwdot7_kernel);
-	clSetRdwdotArg(rdwdot8_kernel);
-	clSetRdwdotArg(rdwdot9_kernel);
-	clSetRdwdotArg(rdwdot10_kernel);
+        //Set kernel arguments (phase 2)
+        clSetQssaArg(qssa_kernel);
+        clSetQssaArg(qssab_kernel);
+        clSetQssaArg(qssa2_kernel);
 
-	// Execute kernels (phase 2)
-	cout << "Executing kernels (phase 2)...";
-	cout.flush();
+        clSetRdwdotArg(rdwdot_kernel);
+        clSetRdwdotArg(rdwdot2_kernel);
+        clSetRdwdotArg(rdwdot3_kernel);
+        clSetRdwdotArg(rdwdot6_kernel);
+        clSetRdwdotArg(rdwdot7_kernel);
+        clSetRdwdotArg(rdwdot8_kernel);
+        clSetRdwdotArg(rdwdot9_kernel);
+        clSetRdwdotArg(rdwdot10_kernel);
+
+        // Execute kernels (phase 2)
+        cout << "Executing kernels (phase 2)...";
+        cout.flush();
 
         Event evFirst_2("first kernel phase 2");
         Event evLast_2("last kernel phase 2");
@@ -597,51 +613,53 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
 
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
-	cout << "done. " << endl;
+        cout << "done. " << endl;
 
         evFirst_2.FillTimingInfo();
         evLast_2.FillTimingInfo();
         double total_phase2 = evLast_2.EndTime() - evFirst_2.StartTime();
 
-	// Release Kernels (phase 2)
-	clReleaseKernel(qssa_kernel);
-	clReleaseKernel(qssab_kernel);
-	clReleaseKernel(qssa2_kernel);
-	clReleaseKernel(rdwdot_kernel);
-	clReleaseKernel(rdwdot2_kernel);
-	clReleaseKernel(rdwdot3_kernel);
-	clReleaseKernel(rdwdot6_kernel);
-	clReleaseKernel(rdwdot7_kernel);
-	clReleaseKernel(rdwdot8_kernel);
-	clReleaseKernel(rdwdot9_kernel);
-	clReleaseKernel(rdwdot10_kernel);
+        // Release Kernels (phase 2)
+        clReleaseKernel(qssa_kernel);
+        clReleaseKernel(qssab_kernel);
+        clReleaseKernel(qssa2_kernel);
+        clReleaseKernel(rdwdot_kernel);
+        clReleaseKernel(rdwdot2_kernel);
+        clReleaseKernel(rdwdot3_kernel);
+        clReleaseKernel(rdwdot6_kernel);
+        clReleaseKernel(rdwdot7_kernel);
+        clReleaseKernel(rdwdot8_kernel);
+        clReleaseKernel(rdwdot9_kernel);
+        clReleaseKernel(rdwdot10_kernel);
 
-	// Release Programs (phase 2)
-	clReleaseProgram(qssa_prog);
-	clReleaseProgram(qssab_prog);
-	clReleaseProgram(qssa2_prog);
-	clReleaseProgram(rdwdot_prog);
-	clReleaseProgram(rdwdot2_prog);
-	clReleaseProgram(rdwdot3_prog);
-	clReleaseProgram(rdwdot6_prog);
-	clReleaseProgram(rdwdot7_prog);
-	clReleaseProgram(rdwdot8_prog);
-	clReleaseProgram(rdwdot9_prog);
-	clReleaseProgram(rdwdot10_prog);
+        // Release Programs (phase 2)
+        clReleaseProgram(qssa_prog);
+        clReleaseProgram(qssab_prog);
+        clReleaseProgram(qssa2_prog);
+        clReleaseProgram(rdwdot_prog);
+        clReleaseProgram(rdwdot2_prog);
+        clReleaseProgram(rdwdot3_prog);
+        clReleaseProgram(rdwdot6_prog);
+        clReleaseProgram(rdwdot7_prog);
+        clReleaseProgram(rdwdot8_prog);
+        clReleaseProgram(rdwdot9_prog);
+        clReleaseProgram(rdwdot10_prog);
 
-	// -------------------- timings -----------------
+        // -------------------- timings -----------------
 
         double total = total_phase1 + total_phase2;
         // Estimate GFLOPs (roughly 10k flops / point)
         double gflops = (n*10000.) / total;
         // Copy results back
         err = clEnqueueReadBuffer(queue, d_wdot, true, 0,
-            n*n_species*sizeof(T), h_wdot,
-            0, NULL, &evTransfer.CLEvent());
+                n*n_species*sizeof(T), h_wdot,
+                0, NULL, &evTransfer.CLEvent());
+        CL_CHECK_ERROR(err);
+        err = clFinish(queue);
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
-	double totalTransferTime = inputTransferTime + 
-                                  evTransfer.StartEndRuntime();
+        double totalTransferTime = inputTransferTime + 
+            evTransfer.StartEndRuntime();
         double gflops_pcie = (n*10000.) / (total + totalTransferTime);
 
         resultDB.AddResult(testName, "cubic", "GFLOPS", gflops);

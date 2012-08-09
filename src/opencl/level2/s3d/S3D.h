@@ -24,7 +24,9 @@
 
 #define clMemtoDevice(ptr1, ptr2, size) {                                      \
     err = clEnqueueWriteBuffer(queue, ptr1, true, 0, size, ptr2, 0,            \
-        NULL, &evTransfer.CLEvent());                                           \
+        NULL, &evTransfer.CLEvent());                                          \
+    CL_CHECK_ERROR(err);                                                       \
+    err = clFinish(queue);                                                     \
     CL_CHECK_ERROR(err); }
 
 #define clBuild(progname)                                                      \

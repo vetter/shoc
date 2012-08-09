@@ -267,6 +267,9 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     err = clEnqueueWriteBuffer(queue, d_idata, true, 0, bytes, h_idata,
             0, NULL, &evTransfer.CLEvent());
     CL_CHECK_ERROR(err);
+    err = clFinish(queue);
+    CL_CHECK_ERROR(err);
+
     evTransfer.FillTimingInfo();
 
     double inputTransfer = evTransfer.StartEndRuntime();
@@ -328,6 +331,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
         err = clEnqueueReadBuffer(queue, d_odata, true, 0,
                 numBlocks*sizeof(T), h_odata, 0, NULL, &evTransfer.CLEvent());
+        CL_CHECK_ERROR(err);
+        err = clFinish(queue);
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
         double totalTransfer = (inputTransfer + evTransfer.StartEndRuntime()) /

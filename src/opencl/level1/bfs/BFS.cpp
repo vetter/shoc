@@ -275,12 +275,16 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
             (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL, 
             &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
+    CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     double inputTransferTime = evTransfer.StartEndRuntime();
 
     err_code = clEnqueueWriteBuffer(queue, d_edgeArrayAux, CL_TRUE, 0,
             adj_list_length*sizeof(cl_uint), (void *)edgeArrayAux,0,
             NULL, &evTransfer.CLEvent());
+    CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
     CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -289,6 +293,8 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
     err_code = clEnqueueWriteBuffer(queue, d_frontier, CL_TRUE, 0,
             numVerts*sizeof(frontier_type), (void *)frontier,0, 
             NULL, &evTransfer.CLEvent());
+    CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
     CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -406,6 +412,8 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         err_code=clEnqueueReadBuffer(queue,d_frontier, CL_TRUE,0,
                 sizeof(frontier_type)*numVerts,costArray,0,NULL,
                 &evTransfer.CLEvent());
+        err_code = clFinish(queue);
+        CL_CHECK_ERROR(err_code);
         CL_CHECK_ERROR(err_code);
         evTransfer.FillTimingInfo();
         double outputTransferTime = evTransfer.StartEndRuntime();
@@ -718,12 +726,16 @@ void RunTest2(
             (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL, 
             &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
+    CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     double inputTransferTime = evTransfer.StartEndRuntime();
 
     err_code = clEnqueueWriteBuffer(queue, d_edgeArrayAux, CL_TRUE, 0,
             adj_list_length*sizeof(cl_uint), (void *)edgeArrayAux,0,
             NULL, &evTransfer.CLEvent());
+    CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
     CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -733,12 +745,16 @@ void RunTest2(
             numVerts*sizeof(frontier_type), (void *)frontier,0, 
             NULL, &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
+    CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
 
     err_code = clEnqueueWriteBuffer(queue, d_t_frontier, CL_TRUE, 0,
             sizeof(frontier_type)*numVerts, (void *)frontier,0, 
             NULL, &evTransfer.CLEvent());
+    CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
     CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -748,6 +764,8 @@ void RunTest2(
             numVerts*sizeof(visited_type), (void*)visited, 0,
             NULL,&evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
+    CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
 
@@ -756,6 +774,8 @@ void RunTest2(
             numVerts*sizeof(cost_type), (void*)costArray, 0,
             NULL,&evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
+    CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
 
@@ -763,6 +783,8 @@ void RunTest2(
     err_code = clEnqueueWriteBuffer(queue, d_frontier_length, CL_TRUE, 0,
             sizeof(cl_uint), (void*)&frontier_length, 0,NULL,
             &evTransfer.CLEvent());
+    CL_CHECK_ERROR(err_code);
+    err_code = clFinish(queue);
     CL_CHECK_ERROR(err_code);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -1129,6 +1151,8 @@ void RunTest2(
         err_code=clEnqueueReadBuffer(queue,d_costArray, CL_TRUE,0,
                 sizeof(cost_type)*numVerts,costArray,0,NULL,
                 &evTransfer.CLEvent());
+        CL_CHECK_ERROR(err_code);
+        err_code = clFinish(queue);
         CL_CHECK_ERROR(err_code);
         evTransfer.FillTimingInfo();
         double outputTransferTime = evTransfer.StartEndRuntime();

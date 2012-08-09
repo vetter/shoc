@@ -285,6 +285,9 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
         sizeof(int), h_rowLengths, 0, NULL, &rowLengthsTransfer.CLEvent());
     CL_CHECK_ERROR(err);
 
+    err = clFinish(queue);
+    CL_CHECK_ERROR(err);
+    
     valTransfer.FillTimingInfo();
     colsTransfer.FillTimingInfo();
     vecTransfer.FillTimingInfo();
@@ -336,6 +339,9 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
          Event outTransfer("d->h data transfer");
          err = clEnqueueReadBuffer(queue, d_out, true, 0, numRows * 
              sizeof(clFloatType), h_out, 0, NULL, &outTransfer.CLEvent());
+         CL_CHECK_ERROR(err);
+         err = clFinish(queue);
+         CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
          double oTransferTime = outTransfer.FillTimingInfo();
          
@@ -605,6 +611,9 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
           Event outTransfer("d->h data transfer");
           err = clEnqueueReadBuffer(queue, d_out, true, 0, numRows * 
               sizeof(floatType), h_out, 0, NULL, &outTransfer.CLEvent());
+          CL_CHECK_ERROR(err);
+          err = clFinish(queue);
+          CL_CHECK_ERROR(err);
           outTransfer.FillTimingInfo();
           double oTransferTime = outTransfer.FillTimingInfo();
           
@@ -679,6 +688,8 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          Event outTransfer("d->h data transfer");
          err = clEnqueueReadBuffer(queue, d_out, true, 0, numRows * 
              sizeof(floatType), h_out, 0, NULL, &outTransfer.CLEvent()); 
+         err = clFinish(queue);
+         CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
          double oTransferTime = outTransfer.FillTimingInfo();
          
