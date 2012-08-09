@@ -688,6 +688,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          Event outTransfer("d->h data transfer");
          err = clEnqueueReadBuffer(queue, d_out, true, 0, numRows * 
              sizeof(floatType), h_out, 0, NULL, &outTransfer.CLEvent()); 
+         CL_CHECK_ERROR(err);
          err = clFinish(queue);
          CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();

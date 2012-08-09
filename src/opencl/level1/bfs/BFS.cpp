@@ -412,8 +412,8 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         err_code=clEnqueueReadBuffer(queue,d_frontier, CL_TRUE,0,
                 sizeof(frontier_type)*numVerts,costArray,0,NULL,
                 &evTransfer.CLEvent());
-        err_code = clFinish(queue);
         CL_CHECK_ERROR(err_code);
+        err_code = clFinish(queue);
         CL_CHECK_ERROR(err_code);
         evTransfer.FillTimingInfo();
         double outputTransferTime = evTransfer.StartEndRuntime();
