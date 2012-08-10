@@ -228,7 +228,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     // The radix width in bits
     const int radix_width = 4; // Changing this requires major kernel updates
-    const int num_digits = (int)pow(2, radix_width); // n possible digits
+    const int num_digits = (int)pow((double)2, radix_width); // n possible digits
 
     // Allocate device memory for input array
     cl_mem d_idata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
