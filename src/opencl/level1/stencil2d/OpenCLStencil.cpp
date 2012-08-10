@@ -104,9 +104,6 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // from the original, our index space is scaled smaller 
     // in one dimension relative to the actual data
     assert( ((mtx.GetNumRows() - 2) % lRows) == 0 );
-    cl::KernelFunctor func = kernel.bind( queue,
-        cl::NDRange( (mtx.GetNumRows() - 2) / lRows, mtx.GetNumColumns() - 2 ),
-        cl::NDRange( 1, lCols ) );
 
     // create buffers for our data on the device
     cl::Buffer dataBuf1( context, CL_MEM_READ_WRITE, mtx.GetDataSize() );
@@ -150,32 +147,42 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
     // copy the non-contiguous data
     // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that 
-    // seems like it would be useful here but OpenCL 1.1 implementations 
-    // are very uncommon at this point
-    //
-    // Instead, we use a custom kernel that copies the non-contiguous data.
+    // seems like it would be useful here.  For OpenCL 1.0 compatibility,
+    // we use a custom kernel that copies the non-contiguous data.
     waitEvents.clear();
-    cl::KernelFunctor copyRectFunc = copyRectKernel.bind( queue,
+    copyRectKernel.setArg( 0, *newData ); // dest
+    copyRectKernel.setArg( 1, 0 ); // dest offset
+    copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
+    copyRectKernel.setArg( 3, *currData ); // src
+    copyRectKernel.setArg( 4, 0 ); // src offset
+    copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
+    copyRectKernel.setArg( 6, 1 ); // width
+    copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
+
+    cl::Event cwEvent;
+    queue.enqueueNDRangeKernel( copyRectKernel,
+        cl::NullRange,
         cl::NDRange( mtx.GetNumRows() ),
-        cl::NullRange );
-    cl::Event cwEvent = copyRectFunc( *newData,         // dest
-                    0,              // dest offset
-                    (int)mtx.GetNumPaddedColumns(),    // dest pitch
-                    *currData,      // src
-                    0,              // src offset
-                    (int)mtx.GetNumPaddedColumns(),    // src pitch
-                    1,              // width
-                    (int)mtx.GetNumRows() );        // height
+        cl::NullRange,
+        NULL,
+        &cwEvent );
     waitEvents.push_back( cwEvent );
 
-    cl::Event ceEvent = copyRectFunc( *newData,         // dest
-                    (int)(mtx.GetNumColumns() - 1),   // dest offset
-                    (int)mtx.GetNumPaddedColumns(),    // dest pitch
-                    *currData,      // src
-                    (int)(mtx.GetNumColumns() - 1),   // src offset
-                    (int)mtx.GetNumPaddedColumns(),    // src pitch
-                    1,              // width
-                    (int)mtx.GetNumRows() );        // height
+    copyRectKernel.setArg( 0, *newData ); // dest
+    copyRectKernel.setArg( 1, (int)(mtx.GetNumColumns() - 1) ); // dest offset
+    copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
+    copyRectKernel.setArg( 3, *currData ); // src
+    copyRectKernel.setArg( 4, (int)(mtx.GetNumColumns() - 1) ); // src offset
+    copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
+    copyRectKernel.setArg( 6, 1 ); // width
+    copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
+    cl::Event ceEvent;
+    queue.enqueueNDRangeKernel( copyRectKernel,
+        cl::NullRange,
+        cl::NDRange( mtx.GetNumRows() ),
+        cl::NullRange,
+        NULL,
+        &ceEvent );
     waitEvents.push_back( ceEvent );
 
     cl::Event::waitForEvents( waitEvents );
@@ -203,13 +210,28 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         // make it dependent on the completion of the last iteration.
         //
         size_t localDataSize = (lRows + 2) * (lCols + 2) * sizeof(T);
-        cl::Event evt = func( *currData,
-                                    *newData,
-                                    (cl_int)(mtx.GetPad()),
-                                    this->wCenter, 
-                                    this->wCardinal, 
-                                    this->wDiagonal,
-                                    cl::__local( localDataSize ) );
+
+        // We would like to use a C++ functor approach, but
+        // the KernelFunctor from the earlier OpenCL C++ bindings 
+        // has disappeared and anecdotal evidence suggests that
+        // the make_kernel approach in the OpenCL 1.2-related C++ bindings
+        // might not be stable a stable API.
+        // So we stick with the verbose setArg/enqueueNDRangeKernel approach.
+        kernel.setArg( 0, *currData );
+        kernel.setArg( 1, *newData );
+        kernel.setArg( 2, (cl_int)(mtx.GetPad()) );
+        kernel.setArg( 3, this->wCenter );
+        kernel.setArg( 4, this->wCardinal );
+        kernel.setArg( 5, this->wDiagonal );
+        kernel.setArg( 6, cl::__local( localDataSize ) );
+
+        cl::Event evt;
+        queue.enqueueNDRangeKernel( kernel,
+            cl::NullRange,
+            cl::NDRange( (mtx.GetNumRows() - 2) / lRows, mtx.GetNumColumns() - 2 ),
+            cl::NDRange( 1, lCols ), 
+            NULL,
+            &evt );
 
         if( iter == nIters-1 )
         {

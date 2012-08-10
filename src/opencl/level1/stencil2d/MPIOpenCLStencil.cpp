@@ -124,9 +124,6 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         // before reading into our host buffers
         cl::Buffer contigEBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
         cl::Buffer contigWBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
-        cl::KernelFunctor copyRectFunc = this->copyRectKernel.bind( queue,
-            cl::NDRange( nRows ),
-            cl::NullRange );
 
         if( this->HaveNorthNeighbor() )
         {
@@ -158,14 +155,21 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         {
             // east data is non-contigous - 
             // make it contiguous on the device
-            cl::Event ceEvent = copyRectFunc( contigEBuf,   // dest
-                            (int)0,          // dest offset
-                            (int)haloWidth,  // dest pitch
-                            currBuf,    // src
-                            (int)(nCols - 2 * haloWidth),          // src offset
-                            (int)nPaddedCols,      // src pitch
-                            (int)haloWidth,  // width
-                            (int)nRows );    // height
+            this->copyRectKernel.setArg( 0, contigEBuf ); // dest
+            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)haloWidth ); // dest pitch
+            this->copyRectKernel.setArg( 3, currBuf ); // src
+            this->copyRectKernel.setArg( 4, (int)(nCols - 2 * haloWidth) ); // src offset
+            this->copyRectKernel.setArg( 5, (int)nPaddedCols ); // src pitch
+            this->copyRectKernel.setArg( 6, (int)haloWidth );  // width
+            this->copyRectKernel.setArg( 7, (int)nRows ); // height
+            cl::Event ceEvent;
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &ceEvent );
 
             // copy data into contiguous array on host
             std::vector<cl::Event> ceEvents;
@@ -184,14 +188,21 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         {
             // west data is non-contiguous - 
             // make it contiguous on the device,
-            cl::Event cwEvent = copyRectFunc( contigWBuf,   // dest
-                            (int)0,          // dest offset
-                            (int)haloWidth,  // dest pitch
-                            currBuf,    // src
-                            (int)haloWidth,          // src offset
-                            (int)nPaddedCols,              // src pitch
-                            (int)haloWidth,  // width
-                            (int)nRows );    // height
+            this->copyRectKernel.setArg( 0, contigWBuf );  // dest
+            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)haloWidth ); // dest pitch
+            this->copyRectKernel.setArg( 3, currBuf ); // src
+            this->copyRectKernel.setArg( 4, (int)haloWidth ); // src offset
+            this->copyRectKernel.setArg( 5, (int)nPaddedCols ); // src pitch
+            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
+            this->copyRectKernel.setArg( 7, (int)nRows ); // height
+            cl::Event cwEvent;
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &cwEvent );
 
             // copy into a contiguous array on the host
             std::vector<cl::Event> cwEvents;
@@ -330,26 +341,38 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
 
         if( this->HaveEastNeighbor() )
         {
-            eEvent = copyRectFunc( currBuf,      // dest
-                                (int)(nCols - haloWidth),    // dest offset
-                                (int)nPaddedCols,      // dest pitch
-                                contigEBuf,   // src
-                                (int)0,          // src offset
-                                (int)haloWidth,  // src pitch
-                                (int)haloWidth,  // width
-                                (int)nRows );    // height
+            this->copyRectKernel.setArg( 0, currBuf ); // dest
+            this->copyRectKernel.setArg( 1, (int)(nCols - haloWidth) ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)nPaddedCols ); // dest pitch
+            this->copyRectKernel.setArg( 3, contigEBuf ); // src
+            this->copyRectKernel.setArg( 4, (int)0 ); // src offset
+            this->copyRectKernel.setArg( 5, (int)haloWidth ); // src pitch
+            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
+            this->copyRectKernel.setArg( 7, (int)nRows ); // height
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &eEvent );
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
         {
-            wEvent = copyRectFunc( currBuf,      // dest
-                                (int)0,  // dest offset
-                                (int)nPaddedCols,      // dest pitch
-                                contigWBuf, // src
-                                (int)0,          // src offset
-                                (int)haloWidth,  // src pitch
-                                (int)haloWidth,  // width
-                                (int)nRows );    // height
+            this->copyRectKernel.setArg( 0, currBuf ); // dest
+            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)nPaddedCols ); // dest pitch
+            this->copyRectKernel.setArg( 3, contigWBuf ); // src
+            this->copyRectKernel.setArg( 4, (int)0 ); // src offset
+            this->copyRectKernel.setArg( 5, (int)haloWidth ); // src pitch
+            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
+            this->copyRectKernel.setArg( 7, (int)nRows ); // height
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &wEvent );
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
@@ -387,26 +410,38 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         }
         if( this->HaveEastNeighbor() )
         {
-            eEvent = copyRectFunc( altBuf,         // dest
-                            (int)(mtx.GetNumColumns() - 1),              // dest offset
-                            (int)mtx.GetNumPaddedColumns(),    // dest pitch
-                            currBuf,      // src
-                            (int)(mtx.GetNumColumns() - 1),              // src offset
-                            (int)mtx.GetNumPaddedColumns(),    // src pitch
-                            1,              // width
-                            (int)mtx.GetNumRows() );        // height
+            this->copyRectKernel.setArg( 0, altBuf ); // dest
+            this->copyRectKernel.setArg( 1, (int)(mtx.GetNumColumns() - 1) ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
+            this->copyRectKernel.setArg( 3, currBuf ); // src
+            this->copyRectKernel.setArg( 4, (int)(mtx.GetNumColumns() - 1) ); // src offset
+            this->copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
+            this->copyRectKernel.setArg( 6, 1 ); // width
+            this->copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &eEvent );
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
         {
-            wEvent = copyRectFunc( altBuf,         // dest
-                            0,              // dest offset
-                            (int)mtx.GetNumPaddedColumns(),    // dest pitch
-                            currBuf,      // src
-                            0,              // src offset
-                            (int)mtx.GetNumPaddedColumns(),    // src pitch
-                            1,              // width
-                            (int)mtx.GetNumRows() );        // height
+            this->copyRectKernel.setArg( 0, altBuf ); // dest
+            this->copyRectKernel.setArg( 1, 0 ); // dest offset
+            this->copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
+            this->copyRectKernel.setArg( 3, currBuf ); // src
+            this->copyRectKernel.setArg( 4, 0 ); // src offset
+            this->copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
+            this->copyRectKernel.setArg( 6, 1 ); // width
+            this->copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
+            queue.enqueueNDRangeKernel( this->copyRectKernel,
+                cl::NullRange,
+                cl::NDRange( nRows ),
+                cl::NullRange,
+                NULL,
+                &wEvent );
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
