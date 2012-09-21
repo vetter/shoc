@@ -5,7 +5,7 @@
 
 extern int fftDevice;
 
-void init(OptionParser& op, bool do_dp);
+void init(OptionParser& op, bool do_dp, int n_ffts);
 void forward(void* work, int n_ffts);
 void inverse(void* work, int n_ffts);
 int check(void* work, void* check, int half_n_ffts, int half_n_cmplx);
