@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 
+#include <time.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
 

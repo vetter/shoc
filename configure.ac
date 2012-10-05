@@ -58,7 +58,7 @@ AS_CASE([$host],
 
 # Checks for header files.
 AC_FUNC_ALLOCA
-AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h sys/timeb.h unistd.h])
+AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h sys/timeb.h time.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
