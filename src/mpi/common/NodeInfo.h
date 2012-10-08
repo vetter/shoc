@@ -1,5 +1,6 @@
 #ifndef NODE_INFO_H
 #define NODE_INFO_H
+#include "config.h"
 #include "mpi.h"
 #include <iostream>
 #include <string>
@@ -8,6 +9,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <cassert>
+
+#if HAVE_UNISTD_H
+#include <unistd.h>  // for gethostname; TODO make this more portable
+#endif // HAVE_UNISTD_H
 
 using namespace std;
 
@@ -67,7 +72,11 @@ NodeInfo::NodeInfo(MPI_Comm comm)
 
     limit = MAX_HOSTNAME - 1;
     name=(char*)malloc(MAX_HOSTNAME*sizeof(char));
+#if HAVE_GETHOSTNAME
     rc=gethostname(name,limit);
+#else
+#   error "No support (yet) for finding host name on this platform"
+#endif
     len = strlen(name)+1;
     *(name+len) = '\0';
     nodename.assign(name);

@@ -1,5 +1,3 @@
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "OpenCLPlatform.h"
 #include "support.h"
 #include <stdlib.h>

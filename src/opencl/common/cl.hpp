@@ -2084,9 +2084,12 @@ __declspec(selectany) volatile int Context::default_initialized_ = __DEFAULT_NOT
 __declspec(selectany) Context Context::default_;
 __declspec(selectany) volatile cl_int Context::default_error_ = CL_SUCCESS;
 #else
+
+#if !defined(__PGI) || defined(SHOC_DEFINE_CLHPP_WEAKS)
 __attribute__((weak)) volatile int Context::default_initialized_ = __DEFAULT_NOT_INITIALIZED;
 __attribute__((weak)) Context Context::default_;
 __attribute__((weak)) volatile cl_int Context::default_error_ = CL_SUCCESS;
+#endif // !defined(__PGI) || define(SHOC_DEFINE_CLHPP_WEAKS)
 #endif
 
 __GET_INFO_HELPER_WITH_RETAIN(cl::Context)
@@ -5005,9 +5008,12 @@ __declspec(selectany) volatile int CommandQueue::default_initialized_ = __DEFAUL
 __declspec(selectany) CommandQueue CommandQueue::default_;
 __declspec(selectany) volatile cl_int CommandQueue::default_error_ = CL_SUCCESS;
 #else
+
+#if !defined(__PGI) || defined(SHOC_DEFINE_CLHPP_WEAKS)
 __attribute__((weak)) volatile int CommandQueue::default_initialized_ = __DEFAULT_NOT_INITIALIZED;
 __attribute__((weak)) CommandQueue CommandQueue::default_;
 __attribute__((weak)) volatile cl_int CommandQueue::default_error_ = CL_SUCCESS;
+#endif // !defined(__PGI) || defined(SHOC_DEFINE_CLHPP_WEAKS)
 #endif
 
 inline cl_int enqueueReadBuffer(
