@@ -9,7 +9,7 @@ OCL_ROOT=/opt/AMDAPP
 OPTFLAGS="-g -O2"
 
 # Intel
-#OPTFLAGS="-g -fast"
+#OPTFLAGS="-g -xHOST -O3 -ip -no-prec-div"
 
 # PGI
 #OPTFLAGS="-g -fastsse"
