@@ -222,7 +222,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     cout << "Initializing host memory." << endl;
     for (int i = 0; i < size; i++)
     {
-        h_idata[i] = i % 16; //Fill with some pattern
+        h_idata[i] = i % 16; // Fill with some pattern
         h_odata[i] = -1;
     }
 
@@ -329,7 +329,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
                 err = clSetKernelArg(bottom_scan, 2, sizeof(cl_mem), 
                         (void*)&d_odata);
                 CL_CHECK_ERROR(err);
-            } else // i.e. odd pass
+            } 
+            else // i.e. odd pass
             {
                 // Set the kernel arguments for the reduction kernel
                 err = clSetKernelArg(reduce, 0, sizeof(cl_mem), 
@@ -365,7 +366,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         CL_CHECK_ERROR(err);
         double total_sort = Timer::Stop(th, "total sort time");
 
-        err = clEnqueueReadBuffer(queue, d_odata, true, 0, bytes, h_odata,
+        err = clEnqueueReadBuffer(queue, d_idata, true, 0, bytes, h_odata,
                 0, NULL, &evTransfer.CLEvent());
         CL_CHECK_ERROR(err);
         err = clFinish(queue);
