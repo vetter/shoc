@@ -4758,7 +4758,9 @@ fi
               savedLIBS=$LIBS
               savedCPPFLAGS=$CPPFLAGS
               savedCXXFLAGS=$CXXFLAGS
+              savedLDFLAGS=$LDFLAGS
               CXXFLAGS=$NVCXXFLAGS
+              LDFLAGS=""
 
               # find cuda include path based on location of nvcc command
               cudabindir=`$as_dirname -- $NVCC ||
@@ -4926,6 +4928,7 @@ fi
               LIBS=$savedLIBS
               CXX=$savedCXX
               CXXFLAGS=$savedCXXFLAGS
+              LDFLAGS=$savedLDFLAGS
 
 else
    if test "x$with_cuda" != xcheck; then

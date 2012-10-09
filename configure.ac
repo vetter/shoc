@@ -170,7 +170,9 @@ AS_IF([test "x$with_cuda" != xno],
               savedLIBS=$LIBS
               savedCPPFLAGS=$CPPFLAGS
               savedCXXFLAGS=$CXXFLAGS
+              savedLDFLAGS=$LDFLAGS
               CXXFLAGS=$NVCXXFLAGS
+              LDFLAGS=""
 
               # find cuda include path based on location of nvcc command
               cudabindir=`AS_DIRNAME([$NVCC])`
@@ -191,6 +193,7 @@ AS_IF([test "x$with_cuda" != xno],
               LIBS=$savedLIBS
               CXX=$savedCXX
               CXXFLAGS=$savedCXXFLAGS
+              LDFLAGS=$savedLDFLAGS
             ],
             [ if test "x$with_cuda" != xcheck; then
                 AC_MSG_FAILURE([CUDA support was requested, but no usable CUDA installation found])
