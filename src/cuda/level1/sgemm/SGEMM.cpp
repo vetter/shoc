@@ -1,7 +1,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <sys/time.h>
 #include "cuda.h"
 #include "cudacommon.h"
 #include "cublas.h"
@@ -9,6 +8,10 @@
 #include "Timer.h"
 #include "ResultDatabase.h"
 #include "OptionParser.h"
+
+#ifndef _WIN32
+#include <sys/time.h>
+#endif
 
 using namespace std;
 

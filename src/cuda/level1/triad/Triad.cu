@@ -8,6 +8,7 @@
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
+#include "Utility.h"
 
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions

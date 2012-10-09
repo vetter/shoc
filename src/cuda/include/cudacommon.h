@@ -13,6 +13,19 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
+// On Windows, if we call exit, our console may disappear,
+// taking the error message with it, so prompt before exiting.
+#if defined(_WIN32)
+#define safe_exit(val)                          \
+{                                               \
+    cout << "Press return to exit\n";           \
+    cin.get();                                  \
+    exit(val);                                  \
+}
+#else
+#define safe_exit(val) exit(val)
+#endif
+
 #define CHECK_CUDA_ERROR()                                                    \
 {                                                                             \
     cudaError_t err = cudaGetLastError();                                     \
@@ -20,7 +33,7 @@
     {                                                                         \
         printf("error=%d name=%s at "                                         \
                "ln: %d\n  ",err,cudaGetErrorString(err),__LINE__);            \
-        exit(-1);                                                             \
+        safe_exit(-1);                                                        \
     }                                                                         \
 }
 
@@ -30,7 +43,7 @@
    if (cudaSuccess != err) {                                                  \
        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",          \
            __FILE__, __LINE__, cudaGetErrorString( err) );                    \
-       exit(EXIT_FAILURE);                                                    \
+       safe_exit(EXIT_FAILURE);                                               \
    }                                                                          \
 } while (0)
 

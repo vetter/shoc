@@ -10,6 +10,7 @@
 #include "MD.h"
 #include "OptionParser.h"
 #include "ResultDatabase.h"
+#include "Utility.h"
 
 using namespace std;
 
@@ -601,6 +602,10 @@ inline void insertInOrder(list<T>& currDist, list<int>& currList,
 // Creation: July 26, 2010
 //
 // Modifications:
+//   Jeremy Meredith, Tue Oct  9 17:35:16 EDT 2012
+//   On some slow systems and without optimization, this
+//   could take a while.  Give users a rough completion
+//   percentage so they don't give up.
 //
 // ********************************************************
 template <class T, class posVecType>
@@ -612,6 +617,10 @@ inline int buildNeighborList(const int nAtom, const posVecType* position,
     // Find the nearest N atoms to each other atom, where N = maxNeighbors
     for (int i = 0; i < nAtom; i++)
     {
+        // Print progress every 10% completion.
+        if (int((i+1)/(nAtom/10)) > int(i/(nAtom/10)))
+            cout << "  " << 10*int((i+1)/(nAtom/10)) << "% done\n";
+
         // Current neighbor list for atom i, initialized to -1
         list<int>   currList(maxNeighbors, -1);
         // Distance to those neighbors.  We're populating this with the

@@ -3,6 +3,7 @@
 #include "ResultDatabase.h"
 #include "OptionParser.h"
 #include "ProgressBar.h"
+#include "Utility.h"
 
 // Forward Declarations for benchmark kernels
 __global__ void    MAddU(float *target, float val1, float val2);

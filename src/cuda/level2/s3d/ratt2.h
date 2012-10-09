@@ -15,7 +15,7 @@ ratt2_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
     real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     real ALOGT = LOG(TEMP);
 
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
 
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
@@ -108,7 +108,7 @@ ratt3_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
 
     real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -200,7 +200,7 @@ ratt4_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
 
     real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -291,7 +291,7 @@ ratt5_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
 
     const real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     const real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -384,7 +384,7 @@ ratt6_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
 
     const real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     const real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -474,7 +474,7 @@ ratt7_kernel(const real* RESTRICT T, const real* RESTRICT RF, real* RESTRICT RB,
 {
     const real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     const real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -565,7 +565,7 @@ ratt8_kernel(const real* RESTRICT T, const real* RESTRICT RF,
 
     const real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     const real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));
@@ -656,7 +656,7 @@ ratt9_kernel(const real* RESTRICT T, const real* RESTRICT RF,
 
     const real TEMP = T[threadIdx.x + (blockIdx.x * blockDim.x)]*TCONV;
     const real ALOGT = LOG(TEMP);
-    const register real SMALL_INV = 1e100f;
+    const register real SMALL_INV = 1e37f;
     const real RU=8.31451e7;
     const real PATM = 1.01325e6;
     const real PFAC = DIV (PATM, (RU*(TEMP)));

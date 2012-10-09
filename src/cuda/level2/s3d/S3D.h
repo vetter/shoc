@@ -188,16 +188,6 @@ __device__ __forceinline__ float LOG10<float>(float in)
 #define A_SIZE    (A_DIM * A_DIM)
 #define EG_SIZE              (32)
 
-//Macro to catch CUDA errors
-#define CUDA_SAFE_CALL( call) do {                                            \
-   cudaError err = call;                                                      \
-   if (cudaSuccess != err) {                                                  \
-       fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",          \
-           __FILE__, __LINE__, cudaGetErrorString( err) );                    \
-       exit(EXIT_FAILURE);                                                    \
-   }                                                                          \
-} while (0)
-
 // Launch Bounds Macros
 
 //#if defined(USE_LAUNCH_BOUNDS)

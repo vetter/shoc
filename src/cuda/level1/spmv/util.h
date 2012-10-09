@@ -9,6 +9,7 @@
 #include <fstream>
 #include "OptionParser.h"
 #include "ResultDatabase.h"
+#include "Utility.h"
 
 // Constants
 

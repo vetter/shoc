@@ -14,7 +14,23 @@ Timer *Timer::instance = NULL;
 static double
 DiffTime(const struct TIMEINFO &startTime, const struct TIMEINFO &endTime)
 {
-#if defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
+#if defined(_WIN32)
+    // 
+    // Figure out how many milliseconds between start and end times 
+    //
+    int ms = (int) difftime(endTime.time, startTime.time);
+    if (ms == 0)
+    {
+        ms = endTime.millitm - startTime.millitm;
+    }
+    else
+    {
+        ms =  ((ms - 1) * 1000);
+        ms += (1000 - startTime.millitm) + endTime.millitm;
+    }
+
+    double seconds = (ms/1000.);
+#elif defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
     double seconds = double(endTime.tv_sec - startTime.tv_sec) + 
                     double(endTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
 
@@ -32,7 +48,9 @@ DiffTime(const struct TIMEINFO &startTime, const struct TIMEINFO &endTime)
 static void
 GetCurrentTimeInfo(struct TIMEINFO &timeInfo)
 {
-#if defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
+#if defined(_WIN32)
+    _ftime(&timeInfo);
+#elif defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
     clock_gettime( CLOCK_REALTIME, &timeInfo );
 #elif defined(HAVE_GETTIMEOFDAY)
     gettimeofday(&timeInfo, 0);

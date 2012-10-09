@@ -14,6 +14,9 @@
 // Programmer:  Jeremy Meredith
 // Creation:    September 18, 2009
 // Modified:    Jan 2010, rothpc
+//    Jeremy Meredith, Tue Oct  9 17:25:25 EDT 2012
+//    Round is c99, not Windows-friendly.  Assuming we are using
+//    positive values, replaced it with an equivalent of int(x+.5).
 //
 // ****************************************************************************
 
@@ -23,21 +26,21 @@ inline std::string HumanReadable(long long value, long long *rounding=0)
     long long pVal;
     if (value>10ll*1024*1024*1024)
     {
-        pVal = (long long)round(value/(1024.0*1024*1024));
+        pVal = (long long)(0.5 + value/(1024.0*1024*1024));
         if (rounding)
             *rounding = pVal*1024*1024*1024 - value;
         vstr << pVal << 'G';
     }
     else if (value>10ll*1024*1024)
     {
-        pVal = (long long)round(value/(1024.0*1024));
+        pVal = (long long)(0.5 + value/(1024.0*1024));
         if (rounding)
             *rounding = pVal*1024*1024 - value;
         vstr << pVal << 'M';
     }
     else if (value>10ll*1024)
     {
-        pVal = (long long)round(value/(1024.0));
+        pVal = (long long)(0.5 + value/(1024.0));
         if (rounding)
             *rounding = pVal*1024 - value;
         vstr << pVal << 'k';
@@ -74,5 +77,22 @@ inline vector<string> SplitValues(const std::string &buff, char delim)
     return output;
 }
 
+#ifdef _WIN32
+
+// On Windows, srand48 and drand48 don't exist.
+// Create convenience routines that use srand/rand
+// and let developers continue to use the -48 versions.
+
+inline void srand48(unsigned int seed)
+{
+    srand(seed);
+}
+
+inline double drand48()
+{
+    return double(rand()) / RAND_MAX;
+}
+
+#endif // _WIN32
 
 #endif

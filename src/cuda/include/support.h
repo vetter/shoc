@@ -4,6 +4,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "cudacommon.h"
+#include <iostream>
+using std::cin;
+using std::cout;
 
 // ****************************************************************************
 // Method:  findAvailBytes
