@@ -9,6 +9,7 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 #include "support.h"
+#include "Utility.h"
 
 // Forward declarations for texture memory test and benchmark kernels
 void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet);
@@ -69,6 +70,9 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Modifications:
 //   Gabriel Marin, 06/09/2010: Change memory access patterns to eliminate 
 //   data reuse. Add auto-scaling factor.
+//
+//   Jeremy Meredith, 10/09/2012: Ignore errors at large thread counts
+//   in case only smaller thread counts succeed on some devices.
 //
 // ****************************************************************************
 void RunBenchmark(ResultDatabase &resultDB,
@@ -139,7 +143,19 @@ void RunBenchmark(ResultDatabase &resultDB,
                     (d_mem1, d_mem2, numWordsFloat, maxRepeatsCoal);
             cudaEventRecord(stop, 0);
             cudaEventSynchronize(stop);
-            CHECK_CUDA_ERROR();
+
+            // We can run out of resources at larger thread counts on 
+            // some devices.  If we made a successful run at smaller
+            // thread counts, just ignore errors at this size.
+            if (threads > minGroupSize)
+            {
+                if (cudaGetLastError() != cudaSuccess)
+                    break;
+            }
+            else
+            {
+                CHECK_CUDA_ERROR();
+            }
             t = 0.0f;
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
