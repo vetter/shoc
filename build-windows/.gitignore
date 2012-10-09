@@ -1,0 +1,5 @@
+src
+Debug
+Release
+*.user
+vc100.pdb
