@@ -10,9 +10,13 @@ OPTFLAGS="-g -O2"
 
 # Intel
 #OPTFLAGS="-g -xHOST -O3 -ip -no-prec-div"
+#export CXX=icpc
+#export CC=icc
 
 # PGI
 #OPTFLAGS="-g -fastsse"
+#export CXX=pgcpp
+#export CC=pgcc
 
 
 # do the actual configuration
