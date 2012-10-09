@@ -179,8 +179,13 @@ The \verb+-fastsse+ optimization flag implies a flag telling the compiler
 to aggressively inline functions, which results in much better performance.
 Although the Intel compiler does not have the same default behavior as
 the PGI compiler with respect to inlined functions, using the Intel
-compiler's \verb+-fast+ optimization flag may also be preferable to the
-default behavior.
+compiler's optimization flags may also be preferable to the default behavior
+produced by the autoconf script.
+Note, however, that the Intel compiler's \verb+-fast+ flag implies static
+linking, and some of the libraries used by SHOC such as CUDA and OpenCL 
+are not distributed as static libraries.
+As a workaround, use specific Intel compiler optimization flags rather than
+an umbrella flag like \verb+-fast+.
 
 To specify optimization flags when configuring SHOC, pass it to the
 configure script using the CXXFLAGS, CFLAGS, and LDFLAGS environment variables.
