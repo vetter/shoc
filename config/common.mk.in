@@ -5,24 +5,30 @@ LD       = @CXX@
 AR       = @AR@
 RANLIB   = @RANLIB@
 
-CPPFLAGS += -I$(SHOC_ROOT)/src/common -I${SHOC_ROOT}/config @CPPFLAGS@
+# In CPPFLAGS, note src/common is from the SHOC source tree, so we must
+# use $(srcdir).  In contrast, the files in config used in the build are
+# generated as part of the configuration, so we want to find them in the
+# build tree - hence we do not use $(srcdir) for that -I specification.
+CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config @CPPFLAGS@
 CFLAGS   += @CFLAGS@
 CXXFLAGS += @CXXFLAGS@
 NVCXXFLAGS += @NVCXXFLAGS@
 ARFLAGS  = rcv
-LDFLAGS  = @LDFLAGS@
-LIBS     = -L$(SHOC_ROOT)/lib @LIBS@
+LDFLAGS  = @LDFLAGS@ -L$(top_builddir)/src/common
+LIBS     = @LIBS@
 
 USE_MPI         = @USE_MPI@
 MPICXX          = @MPICXX@
 
-OCL_CPPFLAGS    += -I${SHOC_ROOT}/src/opencl/common
+OCL_CPPFLAGS    += -I$(top_srcdir)/src/opencl/common
+OCL_LDFLAGS		+= -L$(top_builddir)/src/opencl/common
 OCL_LIBS        = @OPENCL_LIBS@
 
 NVCC            = @NVCC@
 CUDA_CXX        = @NVCC@
 CUDA_INC        = -I@CUDA_INCDIR@
-CUDA_CPPFLAGS   += @CUDA_CPPFLAGS@ -I${SHOC_ROOT}/src/cuda/include
+CUDA_LDFLAGS	+= -L$(top_builddir)/src/cuda/common
+CUDA_CPPFLAGS   += @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/include
 
 USE_CUDA        = @USE_CUDA@
 ifeq ($(USE_CUDA),yes)

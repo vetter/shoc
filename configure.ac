@@ -4,9 +4,10 @@
 AC_PREREQ([2.65])
 AC_INIT([SHOC], [1.1.4], [shoc-help@elist.ornl.gov])
 AC_CONFIG_AUX_DIR([build-aux])
+AC_CANONICAL_SYSTEM
+AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/common/Timer.h])
 AC_CONFIG_HEADERS([config/config.h])
-AC_CANONICAL_SYSTEM
 
 # SHOC is a collection of C++ programs
 AC_LANG([C++])
@@ -333,8 +334,12 @@ AC_SUBST([NVCXXFLAGS])
 
 AC_CONFIG_FILES([Makefile
                  config/common.mk
+                 config/config.mk
+                 config/dirtargets.mk
                  config/targets.mk
+                 doc/Makefile
                  src/Makefile
+                 src/common/Makefile
                  src/cuda/Makefile
                  src/cuda/level0/Makefile
                  src/cuda/level1/Makefile
@@ -362,6 +367,7 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/Makefile
                  src/opencl/common/Makefile
                  src/opencl/level0/Makefile
+                 src/opencl/level0/mpi/Makefile
                  src/opencl/level1/Makefile
                  src/opencl/level1/bfs/Makefile
                  src/opencl/level1/fft/Makefile

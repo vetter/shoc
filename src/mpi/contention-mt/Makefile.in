@@ -7,18 +7,18 @@ SUBDIRS=@MPI_SUBDIRS@
 
 
 all:
-	@for dir in ${SUBDIRS}; do (cd $$dir && ${MAKE} $@) || exit 1; done
+	@for dir in ${SUBDIRS}; do ${MAKE} -C $$dir $@; done
 
 clean:
 	@if test -n "$(SUBDIRS)"; then \
 	    rev=""; for dir in $(SUBDIRS); do rev="$$dir $$rev"; done; \
-	    for dir in $$rev; do (cd $$dir && $(MAKE) $@); done \
+	    for dir in $$rev; do ${MAKE} -C $$dir $@; done \
 	fi
 
 distclean:
 	@if test -n "$(SUBDIRS)"; then \
 	    rev=""; for dir in $(SUBDIRS); do rev="$$dir $$rev"; done; \
-	    for dir in $$rev; do (cd $$dir && $(MAKE) $@); done \
+	    for dir in $$rev; do ${MAKE} -C $$dir $@; done \
 	fi
 	${RM} Makefile
 
