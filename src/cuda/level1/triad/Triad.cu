@@ -161,6 +161,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 
             triad<<<globalWorkSize, blockSize, 0, streams[0]>>>
                     (d_memA0, d_memB0, d_memC0, scalar);
+            CHECK_CUDA_ERROR();
 
             if (elemsInBlock < numMaxFloats)
             {
@@ -188,6 +189,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                     cudaMemcpyAsync(h_mem + crtIdx, d_memC1, elemsInBlock
                         * sizeof(float), cudaMemcpyDeviceToHost, streams[1]);
                 }
+                CHECK_CUDA_ERROR();
 
                 crtIdx += elemsInBlock;
 
@@ -204,6 +206,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                         triad<<<globalWorkSize, blockSize, 0, streams[0]>>>
                                 (d_memA0, d_memB0, d_memC0, scalar);
                     }
+                    CHECK_CUDA_ERROR();
                 }
 
                 if (crtIdx+elemsInBlock < numMaxFloats)
@@ -227,6 +230,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                                 blockSizes[i]*1024, cudaMemcpyHostToDevice,
                                 streams[1]);
                     }
+                    CHECK_CUDA_ERROR();
                 }
                 blockIdx += 1;
                 currStream = !currStream;
@@ -263,6 +267,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                 h_mem[j] = 0.0f;
         }
     }
+    CHECK_CUDA_ERROR();
 
     // Cleanup
     cudaFree(d_memA0);
