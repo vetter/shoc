@@ -298,7 +298,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     float threshold;
     int i, max_degree, thread_block_count, total_thread_block_count, active_node_count;
     int cwrank=0, node_count=1, tpb, max_card, iter=0;
-    double t_krn, t_comm, t_trim, t_updt, t_redc, t_sync;
+    double t_krn=0, t_comm=0, t_trim=0, t_updt=0, t_redc=0, t_sync=0;
     unsigned long int dst_matrix_elems, point_count, max_point_count;
     string fname;
 
