@@ -370,17 +370,30 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level0/mpi/Makefile
                  src/opencl/level1/Makefile
                  src/opencl/level1/bfs/Makefile
+                 src/opencl/level1/bfs/mpi/Makefile
                  src/opencl/level1/fft/Makefile
+                 src/opencl/level1/fft/mpi/Makefile
                  src/opencl/level1/md/Makefile
+                 src/opencl/level1/md/epmpi/Makefile
                  src/opencl/level1/reduction/Makefile
+                 src/opencl/level1/reduction/epmpi/Makefile
+                 src/opencl/level1/reduction/tpmpi/Makefile
                  src/opencl/level1/scan/Makefile
+                 src/opencl/level1/scan/epmpi/Makefile
+                 src/opencl/level1/scan/tpmpi/Makefile
                  src/opencl/level1/sgemm/Makefile
+                 src/opencl/level1/sgemm/mpi/Makefile
                  src/opencl/level1/sort/Makefile
+                 src/opencl/level1/sort/epmpi/Makefile
                  src/opencl/level1/spmv/Makefile
+                 src/opencl/level1/spmv/epmpi/Makefile
                  src/opencl/level1/stencil2d/Makefile
+                 src/opencl/level1/stencil2d/mpi/Makefile
                  src/opencl/level1/triad/Makefile
+                 src/opencl/level1/triad/epmpi/Makefile
                  src/opencl/level2/Makefile
                  src/opencl/level2/s3d/Makefile
+                 src/opencl/level2/s3d/epmpi/Makefile
                  src/stability/Makefile
                  ])
 AC_OUTPUT
