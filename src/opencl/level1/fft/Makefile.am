@@ -1,4 +1,7 @@
-SUBDIRS	= mpi
+if BUILD_MPI
+    MAYBE_MPI = epmpi
+endif
+SUBDIRS = $(MAYBE_MPI)
 
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk

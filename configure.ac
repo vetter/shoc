@@ -142,7 +142,6 @@ AS_IF([test "x$with_opencl" != xno],
 
         AS_IF([test "x$OPENCL_HEADER" != "x" -a "x$OPENCL_LIBS" != "x"],
             [with_opencl=yes
-             SRC_SUBDIRS="$SRC_SUBDIRS opencl"
              MPI_SUBDIRS="$MPI_SUBDIRS opencl"
              AC_SUBST([OPENCL_LIBS])
              ],
@@ -150,6 +149,7 @@ AS_IF([test "x$with_opencl" != xno],
              with_opencl=no
             ])
     ])
+AM_CONDITIONAL([BUILD_OPENCL], [test "x$with_opencl" = "xyes"])
 
 
 # CUDA support
@@ -206,7 +206,6 @@ AS_IF([test "x$with_cuda" != xno],
         AS_IF([test "x$NVCC" != x],
             [with_cuda=yes
              USE_CUDA=yes
-             SRC_SUBDIRS="$SRC_SUBDIRS cuda"
              MPI_SUBDIRS="$MPI_SUBDIRS cuda"
              AC_SUBST([CUDA_INCDIR])],
             [AC_MSG_NOTICE([no usable CUDA installation found])
@@ -232,6 +231,7 @@ AS_IF([test "x$with_cuda" != xno],
         )
     ]
 )
+AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
 
 
 # build stability tests? by default, enable if CUDA is enabled
@@ -242,9 +242,10 @@ AC_ARG_ENABLE([stability],
     [enable_stability=check]
 )
 
+COND_STABILITY=no
 AS_IF([test "x$enable_stability" = xyes],
     [AS_IF([test "x$with_cuda" != xno],
-        [SRC_SUBDIRS="$SRC_SUBDIRS stability"],
+        [COND_STABILITY=yes],
         [ AC_MSG_FAILURE([CUDA-based stability test enabled but no usable CUDA installation found])
           with_stability=no
         ]
@@ -252,7 +253,7 @@ AS_IF([test "x$enable_stability" = xyes],
     ],
     [AS_IF([test "x$enable_stability" != xno],
         [AS_IF([test "x$with_cuda" != xno],
-            [SRC_SUBDIRS="$SRC_SUBDIRS stability"],
+            [COND_STABILITY=yes],
         [
           with_stability=no
         ]
@@ -260,6 +261,7 @@ AS_IF([test "x$enable_stability" = xyes],
     )]
     
 )
+AM_CONDITIONAL([BUILD_STABILITY], [test "x$COND_STABILITY" = "xyes"])
 
 
 # MPI
@@ -307,7 +309,6 @@ AS_IF([test "x$with_mpi" != xno],
         AS_IF([test "x$MPICXX" != "x"],
             [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes],
                   [ with_mpi=yes
-                    SRC_SUBDIRS="$SRC_SUBDIRS mpi"
                     USE_MPI=yes
                   ],
                   [ AC_MSG_FAILURE([MPI support was requested, but is only meaningful if OpenCL and/or CUDA support is available])
@@ -324,11 +325,11 @@ AS_IF([test "x$with_mpi" != xno],
         )
     ]
 )
+AM_CONDITIONAL([BUILD_MPI], [test "x$with_mpi" = "xyes"])
 
 AC_SUBST([USE_MPI])
 AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
-AC_SUBST([SRC_SUBDIRS])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
 
@@ -367,12 +368,12 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/Makefile
                  src/opencl/common/Makefile
                  src/opencl/level0/Makefile
-                 src/opencl/level0/mpi/Makefile
+                 src/opencl/level0/epmpi/Makefile
                  src/opencl/level1/Makefile
                  src/opencl/level1/bfs/Makefile
-                 src/opencl/level1/bfs/mpi/Makefile
+                 src/opencl/level1/bfs/epmpi/Makefile
                  src/opencl/level1/fft/Makefile
-                 src/opencl/level1/fft/mpi/Makefile
+                 src/opencl/level1/fft/epmpi/Makefile
                  src/opencl/level1/md/Makefile
                  src/opencl/level1/md/epmpi/Makefile
                  src/opencl/level1/reduction/Makefile
@@ -382,13 +383,13 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level1/scan/epmpi/Makefile
                  src/opencl/level1/scan/tpmpi/Makefile
                  src/opencl/level1/sgemm/Makefile
-                 src/opencl/level1/sgemm/mpi/Makefile
+                 src/opencl/level1/sgemm/epmpi/Makefile
                  src/opencl/level1/sort/Makefile
                  src/opencl/level1/sort/epmpi/Makefile
                  src/opencl/level1/spmv/Makefile
                  src/opencl/level1/spmv/epmpi/Makefile
                  src/opencl/level1/stencil2d/Makefile
-                 src/opencl/level1/stencil2d/mpi/Makefile
+                 src/opencl/level1/stencil2d/tpmpi/Makefile
                  src/opencl/level1/triad/Makefile
                  src/opencl/level1/triad/epmpi/Makefile
                  src/opencl/level2/Makefile
