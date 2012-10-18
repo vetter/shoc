@@ -11,7 +11,7 @@ VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
 AM_LDFLAGS = $(OCL_LDFLAGS)
 CPPFLAGS += $(OCL_CPPFLAGS)
-L1LIBS = -lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
+L1LIBS = $(OCL_LIBS) $(LIBS)
 
 # what is the destination for programs built from this directory?
 serialopencldir = $(bindir)/Serial/OpenCL

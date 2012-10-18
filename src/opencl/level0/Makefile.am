@@ -1,4 +1,3 @@
-
 if BUILD_MPI
     MAYBE_MPI = epmpi
 endif
@@ -12,8 +11,7 @@ include $(top_builddir)/config/targets.mk
 VPATH = $(srcdir):$(srcdir)/../common
 
 AM_LDFLAGS = $(OCL_LDFLAGS)
-CPPFLAGS += $(OCL_CPPFLAGS) -I$(top_srcdir)/src/opencl/common
-L0LIBS = -lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
+AM_CPPFLAGS = $(OCL_CPPFLAGS)
 
 # what is the destination for programs built from this directory?
 serialopencldir = $(bindir)/Serial/OpenCL
@@ -27,21 +25,21 @@ serialopencl_PROGRAMS = BusSpeedDownload \
 						QueueDelay
 
 BusSpeedDownload_SOURCES	= BusSpeedDownload.cpp main.cpp
-BusSpeedDownload_LDADD		= $(L0LIBS)
+BusSpeedDownload_LDADD		= $(OCL_LIBS) $(LIBS)
 
 BusSpeedReadback_SOURCES	= BusSpeedReadback.cpp main.cpp
-BusSpeedReadback_LDADD		= $(L0LIBS)
+BusSpeedReadback_LDADD		= $(OCL_LIBS) $(LIBS)
 
 DeviceMemory_SOURCES	= DeviceMemory.cpp main.cpp
-DeviceMemory_LDADD		= $(L0LIBS)
+DeviceMemory_LDADD		= $(OCL_LIBS) $(LIBS)
 
 KernelCompile_SOURCES	= KernelCompile.cpp main.cpp
-KernelCompile_LDADD		= $(L0LIBS)
+KernelCompile_LDADD		= $(OCL_LIBS) $(LIBS)
 
 MaxFlops_SOURCES	= MaxFlops.cpp main.cpp
-MaxFlops_LDADD		= $(L0LIBS)
+MaxFlops_LDADD		= $(OCL_LIBS) $(LIBS)
 
 QueueDelay_SOURCES	= QueueDelay.cpp main.cpp
-QueueDelay_LDADD	= $(L0LIBS)
+QueueDelay_LDADD	= $(OCL_LIBS) $(LIBS)
 
 

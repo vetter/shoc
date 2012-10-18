@@ -5,11 +5,12 @@ include $(top_builddir)/config/targets.mk
 VPATH = $(srcdir)/..:$(srcdir)/../../common
 
 # which compiler to use to link
+CXX= ${MPICXX}
 CXXLD = ${MPICXX}
 
 # which flags to use
 AM_LDFLAGS = $(OCL_LDFLAGS)
-CPPFLAGS += $(OCL_CPPFLAGS) -I$(top_srcdir)/src/opencl/common -I$(top_srcdir)/src/mpi/common
+CPPFLAGS += $(MPI_CPPFLAGS) $(OCL_CPPFLAGS) -I$(top_srcdir)/src/opencl/common -I$(top_srcdir)/src/mpi/common
 L0LIBS = -lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
 
 # what is the destination for programs built from this directory?
@@ -23,22 +24,22 @@ epopencl_PROGRAMS = BusSpeedDownload \
 						MaxFlops \
 						QueueDelay
 
-BusSpeedDownload_SOURCES	= BusSpeedDownload.cpp main_mpi.cpp
+BusSpeedDownload_SOURCES	= BusSpeedDownload.cpp main.cpp
 BusSpeedDownload_LDADD		= $(L0LIBS)
 
-BusSpeedReadback_SOURCES	= BusSpeedReadback.cpp main_mpi.cpp
+BusSpeedReadback_SOURCES	= BusSpeedReadback.cpp main.cpp
 BusSpeedReadback_LDADD		= $(L0LIBS)
 
-DeviceMemory_SOURCES	= DeviceMemory.cpp main_mpi.cpp
+DeviceMemory_SOURCES	= DeviceMemory.cpp main.cpp
 DeviceMemory_LDADD		= $(L0LIBS)
 
-KernelCompile_SOURCES	= KernelCompile.cpp main_mpi.cpp
+KernelCompile_SOURCES	= KernelCompile.cpp main.cpp
 KernelCompile_LDADD		= $(L0LIBS)
 
-MaxFlops_SOURCES	= MaxFlops.cpp main_mpi.cpp
+MaxFlops_SOURCES	= MaxFlops.cpp main.cpp
 MaxFlops_LDADD		= $(L0LIBS)
 
-QueueDelay_SOURCES	= QueueDelay.cpp main_mpi.cpp
+QueueDelay_SOURCES	= QueueDelay.cpp main.cpp
 QueueDelay_LDADD	= $(L0LIBS)
 
 

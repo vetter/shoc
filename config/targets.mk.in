@@ -1,10 +1,10 @@
-.SUFFIXES: .C .cpp .c .o .d .cu .cl .prog .mpiprog _mpi.o _mpi.d .oclmpiprog _ocl.o _ocl.d _cl.cpp _cuda.o _cuda.d 
+#.SUFFIXES: .C .cpp .c .o .d .cu .cl .prog .mpiprog _mpi.o _mpi.d .oclmpiprog _ocl.o _ocl.d _cl.cpp _cuda.o _cuda.d 
 
-%.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+#%.o: %.cpp
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-%_mpi.o: %.cpp
-	$(MPICXX) -DPARALLEL $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+#%_mpi.o: %.cpp
+#	$(MPICXX) -DPARALLEL $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 %_ocl.o: %.cpp
 	$(CXX) $(OCL_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(OCL_CXXFLAGS) -c $< -o $@
@@ -16,9 +16,9 @@
 	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $< -o $@
 
 %_cl.cpp: %.cl
-	@echo "const char *cl_source_$* =" >  $@
-	@tr -d "\r" < $< | sed 's/\\/\\\\/g' | sed 's/\"/\\\"/g' | sed 's,^\(.*\)$$,\"\1\\n\",' >> $@
-	@echo ";" >> $@
+	echo "const char *cl_source_$* =" >  $@
+	tr -d "\r" < $< | sed 's/\\/\\\\/g' | sed 's/\"/\\\"/g' | sed 's,^\(.*\)$$,\"\1\\n\",' >> $@
+	echo ";" >> $@
 
 %.o: %.cu
 	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $<

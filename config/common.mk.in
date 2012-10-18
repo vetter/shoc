@@ -1,28 +1,31 @@
 # === Basics ===
-CC       = @CC@
-CXX      = @CXX@
-LD       = @CXX@
-AR       = @AR@
-RANLIB   = @RANLIB@
+#CC       = @CC@
+#CXX      = @CXX@
+#LD       = @CXX@
+#AR       = @AR@
+#RANLIB   = @RANLIB@
 
 # In CPPFLAGS, note src/common is from the SHOC source tree, so we must
 # use $(srcdir).  In contrast, the files in config used in the build are
 # generated as part of the configuration, so we want to find them in the
 # build tree - hence we do not use $(srcdir) for that -I specification.
-CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config @CPPFLAGS@
-CFLAGS   += @CFLAGS@
-CXXFLAGS += @CXXFLAGS@
+#CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config @CPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config
+#CFLAGS   += @CFLAGS@
+#CXXFLAGS += @CXXFLAGS@
 NVCXXFLAGS += @NVCXXFLAGS@
-ARFLAGS  = rcv
-LDFLAGS  = @LDFLAGS@ -L$(top_builddir)/src/common
+#ARFLAGS  = rcv
+#LDFLAGS  = @LDFLAGS@ -L$(top_builddir)/src/common
+LDFLAGS  += -L$(top_builddir)/src/common
 LIBS     = @LIBS@
 
 USE_MPI         = @USE_MPI@
 MPICXX          = @MPICXX@
+MPI_CPPFLAGS	= -DPARALLEL
 
-OCL_CPPFLAGS    += -I$(top_srcdir)/src/opencl/common
-OCL_LDFLAGS		+= -L$(top_builddir)/src/opencl/common
-OCL_LIBS        = @OPENCL_LIBS@
+OCL_CPPFLAGS    = -I$(top_srcdir)/src/opencl/common
+OCL_LDFLAGS		= -L$(top_builddir)/src/opencl/common
+OCL_LIBS        = -lSHOCCommonOpenCL -lSHOCCommon @OPENCL_LIBS@
 
 NVCC            = @NVCC@
 CUDA_CXX        = @NVCC@

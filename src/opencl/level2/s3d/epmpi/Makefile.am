@@ -4,11 +4,12 @@ include $(top_builddir)/config/targets.mk
 # How to find source files
 VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common
 
-# Which compiler to use to link
+# Which compiler to use
+CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
 AM_LDFLAGS = $(OCL_LDFLAGS)
-CPPFLAGS += $(OCL_CPPFLAGS) -I${top_srcdir}/src/mpi/common
+CPPFLAGS += $(MPI_CPPFLAGS) $(OCL_CPPFLAGS) -I${top_srcdir}/src/mpi/common
 L1LIBS = -lSHOCCommonOpenCL -lSHOCCommon $(OCL_LIBS) $(LIBS)
 
 # what is the destination for programs built from this directory?
@@ -45,6 +46,7 @@ rdwdot6_cl.cpp \
 rdwdot7_cl.cpp \
 rdwdot8_cl.cpp \
 rdwdot9_cl.cpp \
-rdwdot10_cl.cpp
-S3D_LDADD   = main_mpi.o $(L1LIBS)
+rdwdot10_cl.cpp \
+main.cpp
+S3D_LDADD   = $(L1LIBS)
 
