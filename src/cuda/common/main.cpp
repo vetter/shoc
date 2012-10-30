@@ -49,6 +49,11 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op);
 // Creation:
 //
 // Modifications:
+//   Jeremy Meredith, Tue Oct  9 17:27:04 EDT 2012
+//   Added a windows-specific --noprompt, which unless the user passes it,
+//   prompts the user to press enter before the program exits on Windows.
+//   This is because on Windows, the console disappears when the program
+//   exits, but our results go to the console.
 //
 // ****************************************************************************
 void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
@@ -61,7 +66,7 @@ void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
     cudaGetDeviceCount(&deviceCount);
     if (verbose)
     {
-    	cout << "Number of devices = " << deviceCount << "\n";
+        cout << "Number of devices = " << deviceCount << "\n";
     }
     string deviceName = "";
     for (int device = 0; device < deviceCount; ++device)
@@ -130,6 +135,7 @@ void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
 int main(int argc, char *argv[])
 {
     int ret = 0;
+    bool noprompt = false;
 
     try
     {
@@ -153,6 +159,9 @@ int main(int argc, char *argv[])
         op.addOption("infoDevices", OPT_BOOL, "",
                 "show info for available platforms and devices", 'i');
         op.addOption("quiet", OPT_BOOL, "", "write minimum necessary to standard output", 'q');
+#ifdef _WIN32
+        op.addOption("noprompt", OPT_BOOL, "", "don't wait for prompt at program exit");
+#endif
 
         addBenchmarkSpecOptions(op);
 
@@ -170,6 +179,9 @@ int main(int argc, char *argv[])
         
         bool verbose = op.getOptionBool("verbose");
         bool infoDev = op.getOptionBool("infoDevices");
+#ifdef _WIN32
+        noprompt = op.getOptionBool("noprompt");
+#endif
 
         int device;
 #ifdef PARALLEL
@@ -235,6 +247,14 @@ int main(int argc, char *argv[])
 
 #ifdef PARALLEL
     MPI_Finalize();
+#endif
+
+#ifdef _WIN32
+    if (!noprompt)
+    {
+        cout << "Press return to exit\n";
+        cin.get();
+    }
 #endif
 
     return ret;

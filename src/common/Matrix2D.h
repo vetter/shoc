@@ -2,7 +2,11 @@
 #define MATRIX2D_H
 
 #include <iostream>
+#ifdef _WIN32
+#define restrict __restrict
+#else
 #include "config.h"
+#endif
 
 // ****************************************************************************
 // Class:  Matrix2D

@@ -12,9 +12,11 @@
 #include <assert.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <iostream>
 #include "cudacommon.h"
 #include "CUDAStencil.cpp"
-
+using std::cout;
+using std::cin;
 
 //
 // We are using the "trick" illustrated by the NVIDIA simpleTemplates example

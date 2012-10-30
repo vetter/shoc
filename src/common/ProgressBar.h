@@ -2,8 +2,11 @@
 #define _PROGRESS_BAR_H_
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 
 // ****************************************************************************

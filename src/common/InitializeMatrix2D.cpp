@@ -2,7 +2,7 @@
 #include <string.h>
 #include <cassert>
 #include "InitializeMatrix2D.h"
-
+#include "Utility.h"
 
 
 template<class T>

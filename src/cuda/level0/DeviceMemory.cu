@@ -9,6 +9,7 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 #include "support.h"
+#include "Utility.h"
 
 // Forward declarations for texture memory test and benchmark kernels
 void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet);
@@ -70,6 +71,14 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //   Gabriel Marin, 06/09/2010: Change memory access patterns to eliminate 
 //   data reuse. Add auto-scaling factor.
 //
+//   Jeremy Meredith, 10/09/2012: Ignore errors at large thread counts
+//   in case only smaller thread counts succeed on some devices.
+//
+//   Jeremy Meredith, Wed Oct 10 11:54:32 EDT 2012
+//   Auto-scaling factor could be less than 1 on some problems.  This would
+//   make some iteration counts zero and actually skip tests.  I enforced
+//   that the factor ber at least 1.
+//
 // ****************************************************************************
 void RunBenchmark(ResultDatabase &resultDB,
                   OptionParser &op)
@@ -118,6 +127,8 @@ void RunBenchmark(ResultDatabase &resultDB,
     cudaEventElapsedTime(&t, start, stop);
     t /= 1.e3;
     double scalet = 0.15 / t;
+    if (scalet < 1)
+        scalet = 1;
     
     const unsigned int maxRepeatsCoal  = 256*scalet;
     const unsigned int maxRepeatsUnit  = 16*scalet;
@@ -139,7 +150,19 @@ void RunBenchmark(ResultDatabase &resultDB,
                     (d_mem1, d_mem2, numWordsFloat, maxRepeatsCoal);
             cudaEventRecord(stop, 0);
             cudaEventSynchronize(stop);
-            CHECK_CUDA_ERROR();
+
+            // We can run out of resources at larger thread counts on 
+            // some devices.  If we made a successful run at smaller
+            // thread counts, just ignore errors at this size.
+            if (threads > minGroupSize)
+            {
+                if (cudaGetLastError() != cudaSuccess)
+                    break;
+            }
+            else
+            {
+                CHECK_CUDA_ERROR();
+            }
             t = 0.0f;
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
@@ -252,6 +275,11 @@ void RunBenchmark(ResultDatabase &resultDB,
 //   variant.  Dropped #iterations to compensate.  Had to remove validation
 //   for now, which also matches the current OpenCL variant's behavior.
 //
+//   Jeremy Meredith, Wed Oct 10 11:54:32 EDT 2012
+//   Kernel rep factor of 1024 on the last texture test on the biggest 
+//   texture size caused Windows to time out (the more-than-five-seconds-long
+//   kernel problem).  I made kernel rep factor problem-size dependent.
+//
 // ****************************************************************************
 void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
 {
@@ -261,7 +289,7 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
     const unsigned int nsizes = 5;
     const unsigned int sizes[] = { 16, 64, 256, 1024, 4096 };
     // Number of texel accesses by each kernel
-    const unsigned int kernelRepFactor = 1024;
+    const unsigned int kernelRepFactors[] = { 1024, 1024, 1024, 1024, 256 };
     // Number of times to repeat each kernel per test
     const unsigned int iterations = 1*scalet;
 
@@ -278,11 +306,13 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
 
     for (int j = 0; j < nsizes; j++)
     {
-        cout << "Benchmarking Texture Memory, Test: " << j+1 << " / 5\n";
+        cout << "Benchmarking Texture Memory, Test Size: " << j+1 << " / 5\n";
         const unsigned int size      = 1024 * sizes[j];
         const unsigned int numFloat  = size / sizeof(float);
         const unsigned int numFloat4 = size / sizeof(float4);
         size_t width, height;
+
+        const unsigned int kernelRepFactor = kernelRepFactors[j];
 
         // Image memory sizes should be power of 2.
         size_t sizeLog = lround(log2(double(numFloat4)));

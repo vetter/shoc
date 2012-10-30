@@ -107,7 +107,7 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
         if( (p2 < N) && (dist < threshold) ){
             while(index_mtrx[p1*D+delta] >= 0)
                 delta++;
-	    assert(delta <= D);
+            assert(delta <= D);
             index_mtrx[p1*D+delta] = p2;
             if( matrix_type_mask & FULL_STORAGE_MATRIX ){
                 dist_mtrx[p1*N+p2] = dist;
@@ -121,12 +121,12 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
                         index_mtrx[p2*D+delta] = p1;
                         dist_mtrx[p2*D+delta] = dist;
                         break;
-		    }
+                    }
                     if( p == p1 ){ // if p1 is already in p2's proximity table
                         break;
-		    }
+                    }
                     delta++;
-		}
+                }
             }
         }
 
@@ -159,7 +159,11 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
 }
 
 static inline float frand(void){
+#ifdef _WIN32
+    return (float)rand()/RAND_MAX;
+#else
     return (float)random()/RAND_MAX;
+#endif
 }
 
 // This function generates elements as points on a 2D Euclidean plane confined
@@ -189,7 +193,11 @@ float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degr
         cntr_x = frand()*MAX_WIDTH;
         cntr_y = frand()*MAX_HEIGHT;
         R = frand()*min_dim/2;
+#ifdef _WIN32
+        group_cnt = rand()%(N/30);
+#else
         group_cnt = random()%(N/30);
+#endif
         // make sure we don't make more points than we need
         if( group_cnt > (N-count) ){
             group_cnt = N-count;

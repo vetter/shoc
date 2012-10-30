@@ -6,14 +6,17 @@
 #include <iostream>
 
 #include <time.h>
-#include <sys/time.h>
 #include <sys/timeb.h>
-
+#ifndef _WIN32
+#include <sys/time.h>
 #include "config.h"
+#endif
 
 
 // decide which timer type we are supposed to use
-#if defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
+#if defined(_WIN32)
+#    define TIMEINFO _timeb
+#elif defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
 #    define TIMEINFO timespec
 #elif defined(HAVE_GETTIMEOFDAY)
 #    define TIMEINFO timeval

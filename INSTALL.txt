@@ -1,8 +1,11 @@
-
+============================================================================
 Scalable HeterOgeneous Computing (SHOC) Benchmark Suite: Installation
+============================================================================
 
 Note: The SHOC user manual in the doc directory contains more complete 
 information about configuring, building, and using the SHOC Benchmark Suite.
+
+=============================  Linux and OS X  =============================
 
 0. Ensure you have a working OpenCL implementation and, if CUDA support
    is desired, CUDA version 3.1 or later installed.
@@ -65,6 +68,32 @@ information about configuring, building, and using the SHOC Benchmark Suite.
    
    Both scripts will output benchmarks results to a file in comma separated 
    value format to results.csv
+
+=================================  Windows  ================================
+
+Note that Windows support is still experimental.  Only the CUDA
+implementation is currently supported, not yet OpenCL.
+
+0.  Ensure you have a working Visual Studio 2010 and CUDA 4.2 installation.
+    We expect newer CUDA installations to also work.
+
+1.  Open shoc-cuda42-vs10.sln in the root of the shoc tree.
+
+2.  Build the solution.
+
+3.  If you encounter errors during the build, this may be due to 
+    race conditions during a parallel build.  Simply continue the
+    build (use "Build" (F7), NOT "Rebuild") if you encounter this.
+
+4.  You can run the benchmarks within each project or from the
+    command-line prompt.  If you are using a console, the
+    benchmark executables are in bin/Serial/CUDA.  For example:
+       C:\Users\me\Desktop\shoc> cd bin\Serial\CUDA
+       C:\Users\me\Desktop\shoc\bin\Serial\CUDA> Sort -n 1 -d 0
+    ... would choose the first CUDA device (also the default)
+    and set the number of passes to 1.
+
+============================================================================
       
 See the SHOC user manual and README.txt for more information.
 

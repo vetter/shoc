@@ -10,6 +10,11 @@
 
 using namespace std;
 
+#ifdef _WIN32
+// Windows doesn't have log2.
+inline double log2(double x) { return log(x)/log(2.); }
+#endif
+
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions
 //
@@ -117,7 +122,7 @@ template <> inline bool dp<double2>(void) { return true; }
 
 template <class T2>
 void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
-{	
+{
     int i, j;
     void* work, * chk;
     T2* source, * result;
@@ -127,11 +132,11 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     {
         int probSizes[4] = { 1, 8, 96, 256 };
         int sizeIndex = op.getOptionInt("size")-1;
-	    if (sizeIndex < 0 || sizeIndex >= 4) 
+        if (sizeIndex < 0 || sizeIndex >= 4) 
         {
-	        cerr << "Invalid size index specified\n";
-	        exit(-1);
-	    }
+            cerr << "Invalid size index specified\n";
+            exit(-1);
+        }
         bytes = probSizes[sizeIndex];
     } 
     else 

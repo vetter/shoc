@@ -3,7 +3,9 @@
 #endif // HAVE_STDINT_H
 #include "Matrix2D.h"
 
-
+#ifdef _WIN32
+typedef unsigned int uint32_t;
+#endif
 
 
 template<class T>
