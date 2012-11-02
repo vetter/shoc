@@ -41,9 +41,8 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/config.mk.in \
 	$(top_srcdir)/config/dirtargets.mk.in \
 	$(top_srcdir)/config/targets.mk.in $(top_srcdir)/configure \
-	$(top_srcdir)/doc/Makefile.in build-aux/config.guess \
-	build-aux/config.sub build-aux/depcomp build-aux/install-sh \
-	build-aux/missing
+	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
+	build-aux/install-sh build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -53,7 +52,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES = config/common.mk config/config.mk \
-	config/dirtargets.mk config/targets.mk doc/Makefile
+	config/dirtargets.mk config/targets.mk
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -285,8 +284,6 @@ config/config.mk: $(top_builddir)/config.status $(top_srcdir)/config/config.mk.i
 config/dirtargets.mk: $(top_builddir)/config.status $(top_srcdir)/config/dirtargets.mk.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 config/targets.mk: $(top_builddir)/config.status $(top_srcdir)/config/targets.mk.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-doc/Makefile: $(top_builddir)/config.status $(top_srcdir)/doc/Makefile.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 # This directory's subdirectories are mostly independent; you can cd
