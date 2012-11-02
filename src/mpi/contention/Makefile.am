@@ -1,24 +1,11 @@
-.PHONY: all
 
-SHOC_ROOT=../../..
--include $(SHOC_ROOT)/config/config.mk
+if BUILD_CUDA
+    MAYBE_CUDA = cuda
+endif
 
-SUBDIRS=@MPI_SUBDIRS@
+if BUILD_OPENCL
+    MAYBE_OPENCL = opencl
+endif
 
-
-all:
-	@for dir in ${SUBDIRS}; do ${MAKE} -C $$dir $@; done
-
-clean:
-	@if test -n "$(SUBDIRS)"; then \
-	    rev=""; for dir in $(SUBDIRS); do rev="$$dir $$rev"; done; \
-	    for dir in $$rev; do ${MAKE} -C $$dir $@; done \
-	fi
-
-distclean:
-	@if test -n "$(SUBDIRS)"; then \
-	    rev=""; for dir in $(SUBDIRS); do rev="$$dir $$rev"; done; \
-	    for dir in $$rev; do ${MAKE} -C $$dir $@; done \
-	fi
-	${RM} Makefile
+SUBDIRS=$(MAYBE_OPENCL) $(MAYBE_CUDA)
 

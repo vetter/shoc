@@ -1,49 +1,28 @@
-SHOC_ROOT=../../../..
-include ${SHOC_ROOT}/config/config.mk
-
-VPATH:=../../common
-
-LDFLAGS     += ${CUDA_LDFLAGS}
-CPPFLAGS    += ${CUDA_INC}
-LIBS        := ${CUDA_LIBS} -lSHOCCommon $(LIBS)
-
-TARGET      = ${SHOC_ROOT}/bin/Serial/CUDA/Stencil2D
-MPITARGET   = ${SHOC_ROOT}/bin/TP/CUDA/Stencil2D
-
-TARGETS=$(TARGET) 
-ifeq ($(USE_MPI),yes)
-TARGETS += ${MPITARGET}
-
-CPPFLAGS 		+= -I${SHOC_ROOT}/src/mpi/common
-MPI_LIBS    = -lSHOCCommonMPI
+if BUILD_MPI
+    MAYBE_MPI = tpmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-COMMON_SRCS = CUDAStencil.cpp \
-                CommonCUDAStencilFactory.cpp
-OBJS        = main.o Stencil2Dmain.o CUDAStencilFactory.o CUDAStencilKernel.o ${COMMON_SRCS:.cpp=.o} 
-MPI_OBJS    = main_mpi.o Stencil2Dmain_mpi.o MPICUDAStencilFactory_mpi.o MPICUDAStencil_mpi.o CUDAStencilKernel.o ${COMMON_SRCS:.cpp=.o}
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-LIBDEP_SER=$(SHOC_ROOT)/lib/libSHOCCommon.a 
-LIBDEP_PAR=$(LIBDEP_SER) $(SHOC_ROOT)/lib/libSHOCCommonMPI.a 
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-all: ${TARGETS}
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = Stencil2D
 
-${TARGET}: ${OBJS}  $(LIBDEP_SER)
-	${CXX} -o $@ ${CXXFLAGS} ${LDFLAGS} ${OBJS} ${LIBS}
-
-$(SHOC_ROOT)/lib/libSHOCCommonMPI.a:
-	${MAKE} -C ${SHOC_ROOT}/src/mpi/common
-
-${MPITARGET}: ${MPI_OBJS}  $(LIBDEP_PAR)
-	${MPICXX} -o $@ ${CXXFLAGS} ${LDFLAGS} ${MPI_OBJS} ${LIBS} ${MPI_LIBS}
-
-clean:
-	${RM} ${OBJS} ${MPI_OBJS} ${TARGET} ${MPITARGET}
-
-distclean: clean
-	${RM} ${DEPS} .buildflags *_cl.cpp Makefile
-
-include ${SHOC_ROOT}/config/targets.mk
+# How to build those programs?
+Stencil2D_SOURCES = CUDAStencil.cpp \
+				CommonCUDAStencilFactory.cpp \
+				Stencil2Dmain.cpp \
+				CUDAStencilFactory.cpp \
+                main.cpp
+Stencil2D_LDADD = CUDAStencilKernel.o $(CUDA_LIBS) $(LIBS)
 

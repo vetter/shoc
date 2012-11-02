@@ -1,27 +1,14 @@
-SHOC_ROOT=../../..
-include $(SHOC_ROOT)/config/config.mk
+include ${top_builddir}/config/common.mk
+include ${top_builddir}/config/targets.mk
 
-OBJ= \
- RandomPairs_mpi.o \
- MPI2DGridProgram_mpi.o \
- MPIHostStencil_mpi.o \
- MPIHostStencilFactory_mpi.o \
- MPIStencilUtil_mpi.o
+# Which compiler to use to build and link?
+CXX = ${MPICXX}
+CXXLD = ${MPICXX}
 
-
-ARCHIVE=$(SHOC_ROOT)/lib/libSHOCCommonMPI.a
-
-all cuda opencl: $(ARCHIVE)
-
-$(ARCHIVE): $(OBJ)
-	$(AR) $(ARFLAGS) $@ $(OBJ)
-
-clean:
-	${RM} $(OBJ) $(ARCHIVE)
-
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-
-include $(SHOC_ROOT)/config/targets.mk
+noinst_LIBRARIES    = libSHOCCommonMPI.a
+libSHOCCommonMPI_a_SOURCES = RandomPairs.cpp \
+	MPI2DGridProgram.cpp \
+	MPIHostStencil.cpp \
+	MPIHostStencilFactory.cpp \
+	MPIStencilUtil.cpp
 

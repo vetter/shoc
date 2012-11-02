@@ -1,58 +1,25 @@
-SHOC_ROOT=../..
-include $(SHOC_ROOT)/config/config.mk
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-CPPFLAGS+=-I../cuda/include
-CPPFLAGS+=$(CUDA_INC)
-
-VPATH:=../cuda/common
-
-BENCHMARKOBJ=  \
- Stability.o 
-
-BENCHMARKOBJ_MPI=  \
- Stability_mpi.o 
-
-BENCHMARKPROG = $(patsubst %.o,$(SHOC_ROOT)/bin/Serial/CUDA/%,$(BENCHMARKOBJ))
-BENCHMARKPROG_MPI = $(patsubst %.o,$(SHOC_ROOT)/bin/EP/CUDA/%,$(BENCHMARKOBJ_MPI))
-
-COMMONOBJ= \
- main.o
-
-COMMONOBJ_MPI= \
- main_mpi.o
-
-LIBS+=-lSHOCCommon
-LIBS+=$(SHOC_ROOT)/src/cuda/level1/fft/fftlib.o -lcufft
-
-ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
-TARGETS=${BENCHMARKPROG}
-
-ifeq ($(USE_MPI),yes)
-ALLOBJ+=${COMMONOBJ_MPI} ${BENCHMARKOBJ_MPI}
-TARGETS+=${BENCHMARKPROG_MPI}
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
-
-MPI_LIBS    = -lSHOCCommonMPI
+if BUILD_MPI
+    MAYBE_MPI = epmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-all: ${TARGETS}
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-$(SHOC_ROOT)/bin/Serial/CUDA/%: %.o
-	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS) ${CUDA_LIBS}
+# How to find source files
+VPATH = $(srcdir):$(top_srcdir)/src/cuda/common
 
-$(SHOC_ROOT)/bin/EP/CUDA/%: %.o
-	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS) ${MPI_LIBS} ${CUDA_LIBS}
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-$(BENCHMARKPROG): $(COMMONOBJ)
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-$(BENCHMARKPROG_MPI): $(COMMONOBJ_MPI)
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = Stability
 
+# How to build those programs?
+Stability_SOURCES = Stability.cpp \
+                main.cpp
+Stability_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS)
 
-clean:
-	${RM} $(ALLOBJ) $(BENCHMARKPROG) $(BENCHMARKPROG_MPI)
-
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-include $(SHOC_ROOT)/config/targets.mk

@@ -1,53 +1,26 @@
-SHOC_ROOT=../../../..
-include $(SHOC_ROOT)/config/config.mk
-
-VPATH := ../../common
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-CUDA_CPPFLAGS += -Xopencc -OPT:unroll_size=200000 #-keep #-deviceemu
-CPPFLAGS+= $(CUDA_INC) -I../../include
-
-BENCHMARKOBJ= \
- QTC.o \
-
-BENCHMARKPROG = $(patsubst %.o,$(SHOC_ROOT)/bin/Serial/CUDA/%,$(BENCHMARKOBJ))
-BENCHMARKPROG_MPI = $(patsubst %.o,$(SHOC_ROOT)/bin/TP/CUDA/%,$(BENCHMARKOBJ))
-
-COMMONOBJ= \
- main.o libdata.o comm.o
-
-COMMONOBJ_MPI= \
- main_mpi.o libdata.o comm_mpi.o
-
-LIBS:= -lSHOCCommon $(LIBS)
-LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
-
-ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
-TARGETS=${BENCHMARKPROG}
-
-ifeq ($(USE_MPI),yes)
-ALLOBJ+=${COMMONOBJ_MPI}
-TARGETS+=${BENCHMARKPROG_MPI}
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
+if BUILD_MPI
+    MAYBE_MPI = tpmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-all: ${TARGETS}
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-$(SHOC_ROOT)/bin/Serial/CUDA/%: %.o  $(LIBDEP)
-	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS) $(CUDA_LIBS)
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
-$(SHOC_ROOT)/bin/TP/CUDA/%: %.o  $(LIBDEP)
-	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS) $(CUDA_LIBS)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-$(BENCHMARKPROG): $(COMMONOBJ)
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-$(BENCHMARKPROG_MPI): $(COMMONOBJ_MPI)
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = QTC
 
+# How to build those programs?
+QTC_SOURCES = comm.cpp \
+				libdata.cpp \
+                main.cpp
+QTC_LDADD = QTC.o $(CUDA_LIBS) $(LIBS)
 
-clean:
-	${RM} $(ALLOBJ) $(BENCHMARKPROG) $(BENCHMARKPROG_MPI)
-
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-include $(SHOC_ROOT)/config/targets.mk

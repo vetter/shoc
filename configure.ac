@@ -343,20 +343,35 @@ AC_CONFIG_FILES([Makefile
                  src/common/Makefile
                  src/cuda/Makefile
                  src/cuda/level0/Makefile
+                 src/cuda/level0/epmpi/Makefile
                  src/cuda/level1/Makefile
                  src/cuda/level1/bfs/Makefile
+                 src/cuda/level1/bfs/epmpi/Makefile
                  src/cuda/level1/fft/Makefile
+                 src/cuda/level1/fft/epmpi/Makefile
                  src/cuda/level1/md/Makefile
+                 src/cuda/level1/md/epmpi/Makefile
                  src/cuda/level1/reduction/Makefile
+                 src/cuda/level1/reduction/epmpi/Makefile
+                 src/cuda/level1/reduction/tpmpi/Makefile
                  src/cuda/level1/scan/Makefile
+                 src/cuda/level1/scan/epmpi/Makefile
+                 src/cuda/level1/scan/tpmpi/Makefile
                  src/cuda/level1/sgemm/Makefile
+                 src/cuda/level1/sgemm/epmpi/Makefile
                  src/cuda/level1/sort/Makefile
+                 src/cuda/level1/sort/epmpi/Makefile
                  src/cuda/level1/spmv/Makefile
+                 src/cuda/level1/spmv/epmpi/Makefile
                  src/cuda/level1/stencil2d/Makefile
+                 src/cuda/level1/stencil2d/tpmpi/Makefile
                  src/cuda/level1/triad/Makefile
+                 src/cuda/level1/triad/epmpi/Makefile
                  src/cuda/level2/Makefile
                  src/cuda/level2/qtclustering/Makefile
+                 src/cuda/level2/qtclustering/tpmpi/Makefile
                  src/cuda/level2/s3d/Makefile
+                 src/cuda/level2/s3d/epmpi/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile
@@ -396,5 +411,6 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level2/s3d/Makefile
                  src/opencl/level2/s3d/epmpi/Makefile
                  src/stability/Makefile
+                 src/stability/epmpi/Makefile
                  ])
 AC_OUTPUT

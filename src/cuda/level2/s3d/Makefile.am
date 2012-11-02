@@ -1,50 +1,24 @@
-SHOC_ROOT=../../../..
-include $(SHOC_ROOT)/config/config.mk
-
-VPATH := ../../common
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-CPPFLAGS+=$(CUDA_INC) -I../../include
-
-BENCHMARKOBJ= \
- S3D.o 
-
-BENCHMARKPROG = $(patsubst %.o,$(SHOC_ROOT)/bin/Serial/CUDA/%,$(BENCHMARKOBJ))
-BENCHMARKPROG_MPI = $(patsubst %.o,$(SHOC_ROOT)/bin/EP/CUDA/%,$(BENCHMARKOBJ))
-
-COMMONOBJ= \
- main.o
-
-COMMONOBJ_MPI= \
- main_mpi.o
-
-LIBS:= -lSHOCCommon $(LIBS)
-
-ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
-TARGETS=${BENCHMARKPROG}
-
-ifeq ($(USE_MPI),yes)
-ALLOBJ+=${COMMONOBJ_MPI}
-TARGETS+=${BENCHMARKPROG_MPI}
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
+if BUILD_MPI
+    MAYBE_MPI = epmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-all: ${TARGETS}
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-$(SHOC_ROOT)/bin/Serial/CUDA/%: %.o
-	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS) $(CUDA_LIBS)
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
-$(SHOC_ROOT)/bin/EP/CUDA/%: %.o
-	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS) $(CUDA_LIBS)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-$(BENCHMARKPROG): $(COMMONOBJ)
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-$(BENCHMARKPROG_MPI): $(COMMONOBJ_MPI)
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = S3D
 
-clean:
-	${RM} $(ALLOBJ) $(BENCHMARKPROG) $(BENCHMARKPROG_MPI)
+# How to build those programs?
+S3D_SOURCES = main.cpp
+S3D_LDADD = S3D.o $(CUDA_LIBS) $(LIBS)
 
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-include $(SHOC_ROOT)/config/targets.mk

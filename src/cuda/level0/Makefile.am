@@ -1,57 +1,36 @@
-SHOC_ROOT=../../..
-include $(SHOC_ROOT)/config/config.mk
-
-VPATH := ../common
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-LIBS:=$(CUDA_LIBS) $(LIBS)
-CPPFLAGS+=$(CUDA_INC)
-
-
-BENCHMARKOBJ= \
- BusSpeedDownload.o \
- BusSpeedReadback.o \
- DeviceMemory.o \
- MaxFlops.o
-
-
-BENCHMARKPROG = $(patsubst %.o,$(SHOC_ROOT)/bin/Serial/CUDA/%,$(BENCHMARKOBJ))
-BENCHMARKPROG_MPI = $(patsubst %.o,$(SHOC_ROOT)/bin/EP/CUDA/%,$(BENCHMARKOBJ))
-
-COMMONOBJ= \
- main.o
-
-COMMONOBJ_MPI= \
- main_mpi.o
-
-LIBS+=-lSHOCCommon
-LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
-
-ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
-TARGETS=${BENCHMARKPROG}
-
-ifeq ($(USE_MPI),yes)
-ALLOBJ+=${COMMONOBJ_MPI}
-TARGETS+=${BENCHMARKPROG_MPI}
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
+if BUILD_MPI
+    MAYBE_MPI = epmpi
 endif
 
-all: ${TARGETS}
+SUBDIRS	= $(MAYBE_MPI)
 
-$(SHOC_ROOT)/bin/Serial/CUDA/%: %.o  $(LIBDEP)
-	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS)
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-$(SHOC_ROOT)/bin/EP/CUDA/%: %.o  $(LIBDEP)
-	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS)
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../common
 
-$(BENCHMARKPROG): $(COMMONOBJ)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-$(BENCHMARKPROG_MPI): $(COMMONOBJ_MPI)
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-clean:
-	${RM} $(ALLOBJ) $(BENCHMARKPROG) $(BENCHMARKPROG_MPI)
+# What programs should be installed in the bin/Serial/CUDA destination?
+serialcuda_PROGRAMS = BusSpeedDownload \
+						BusSpeedReadback \
+						DeviceMemory \
+						MaxFlops
 
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
+BusSpeedDownload_SOURCES	= main.cpp
+BusSpeedDownload_LDADD		= BusSpeedDownload.o $(CUDA_LIBS) $(LIBS)
 
-include $(SHOC_ROOT)/config/targets.mk
+BusSpeedReadback_SOURCES	= main.cpp
+BusSpeedReadback_LDADD		= BusSpeedReadback.o $(CUDA_LIBS) $(LIBS)
+
+DeviceMemory_SOURCES	= main.cpp
+DeviceMemory_LDADD		= DeviceMemory.o $(CUDA_LIBS) $(LIBS)
+
+MaxFlops_SOURCES	= main.cpp
+MaxFlops_LDADD		= MaxFlops.o $(CUDA_LIBS) $(LIBS)
+

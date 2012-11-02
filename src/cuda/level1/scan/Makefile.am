@@ -1,48 +1,24 @@
-SHOC_ROOT=../../../..
-include $(SHOC_ROOT)/config/config.mk
-
-VPATH := ../../common
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-CPPFLAGS+=$(CUDA_INC) -I../../include
-LIBS:= -lSHOCCommon $(LIBS)
-LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
-
-TARGET     = ${SHOC_ROOT}/bin/Serial/CUDA/Scan
-EPTARGET   = ${SHOC_ROOT}/bin/EP/CUDA/Scan
-TPTARGET   = ${SHOC_ROOT}/bin/TP/CUDA/Scan
-
-
-TARGETS=$(TARGET)
-
-ifeq ($(USE_MPI),yes)
-TARGETS += ${EPTARGET} $(TPTARGET)
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
-MPI_LIBS    = -lSHOCCommonMPI
+if BUILD_MPI
+    MAYBE_MPI = epmpi tpmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-OBJS     = Scan.o main.o
-EPOBJS   = Scan.o main_mpi.o
-TPOBJS   = tpScanLaunchKernel.o tpScan_mpi.o main_mpi.o
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-all: ${TARGETS}
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
-${TARGET}: ${OBJS}
-	${CXX} -o $@ ${CXXFLAGS} ${LDFLAGS} ${OBJS} ${LIBS} ${CUDA_LIBS}
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-${EPTARGET}: ${EPOBJS} $(LIBDEP_PAR)
-	${MPICXX} -o $@ ${CXXFLAGS} ${LDFLAGS} ${EPOBJS} ${LIBS} ${MPI_LIBS} ${CUDA_LIBS}
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-${TPTARGET}: ${TPOBJS} $(LIBDEP_PAR)
-	${MPICXX} -o $@ ${CXXFLAGS} ${LDFLAGS} ${TPOBJS} ${LIBS} ${MPI_LIBS} ${CUDA_LIBS}
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = Scan
 
-$(SHOC_ROOT)/lib/libSHOCCommonMPI.a:
-	${MAKE} -C ${SHOC_ROOT}/src/mpi/common
+# How to build those programs?
+Scan_SOURCES = main.cpp
+Scan_LDADD = Scan.o $(CUDA_LIBS) $(LIBS)
 
-clean:
-	${RM} ${OBJS} ${EPOBJS} $(TPOBJS) ${TARGET} ${EPTARGET} $(TPTARGET)
-
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-include $(SHOC_ROOT)/config/targets.mk

@@ -6,14 +6,14 @@
 #%_mpi.o: %.cpp
 #	$(MPICXX) -DPARALLEL $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-%_ocl.o: %.cpp
-	$(CXX) $(OCL_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(OCL_CXXFLAGS) -c $< -o $@
+#%_ocl.o: %.cpp
+#	$(CXX) $(OCL_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(OCL_CXXFLAGS) -c $< -o $@
 
-%_cuda.o: %.cu
-	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $< -o $@
+#%_cuda.o: %.cu
+#	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $< -o $@
 
-%_cuda.o: %.cpp
-	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $< -o $@
+#%_cuda.o: %.cpp
+#	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $< -o $@
 
 %_cl.cpp: %.cl
 	echo "const char *cl_source_$* =" >  $@

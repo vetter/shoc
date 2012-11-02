@@ -1,56 +1,25 @@
-SHOC_ROOT=../../../..
-include $(SHOC_ROOT)/config/config.mk
-
-VPATH := ../../../common:../../common
-
-LDFLAGS+=$(CUDA_LDFLAGS)
-CPPFLAGS+= $(CUDA_INC) -I../../include
-
-BENCHMARKOBJ= \
- BFS.o
-
-BENCHMARKPROG = $(patsubst %.o,$(SHOC_ROOT)/bin/Serial/CUDA/%,$(BENCHMARKOBJ))
-BENCHMARKPROG_MPI = $(patsubst %.o,$(SHOC_ROOT)/bin/EP/CUDA/%,$(BENCHMARKOBJ))
-
-COMMONOBJ= \
- main.o \
- bfs_kernel.o \
- Graph.o
-
-COMMONOBJ_MPI= \
- main_mpi.o \
- bfs_kernel.o \
- Graph.o
-
-LIBS:= -lSHOCCommon $(CUDA_LIBS) $(LIBS)
-LIBDEP=$(SHOC_ROOT)/lib/libSHOCCommon.a 
-
-ALLOBJ=$(COMMONOBJ) $(BENCHMARKOBJ)
-TARGETS=${BENCHMARKPROG}
-
-ifeq ($(USE_MPI),yes)
-ALLOBJ+=${COMMONOBJ_MPI}
-TARGETS+=${BENCHMARKPROG_MPI}
-CPPFLAGS+=-I${SHOC_ROOT}/src/mpi/common
+if BUILD_MPI
+    MAYBE_MPI = epmpi
 endif
+SUBDIRS = $(MAYBE_MPI)
 
-all: ${TARGETS}
+include $(top_builddir)/config/config.mk
+include $(top_builddir)/config/targets.mk
 
-$(SHOC_ROOT)/bin/Serial/CUDA/%: %.o  $(LIBDEP)
-	$(CXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ) $< $(LIBS) $(CUDA_LIBS)
+# How to find source files
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
-$(SHOC_ROOT)/bin/EP/CUDA/%: %.o  $(LIBDEP)
-	$(MPICXX) -o $@ $(CXXFLAGS) $(LDFLAGS) $(COMMONOBJ_MPI) $< $(LIBS) $(CUDA_LIBS)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-$(BENCHMARKPROG): $(COMMONOBJ)
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-$(BENCHMARKPROG_MPI): $(COMMONOBJ_MPI)
+# What programs should be installed to that destination?
+serialcuda_PROGRAMS = BFS
 
+# How to build those programs?
+BFS_SOURCES = Graph.cpp \
+				main.cpp
+BFS_LDADD = BFS.o bfs_kernel.o $(CUDA_LIBS) $(LIBS)
 
-clean:
-	${RM} $(ALLOBJ) $(BENCHMARKPROG) $(BENCHMARKPROG_MPI)
-
-distclean: clean
-	${RM} $(DEP) *~ .buildflags Makefile
-
-include $(SHOC_ROOT)/config/targets.mk
