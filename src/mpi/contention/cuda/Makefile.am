@@ -20,6 +20,6 @@ epcuda_PROGRAMS = BusCont
 # How to build those programs?
 BusCont_SOURCES = CUDADriver.cpp \
 					BusCont.cpp \
-					main.cpp
-BusCont_LDADD = BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
+					bcmain.cpp
+BusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
 

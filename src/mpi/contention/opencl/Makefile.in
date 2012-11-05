@@ -48,10 +48,12 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epopencldir)"
 PROGRAMS = $(epopencl_PROGRAMS)
 am_BusCont_OBJECTS = OCLDriver.$(OBJEXT) BusCont.$(OBJEXT) \
-	BusSpeedDownload.$(OBJEXT) main.$(OBJEXT)
+	bcmain.$(OBJEXT)
 BusCont_OBJECTS = $(am_BusCont_OBJECTS)
 am__DEPENDENCIES_1 =
-BusCont_DEPENDENCIES = $(am__DEPENDENCIES_1)
+BusCont_DEPENDENCIES =  \
+	$(top_builddir)/src/opencl/level0/BusSpeedDownload.o \
+	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -193,12 +195,23 @@ AM_CPPFLAGS = $(OCL_CPPFLAGS) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 epopencldir = $(bindir)/EP/OpenCL
 
 # How to build those programs?
+# Note: we would prefer to put BusSpeedDownload and main.cpp in the 
+# SOURCES list.  However, our VPATH must contain src/opencl/level0 
+# so that our build can find the BusSpeedDownload.cpp file.  Since
+# this directory is built after that src/opencl/level0 directory is
+# built, that directory already has a BusSpeedDownload.o and a main.o file.
+# With our VPATH, gnumake finds those existing .o files and doesn't build
+# them here.  This isn't as much a problem for BusSpeedDownload.o, which
+# is built the same as for the non-contention tests, but the main.cpp file
+# we use is different than the main.cpp file used in the non-contention tests.
+#
+# Hence, we have to list the object files for those files in our LDADD list.
+#
 BusCont_SOURCES = OCLDriver.cpp \
 					BusCont.cpp \
-					BusSpeedDownload.cpp \
-					main.cpp
+					bcmain.cpp
 
-BusCont_LDADD = -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
+BusCont_LDADD = $(top_builddir)/src/opencl/level0/BusSpeedDownload.o -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -281,9 +294,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BusCont.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BusSpeedDownload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/OCLDriver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bcmain.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

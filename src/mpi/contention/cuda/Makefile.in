@@ -48,10 +48,12 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epcudadir)"
 PROGRAMS = $(epcuda_PROGRAMS)
 am_BusCont_OBJECTS = CUDADriver.$(OBJEXT) BusCont.$(OBJEXT) \
-	main.$(OBJEXT)
+	bcmain.$(OBJEXT)
 BusCont_OBJECTS = $(am_BusCont_OBJECTS)
 am__DEPENDENCIES_1 =
-BusCont_DEPENDENCIES = BusSpeedDownload.o $(am__DEPENDENCIES_1)
+BusCont_DEPENDENCIES =  \
+	$(top_builddir)/src/cuda/level0/BusSpeedDownload.o \
+	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -195,9 +197,9 @@ epcudadir = $(bindir)/EP/CUDA
 # How to build those programs?
 BusCont_SOURCES = CUDADriver.cpp \
 					BusCont.cpp \
-					main.cpp
+					bcmain.cpp
 
-BusCont_LDADD = BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
+BusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -281,7 +283,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BusCont.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CUDADriver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bcmain.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

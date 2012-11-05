@@ -48,10 +48,12 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epopencldir)"
 PROGRAMS = $(epopencl_PROGRAMS)
 am_MTBusCont_OBJECTS = OCLDriver.$(OBJEXT) MTBusCont.$(OBJEXT) \
-	BusSpeedDownload.$(OBJEXT) main.$(OBJEXT)
+	mtbcmain.$(OBJEXT)
 MTBusCont_OBJECTS = $(am_MTBusCont_OBJECTS)
 am__DEPENDENCIES_1 =
-MTBusCont_DEPENDENCIES = $(am__DEPENDENCIES_1)
+MTBusCont_DEPENDENCIES =  \
+	$(top_builddir)/src/opencl/level0/BusSpeedDownload.o \
+	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -195,10 +197,9 @@ epopencldir = $(bindir)/EP/OpenCL
 # How to build those programs?
 MTBusCont_SOURCES = OCLDriver.cpp \
 					MTBusCont.cpp \
-					BusSpeedDownload.cpp \
-					main.cpp
+					mtbcmain.cpp
 
-MTBusCont_LDADD = -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
+MTBusCont_LDADD = $(top_builddir)/src/opencl/level0/BusSpeedDownload.o -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -280,10 +281,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BusSpeedDownload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MTBusCont.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/OCLDriver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mtbcmain.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

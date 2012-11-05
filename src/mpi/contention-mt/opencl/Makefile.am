@@ -20,7 +20,6 @@ epopencl_PROGRAMS = MTBusCont
 # How to build those programs?
 MTBusCont_SOURCES = OCLDriver.cpp \
 					MTBusCont.cpp \
-					BusSpeedDownload.cpp \
-					main.cpp
-MTBusCont_LDADD = -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
+					mtbcmain.cpp
+MTBusCont_LDADD = $(top_builddir)/src/opencl/level0/BusSpeedDownload.o -lSHOCCommonMPI $(OCL_LIBS) $(LIBS)
 

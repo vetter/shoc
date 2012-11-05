@@ -20,6 +20,6 @@ epcuda_PROGRAMS = MTBusCont
 # How to build those programs?
 MTBusCont_SOURCES = CUDADriver.cpp \
 					MTBusCont.cpp \
-					main.cpp
-MTBusCont_LDADD = BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
+					mtbcmain.cpp
+MTBusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
 
