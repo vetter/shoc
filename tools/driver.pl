@@ -405,8 +405,18 @@ else {
 # test binary directory
 if (! -d "$bindir/Serial")
 {
-    die "The directory $bindir doesn't appear to be the SHOC binary director.\n" .
+    die "The directory $bindir doesn't appear to be the SHOC binary directory.\n" .
         "Either run from the tools directory or use the -bindir argument.\n";
+}
+
+# Check if there are executables in the binary directory.
+# Note: this check is not exhaustive.
+if ( ! ( -f "$bindir/Serial/Sort" && -x "$bindir/Serial/Sort" ) )
+{
+    die "The SHOC benchmark programs are not present in $bindir.\n" .
+        "Be sure that you have configured, built, and installed SHOC\n" .
+        "(using the traditional GNU-style \"configure; make; make install\"\n" .
+        "sequence of commands) and/or check your -bindir argument.\n";
 }
 
 # try to duplicate stdout to a log file
