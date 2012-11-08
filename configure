@@ -614,6 +614,11 @@ BUILD_MPI_TRUE
 MPICXX
 BUILD_STABILITY_FALSE
 BUILD_STABILITY_TRUE
+BUILD_DOC_FALSE
+BUILD_DOC_TRUE
+LATEXMK
+BIBTEX
+PDFLATEX
 BUILD_CUDA_FALSE
 BUILD_CUDA_TRUE
 CUDA_CPPFLAGS
@@ -731,6 +736,7 @@ enable_option_checking
 enable_dependency_tracking
 with_opencl
 with_cuda
+enable_builddoc
 enable_stability
 with_mpi
 '
@@ -1369,6 +1375,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
+  --enable-builddoc       build SHOC documentation; requires pdflatex, bibtex,
+                          and latexmk [default=disabled]
   --disable-stability     build SHOC stability test; requires CUDA
                           [default=enabled]
 
@@ -5836,6 +5844,181 @@ else
 fi
 
 
+# build documentation? by default, just copy existing documentation
+# Check whether --enable-builddoc was given.
+if test "${enable_builddoc+set}" = set; then :
+  enableval=$enable_builddoc;
+else
+  enable_builddoc=no
+
+fi
+
+
+COND_BUILDDOC=no
+if test "x$enable_builddoc" = xyes; then :
+
+        # Extract the first word of "pdflatex", so it can be a program name with args.
+set dummy pdflatex; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_PDFLATEX+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $PDFLATEX in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PDFLATEX="$PDFLATEX" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_PDFLATEX="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PDFLATEX=$ac_cv_path_PDFLATEX
+if test -n "$PDFLATEX"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PDFLATEX" >&5
+$as_echo "$PDFLATEX" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+        if test "x$PDFLATEX" != x; then :
+
+                # Extract the first word of "bibtex", so it can be a program name with args.
+set dummy bibtex; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_BIBTEX+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $BIBTEX in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_BIBTEX="$BIBTEX" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_BIBTEX="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+BIBTEX=$ac_cv_path_BIBTEX
+if test -n "$BIBTEX"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $BIBTEX" >&5
+$as_echo "$BIBTEX" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+                if test "x$BIBTEX" != x; then :
+
+                        # Extract the first word of "latexmk", so it can be a program name with args.
+set dummy latexmk; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_LATEXMK+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $LATEXMK in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_LATEXMK="$LATEXMK" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_LATEXMK="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+LATEXMK=$ac_cv_path_LATEXMK
+if test -n "$LATEXMK"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LATEXMK" >&5
+$as_echo "$LATEXMK" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+                        if test "x$LATEXMK" != x; then :
+
+                                # we have been asked to build documentation,
+                                # we have pdflatex, bibtex, and latexmk
+                                COND_BUILDDOC=yes
+
+
+fi
+
+
+fi
+
+
+fi
+
+        if test "x$COND_BUILDDOC" != xyes; then :
+
+                { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Documentation build requested, but required tools (pdflatex, bibtex, latexmk) were not all found
+See \`config.log' for more details" "$LINENO" 5; }
+
+
+fi
+
+
+fi
+ if test "x$COND_BUILDDOC" = "xyes"; then
+  BUILD_DOC_TRUE=
+  BUILD_DOC_FALSE='#'
+else
+  BUILD_DOC_TRUE='#'
+  BUILD_DOC_FALSE=
+fi
+
+
 
 # build stability tests? by default, enable if CUDA is enabled
 # Check whether --enable-stability was given.
@@ -6058,7 +6241,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile"
+ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6195,6 +6378,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_CUDA_TRUE}" && test -z "${BUILD_CUDA_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_CUDA\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_DOC_TRUE}" && test -z "${BUILD_DOC_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_DOC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_STABILITY_TRUE}" && test -z "${BUILD_STABILITY_FALSE}"; then
@@ -6890,6 +7077,7 @@ do
     "src/opencl/level2/s3d/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level2/s3d/epmpi/Makefile" ;;
     "src/stability/Makefile") CONFIG_FILES="$CONFIG_FILES src/stability/Makefile" ;;
     "src/stability/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/stability/epmpi/Makefile" ;;
+    "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

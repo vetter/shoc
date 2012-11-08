@@ -803,7 +803,6 @@ sub printDevInfo {
           system("nvidia-smi -r -a >Logs/eccConfig.txt 2> Logs/eccConfig.err");
           system("nvcc --version >Logs/nvccVersion.txt 2> Logs/nvccVersion.err");
           system("cat /proc/driver/nvidia/version >Logs/driverVersion.txt 2>Logs/driverVersion.err");
-          system("cp " . $bindir . "/../config/common.mk Logs/buildFlags.txt");
        }
        else {
           $devNameString = "DeviceName";
@@ -813,16 +812,11 @@ sub printDevInfo {
           print DETECT "Running this command to detect devices:\n$command\n";
           close(DETECT);
           $retval = system($command);
-          system("cp " . $bindir . "/../config/common.mk Logs/buildFlags.txt");
        }
 
-       # Grep the compiler from the build flags file.
-       my @buildflags = `grep "CC" ./Logs/buildFlags.txt`;
-       my $line = $buildflags[0];
-       chomp($line);
-       my @tokens = split( /\s+=\s+/, $line );
-       my $cc = $tokens[1];
-       system($cc . ' --version &>Logs/compilerVersion.txt');
+       # Save the compiler version and build flags in the Logs
+       system("cp ./buildFlags.txt Logs/buildFlags.txt");
+       system("cp ./compilerVersion.txt Logs/compilerVersion.txt");
 
        die "Error collecting device info.\n".
            "Make sure that you are running in the tools directory (or set -bin-dir)\n".

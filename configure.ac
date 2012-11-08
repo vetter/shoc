@@ -233,6 +233,47 @@ AS_IF([test "x$with_cuda" != xno],
 )
 AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
 
+# build documentation? by default, just copy existing documentation
+AC_ARG_ENABLE([builddoc],
+    [AS_HELP_STRING([--enable-builddoc],
+        [build SHOC documentation; requires pdflatex, bibtex, and latexmk @<:@default=disabled@:>@])],
+    [],
+    [enable_builddoc=no]
+)
+
+COND_BUILDDOC=no
+AS_IF([test "x$enable_builddoc" = xyes],
+    [
+        AC_PATH_PROG([PDFLATEX], [pdflatex], [])
+
+        AS_IF([test "x$PDFLATEX" != x],
+            [
+                AC_PATH_PROG([BIBTEX], [bibtex], [])
+
+                AS_IF([test "x$BIBTEX" != x],
+                    [
+                        AC_PATH_PROG([LATEXMK], [latexmk], [])
+                        AS_IF([test "x$LATEXMK" != x],
+                            [
+                                # we have been asked to build documentation,
+                                # we have pdflatex, bibtex, and latexmk
+                                COND_BUILDDOC=yes
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        AS_IF([test "x$COND_BUILDDOC" != xyes],
+            [
+                AC_MSG_FAILURE([Documentation build requested, but required tools (pdflatex, bibtex, latexmk) were not all found])
+            ]
+        )
+    ]
+)
+AM_CONDITIONAL([BUILD_DOC], [test "x$COND_BUILDDOC" = "xyes"])
+
 
 # build stability tests? by default, enable if CUDA is enabled
 AC_ARG_ENABLE([stability],
@@ -412,5 +453,6 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level2/s3d/epmpi/Makefile
                  src/stability/Makefile
                  src/stability/epmpi/Makefile
+                 tools/Makefile
                  ])
 AC_OUTPUT
