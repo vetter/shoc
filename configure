@@ -566,6 +566,7 @@ PACKAGE_BUGREPORT='shoc-help@elist.ornl.gov'
 PACKAGE_URL=''
 
 ac_unique_file="src/common/Timer.h"
+ac_default_prefix=`pwd`
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -2905,6 +2906,12 @@ ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+# Because of the nature of SHOC (a collection of benchmark programs),
+# autoconf's default prefix (/usr/local) is not appropriate.
+# Instead, we set the default installation location to be the build
+# location.
 
 
 

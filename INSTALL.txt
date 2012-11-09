@@ -7,63 +7,119 @@ information about configuring, building, and using the SHOC Benchmark Suite.
 
 =============================  Linux and OS X  =============================
 
-0. Ensure you have a working OpenCL implementation and, if CUDA support
-   is desired, CUDA version 3.1 or later installed.
+0. Ensure you have either a working installation of OpenCL and/or CUDA.
+   See the SHOC user manual for more information about version requirements.
 
-1. Change to the root directory of the SHOC source distribution.  We'll call
-   this directory $SHOC_ROOT in the following steps.
+1. If you are building SHOC with CUDA support, adjust your PATH environment
+   variable so that the CUDA nvcc command is found in the PATH.
 
-2. If you want to build SHOC with CUDA support, adjust your PATH environment
-   variable so that the CUDA nvcc command can be found.
+   If you are building SHOC with MPI support, adjust your PATH environment
+   variable so that the MPI compiler driver (e.g., mpicxx) is found in the
+   PATH.
 
-3. Configure the benchmark suite.  For some systems 'sh ./configure'
-   is sufficient.  On other systems, you may need to extend CPPFLAGS
-   and/or LDFLAGS so that OpenCL headers and libraries can be found by
-   configure.  For example,
+2. SHOC supports the building of its programs both within the SHOC source code
+   tree and outside the source code tree.  You might want to build outside
+   the source tree if you are sharing one source code installation across
+   several different types of systems, for example.  In this scenario,
+   you could use the same source code installation with several 
+   platform-specific build directories.
+   
+   In the following, we will call the root directory of the SHOC source
+   distribution $SHOC_ROOT.  We will call the directory where you are
+   building SHOC $BUILD_ROOT.  
 
-     sh ./configure CPPFLAGS="-I/opt/cuda/include"
+   If you want to build within the source tree, cd to the $SHOC_ROOT directory.
+   This is the only build approach supported by earlier versions of SHOC.
+   In this case, $BUILD_ROOT == $SHOC_ROOT.
 
-   Note that SHOC's configure script uses the PATH to find MPI compiler
-   drivers (e.g., mpicxx) and CUDA drivers (nvcc).  If you want MPI
-   support or CUDA support, be sure the appropriate 'bin' directories 
-   for MPI and/or CUDA are in your PATH *before* you try to configure SHOC.
+   If you want to build outside the source tree, create a new directory
+   and cd into it.  For instance,
 
-   See 'sh ./configure --help' and the user's guide for more information 
-   on configuring SHOC using the autoconf-generated configure script.
+       $ tar xvzf shoc-1.1.5.tar.gz
+       $ mkdir shoc-build
+       $ cd shoc-build
 
-4. Build the benchmark programs with 
-      $ cd $SHOC_ROOT; make
-    Program executables will be left in the $SHOC_ROOT/bin directory. The
-    bin directory contains subdirectories for different versions of the
-    benchmarks.  TP - True Parallel, EP - Embarrassingly Parallel
+   Note that $BUILD_ROOT can be somewhere within the SHOC source tree 
+   hierarchy, such as at $SHOC_ROOT/linux.
+
+3. Configure the benchmark suite using SHOC's configure script.  Be sure
+   to pass the desired location for the SHOC installation using the 
+   configure script's --prefix option.   If you do not specify an installation
+   location using --prefix, the configure script will assume the
+   installation location is $BUILD_ROOT.  In the following, we will call 
+   the installation location $DEST_ROOT.  
+   
+   To approximate the build behavior of earlier versions of SHOC, use
+   --prefix=$SHOC_ROOT so that program executables are installed into
+   the $SHOC_ROOT/bin directory.  (In this case, $DEST_ROOT == $SHOC_ROOT.)
+
+   In addition to possibly specifying the prefix, on some systems you may
+   need to specify CPPFLAGS and/or LDFLAGS to the configure script so that
+   OpenCL headers and libraries can be found.  For example, on a Linux system
+   with a CUDA 4.x installation in /opt/cuda (which includes NVIDIA's OpenCL
+   implementation), the following should work:
+
+        $ cd $BUILD_ROOT
+        $ sh $SHOC_ROOT/configure CPPFLAGS="-I/opt/cuda/include"
+
+   Note again that SHOC's configure script uses the PATH to find MPI compiler
+   drivers (e.g., mpicxx) and CUDA drivers (nvcc).  If you want MPI support or
+   CUDA support, be sure the appropriate 'bin' directories for MPI and/or CUDA
+   are in your PATH *before* you try to configure SHOC.
+
+   See 'sh $SHOC_ROOT/configure --help' and the user's guide for more 
+   information on configuring SHOC using the autoconf-generated configure 
+   script.
+
+4. Build the benchmark programs with GNU make.  On Linux and OS X systems this
+   probably will be as simple as the following:
+
+        $ cd $BUILD_ROOT
+        $ make
+
+   Unlike earlier versions of SHOC, SHOC executables are no longer built into
+   directories under $BUILD_ROOT/bin.   A separate install step is needed.
+
+5. Install the benchmark programs into $DEST_ROOT.  (You did specify
+   a $DEST_ROOT using --prefix in step 3, didn't you?)
+
+   Program executables will be left in the $DEST_ROOT/bin directory. The
+   bin directory contains subdirectories for different versions of the
+   benchmarks.  Serial, EP (Embarrassingly Parallel), and TP (Truly Parallel).
 
 5. Run single-device tests with something like
-      $ $SHOC_ROOT/bin/Serial/OpenCL/Sort
+
+      $ $DEST_ROOT/bin/Serial/OpenCL/Sort
+
    Run MPI-based multi-device tests with something like
-      $ mpirun -np 8 $SHOC_ROOT/bin/EP/OpenCL/Sort
-   Use 1 MPI rank per device.
+
+      $ mpirun -np 2 $DEST_ROOT/bin/EP/OpenCL/Sort
+
+   Use 1 MPI rank per accelerator device.
 
    Alternatively, the tools folder contains scripts to run the full
-   suite at once. The script depends on MPI being in your current path,
-   so be sure to set environment variables appropriately. Example for
-   a bash shell.
+   suite at once. The script depends on MPI programs being in your current 
+   PATH, so be sure to set environment variables appropriately.  For example,
+   for bash, ksh, and similar shells:
+
       $ export PATH=$PATH:/path/to/mpi/bin/dir
       $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/mpi/lib/dir
 
    Run specify the size (1-4) and whether to use the CUDA or OpenCL versions
    of the benchmarks.  For cuda:
-      $ cd $SHOC_ROOT/tools
+
+      $ cd $DEST_ROOT/tools
       $ perl driver.pl -s 2 -cuda
    
    or the OpenCL version with:
-      $ cd $SHOC_ROOT/tools
+      $ cd $DEST_ROOT/tools
       $ perl driver.pl -s 2 -opencl
       
    To run the parallel versions of the benchmarks, supply the script with the 
    number of nodes and the number of devices per node.  For example, for a 4 
    node cluster with 2 devices per node, size 1 benchmark problems, CUDA 
    versions, use:
-      $ cd $SHOC_ROOT/tools
+      $ cd $DEST_ROOT/tools
       $ perl driver.pl -n 4 -d 2 -s 1 -cuda
    
    Both scripts will output benchmarks results to a file in comma separated 

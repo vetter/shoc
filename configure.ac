@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([SHOC], [1.1.4], [shoc-help@elist.ornl.gov])
+AC_INIT([SHOC], [1.1.5], [shoc-help@elist.ornl.gov])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
@@ -11,6 +11,12 @@ AC_CONFIG_HEADERS([config/config.h])
 
 # SHOC is a collection of C++ programs
 AC_LANG([C++])
+
+# Because of the nature of SHOC (a collection of benchmark programs),
+# autoconf's default prefix (/usr/local) is not appropriate. 
+# Instead, we set the default installation location to be the build 
+# location.
+AC_PREFIX_DEFAULT(`pwd`)
 
 
 # Checks for fundamental programs.
