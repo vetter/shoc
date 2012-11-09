@@ -39,28 +39,40 @@ chomp($numa_node_str);
 @numa_nodes = split /\s+/, $numa_node_str;
 print "Number of NUMA nodes= @numa_nodes\n";
 
-# Check download speed for all NUMA node / device pairings
+# Check download speed and latency for all NUMA node / device pairings
 foreach $n (@numa_nodes)
 {
     for ($d = 0; $d < $num_devs; $d++)
     {
 	@down_output = `numactl --cpunodebind=$n ../bin/Serial/$platform/BusSpeedDownload -d $d`;
-	$down_str = (grep(/DownloadSpeed\s+65536kB/, @down_output))[0];
-	@down_cols = split /\s+/, $down_str;
-	$down_median = $down_cols[3];
-	print "NUMA Node=$n Device=$d Median Download Speed = $down_median\n";
+
+	$bw_str = (grep(/DownloadSpeed\s+65536kB/, @down_output))[0];
+	@bw_cols = split /\s+/, $bw_str;
+	$bw_median = $bw_cols[3];
+
+	$lat_str = (grep(/DownloadTime\s+1kB/, @down_output))[0];
+	@lat_cols = split /\s+/, $lat_str;
+	$lat_median = $lat_cols[3];
+
+	print "NUMA Node=$n Device=$d Median Download Latency=$lat_median ms, Speed=$bw_median GB/sec\n";
     }
 }
 
-# Check readback speed for all NUMA node / device pairings
+# Check readback speed and latency for all NUMA node / device pairings
 foreach $n (@numa_nodes)
 {
     for ($d = 0; $d < $num_devs; $d++)
     {
 	@up_output = `numactl --cpunodebind=$n ../bin/Serial/$platform/BusSpeedReadback -d $d`;
-	$up_str = (grep(/ReadbackSpeed\s+65536kB/, @up_output))[0];
-	@up_cols = split /\s+/, $up_str;
-	$up_median = $up_cols[3];
-	print "NUMA Node=$n Device=$d Median Upload Speed = $up_median\n";
+
+	$bw_str = (grep(/ReadbackSpeed\s+65536kB/, @up_output))[0];
+	@bw_cols = split /\s+/, $bw_str;
+	$bw_median = $bw_cols[3];
+
+	$lat_str = (grep(/ReadbackTime\s+1kB/, @up_output))[0];
+	@lat_cols = split /\s+/, $lat_str;
+	$lat_median = $lat_cols[3];
+
+	print "NUMA Node=$n Device=$d Median Upload Latency=$lat_median ms, Speed=$bw_median GB/sec\n";
     }    
 }
