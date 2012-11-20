@@ -97,7 +97,7 @@ information about configuring, building, and using the SHOC Benchmark Suite.
 
    Use 1 MPI rank per accelerator device.
 
-   Alternatively, the tools folder contains scripts to run the full
+   Alternatively, the bin folder contains a script to run the full
    suite at once. The script depends on MPI programs being in your current 
    PATH, so be sure to set environment variables appropriately.  For example,
    for bash, ksh, and similar shells:
@@ -108,19 +108,19 @@ information about configuring, building, and using the SHOC Benchmark Suite.
    Run specify the size (1-4) and whether to use the CUDA or OpenCL versions
    of the benchmarks.  For cuda:
 
-      $ cd $DEST_ROOT/tools
-      $ perl driver.pl -s 2 -cuda
+      $ cd $DEST_ROOT
+      $ ./bin/shocdriver -s 2 -cuda
    
    or the OpenCL version with:
-      $ cd $DEST_ROOT/tools
-      $ perl driver.pl -s 2 -opencl
+      $ cd $DEST_ROOT
+      $ ./bin/shocdriver -s 2 -opencl
       
    To run the parallel versions of the benchmarks, supply the script with the 
    number of nodes and the number of devices per node.  For example, for a 4 
    node cluster with 2 devices per node, size 1 benchmark problems, CUDA 
    versions, use:
-      $ cd $DEST_ROOT/tools
-      $ perl driver.pl -n 4 -d 2 -s 1 -cuda
+      $ cd $DEST_ROOT
+      $ ./bin/shocdriver -n 4 -d 2 -s 1 -cuda
    
    Both scripts will output benchmarks results to a file in comma separated 
    value format to results.csv
