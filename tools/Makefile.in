@@ -67,11 +67,12 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(toolsdir)" "$(DESTDIR)$(toolsdir)"
-SCRIPTS = $(tools_SCRIPTS)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
+	"$(DESTDIR)$(docdir)"
+SCRIPTS = $(bin_SCRIPTS) $(libexec_SCRIPTS)
 SOURCES =
 DIST_SOURCES =
-DATA = $(tools_DATA)
+DATA = $(doc_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
@@ -192,8 +193,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 toolsdir = $(prefix)/tools
-tools_SCRIPTS = driver.pl
-tools_DATA = compilerVersion.txt buildFlags.txt
+libexec_SCRIPTS = driver.pl numatest.pl
+bin_SCRIPTS = shocdriver
+doc_DATA = compilerVersion.txt buildFlags.txt
 all: all-am
 
 .SUFFIXES:
@@ -227,10 +229,10 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-toolsSCRIPTS: $(tools_SCRIPTS)
+install-binSCRIPTS: $(bin_SCRIPTS)
 	@$(NORMAL_INSTALL)
-	test -z "$(toolsdir)" || $(MKDIR_P) "$(DESTDIR)$(toolsdir)"
-	@list='$(tools_SCRIPTS)'; test -n "$(toolsdir)" || list=; \
+	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
+	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || list=; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
@@ -248,39 +250,73 @@ install-toolsSCRIPTS: $(tools_SCRIPTS)
 	while read type dir files; do \
 	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(toolsdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(toolsdir)$$dir" || exit $$?; \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(bindir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
 	     } \
 	; done
 
-uninstall-toolsSCRIPTS:
+uninstall-binSCRIPTS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(tools_SCRIPTS)'; test -n "$(toolsdir)" || exit 0; \
+	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || exit 0; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(toolsdir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(toolsdir)" && rm -f $$files
-install-toolsDATA: $(tools_DATA)
+	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+install-libexecSCRIPTS: $(libexec_SCRIPTS)
 	@$(NORMAL_INSTALL)
-	test -z "$(toolsdir)" || $(MKDIR_P) "$(DESTDIR)$(toolsdir)"
-	@list='$(tools_DATA)'; test -n "$(toolsdir)" || list=; \
+	test -z "$(libexecdir)" || $(MKDIR_P) "$(DESTDIR)$(libexecdir)"
+	@list='$(libexec_SCRIPTS)'; test -n "$(libexecdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(libexecdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(libexecdir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-libexecSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(libexec_SCRIPTS)'; test -n "$(libexecdir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(libexecdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(libexecdir)" && rm -f $$files
+install-docDATA: $(doc_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(docdir)" || $(MKDIR_P) "$(DESTDIR)$(docdir)"
+	@list='$(doc_DATA)'; test -n "$(docdir)" || list=; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(toolsdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(toolsdir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(docdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(docdir)" || exit $$?; \
 	done
 
-uninstall-toolsDATA:
+uninstall-docDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(tools_DATA)'; test -n "$(toolsdir)" || list=; \
+	@list='$(doc_DATA)'; test -n "$(docdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	test -n "$$files" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(toolsdir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(toolsdir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(docdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(docdir)" && rm -f $$files
 tags: TAGS
 TAGS:
 
@@ -322,7 +358,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(toolsdir)" "$(DESTDIR)$(toolsdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -350,6 +386,8 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
 clean-am: clean-generic mostlyclean-am
 
 distclean: distclean-am
@@ -368,13 +406,13 @@ info: info-am
 
 info-am:
 
-install-data-am: install-toolsDATA install-toolsSCRIPTS
+install-data-am: install-docDATA
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-binSCRIPTS install-libexecSCRIPTS
 
 install-html: install-html-am
 
@@ -412,31 +450,33 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-toolsDATA uninstall-toolsSCRIPTS
+uninstall-am: uninstall-binSCRIPTS uninstall-docDATA \
+	uninstall-libexecSCRIPTS
 
 .MAKE: install-am install-strip
 
 .PHONY: all all-am check check-am clean clean-generic distclean \
 	distclean-generic distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip install-toolsDATA install-toolsSCRIPTS \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
-	pdf-am ps ps-am uninstall uninstall-am uninstall-toolsDATA \
-	uninstall-toolsSCRIPTS
+	install install-am install-binSCRIPTS install-data \
+	install-data-am install-docDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libexecSCRIPTS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic pdf pdf-am ps ps-am uninstall \
+	uninstall-am uninstall-binSCRIPTS uninstall-docDATA \
+	uninstall-libexecSCRIPTS
 
+
+shocdriver:
+	cat $(srcdir)/shocdriver.in | sed "s,SHOC_INST_DIR,@libexecdir@," > $@
 
 compilerVersion.txt:
 	${CXX} --version > $@
 
 buildFlags.txt:
 	cp ${top_builddir}/config/common.mk $@
-
-clean:
-	${RM} compilerVersion.txt buildFlags.txt
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

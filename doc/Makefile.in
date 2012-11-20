@@ -393,7 +393,7 @@ uninstall-am: uninstall-docDATA
 
 
 @BUILD_DOC_TRUE@shoc-manual.pdf:  $(srcdir)/shoc-manual.tex
-@BUILD_DOC_TRUE@	cp $(srcdir)/shoc.bib .
+@BUILD_DOC_TRUE@	cp -f $(srcdir)/shoc-manual.bib ./shoc.bib
 @BUILD_DOC_TRUE@	latexmk -pdf $(srcdir)/shoc-manual.tex
 
 @BUILD_DOC_TRUE@clean:

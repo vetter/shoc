@@ -3,7 +3,7 @@ doc_DATA = shoc-manual.pdf
 
 if BUILD_DOC
 shoc-manual.pdf:  $(srcdir)/shoc-manual.tex
-	cp $(srcdir)/shoc.bib .
+	cp -f $(srcdir)/shoc-manual.bib ./shoc.bib
 	latexmk -pdf $(srcdir)/shoc-manual.tex
 
 clean:

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 
-my $SHOC_VERSION = "1.1.4";
+my $SHOC_VERSION = "1.1.5";
 
 # ----------------------------------------------------------------------------
 #  Output for the .csv results file
@@ -304,7 +304,7 @@ my $platformList = "";
 my $numDevices = 1;
 my $mode       = "";
 my $sizeClass  = 1;
-my $bindir     = "../bin";
+my $bindir     = "./bin";
 my $readonly   = 0;
 my $hostfile   = "";
 
@@ -350,10 +350,10 @@ while (scalar(@ARGV) > 0) {
         die "Expected a size class between 1 and 4 (e.g. -s 1)\n"
           if ($sizeClass <1 || $sizeClass > 4);
     }
-    elsif ($arg eq "-bin-dir")
+    elsif ($arg eq "-bindir")
     {
         $bindir = shift;
-        die "-bin-dir argument requires a value\n" if (!defined $bindir);
+        die "-bindir argument requires a value\n" if (!defined $bindir);
     }
     elsif ($arg eq "-hostfile")
     {
@@ -383,6 +383,25 @@ while (scalar(@ARGV) > 0) {
     }
 }
 
+# test binary directory
+if (! -d "$bindir/Serial")
+{
+    die "The directory $bindir doesn't appear to be the SHOC binary directory.\n" .
+        "Either run from the SHOC install root directory or use the -bindir argument.\n";
+}
+
+# Check if there are executables in the binary directory.
+# Note: this check is not exhaustive.
+if ( ! (( -f "$bindir/Serial/OpenCL/Sort" && -x "$bindir/Serial/OpenCL/Sort" ) ||
+        ( -f "$bindir/Serial/CUDA/Sort" && -x "$bindir/Serial/CUDA/Sort" )) )
+    
+{
+    die "The SHOC benchmark programs are not present in $bindir.\n" .
+        "Be sure that you have configured, built, and installed SHOC\n" .
+        "(using the traditional GNU-style \"configure; make; make install\"\n" .
+        "sequence of commands) and/or check your -bindir argument.\n";
+}
+
 # test cuda vs opencl
 if ($mode eq "")
 {
@@ -400,23 +419,6 @@ if (-d "./Logs") {
 else {
    my $retval = system("mkdir Logs");
    die "Unable to create logs directory" unless $retval == 0;
-}
-
-# test binary directory
-if (! -d "$bindir/Serial")
-{
-    die "The directory $bindir doesn't appear to be the SHOC binary directory.\n" .
-        "Either run from the tools directory or use the -bindir argument.\n";
-}
-
-# Check if there are executables in the binary directory.
-# Note: this check is not exhaustive.
-if ( ! ( -f "$bindir/Serial/Sort" && -x "$bindir/Serial/Sort" ) )
-{
-    die "The SHOC benchmark programs are not present in $bindir.\n" .
-        "Be sure that you have configured, built, and installed SHOC\n" .
-        "(using the traditional GNU-style \"configure; make; make install\"\n" .
-        "sequence of commands) and/or check your -bindir argument.\n";
 }
 
 # try to duplicate stdout to a log file
@@ -825,11 +827,12 @@ sub printDevInfo {
        }
 
        # Save the compiler version and build flags in the Logs
-       system("cp ./buildFlags.txt Logs/buildFlags.txt");
-       system("cp ./compilerVersion.txt Logs/compilerVersion.txt");
+       # Assumes SHOC has been successfully installed.
+       system("cp $bindir/../share/doc/shoc/buildFlags.txt Logs/buildFlags.txt");
+       system("cp $bindir/../share/doc/shoc/compilerVersion.txt Logs/compilerVersion.txt");
 
        die "Error collecting device info.\n".
-           "Make sure that you are running in the tools directory (or set -bin-dir)\n".
+           "Make sure that you are running in the SHOC install root directory (or set -bindir)\n".
            "and any hostfile you set is correct.\n" unless $retval == 0;
    }
 
@@ -892,9 +895,9 @@ sub usage() {
    print "-d        - Comma-separated list of device numbers on each node\n";
    print "-hostfile - specify hostfile for parallel runs\n";
    print "-help     - print this message\n";
-   print "-bin-dir  - location of SHOC bin directory.\n\n";
+   print "-bindir  - location of SHOC bin directory.\n\n";
    print "Note: The driver script assumes it is running from the tools\n";
-   print "directory.  Use -bin-dir when you need to run from somwhere else\n\n";
+   print "directory.  Use -bindir when you need to run from somwhere else\n\n";
 
    print "Examples\n";
    print "Test all detected devices, using cuda and a large problem:\n";

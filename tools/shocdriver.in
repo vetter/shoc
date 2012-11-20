@@ -1,0 +1,4 @@
+#!/bin/sh
+
+perl SHOC_INST_DIR/driver.pl $*
+
