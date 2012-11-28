@@ -4,7 +4,7 @@ bin_SCRIPTS		= shocdriver
 doc_DATA		= compilerVersion.txt buildFlags.txt
 
 shocdriver:
-	cat $(srcdir)/shocdriver.in | sed "s,SHOC_INST_DIR,@libexecdir@," > $@
+	cat $(srcdir)/shocdriver.in | sed "s,SHOC_LIBEXEC_DIR,@libexecdir@," | sed "s,SHOC_BIN_DIR,@bindir@," > $@
 
 compilerVersion.txt:
 	${CXX} --version > $@

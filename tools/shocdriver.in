@@ -1,4 +1,4 @@
 #!/bin/sh
 
-perl SHOC_INST_DIR/driver.pl $*
+perl SHOC_LIBEXEC_DIR/driver.pl -bindir SHOC_BIN_DIR $*
 
