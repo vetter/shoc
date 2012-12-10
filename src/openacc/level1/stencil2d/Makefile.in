@@ -15,6 +15,11 @@
 
 @SET_MAKE@
 
+#if BUILD_MPI
+#    MAYBE_MPI = tpmpi
+#endif
+#SUBDIRS = $(MAYBE_MPI)
+
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -34,8 +39,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-tpopencl_PROGRAMS = Scan$(EXEEXT)
-subdir = src/opencl/level1/scan/tpmpi
+openacc_PROGRAMS = Stencil2D$(EXEEXT)
+subdir = src/openacc/level1/stencil2d
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -45,29 +50,34 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(tpopencldir)"
-PROGRAMS = $(tpopencl_PROGRAMS)
-am_Scan_OBJECTS = scan_cl.$(OBJEXT) tpScan.$(OBJEXT) main.$(OBJEXT)
-Scan_OBJECTS = $(am_Scan_OBJECTS)
+am__installdirs = "$(DESTDIR)$(openaccdir)"
+PROGRAMS = $(openacc_PROGRAMS)
+am_Stencil2D_OBJECTS = Stencil2Dmain.$(OBJEXT) StencilFuncs.$(OBJEXT) \
+	main.$(OBJEXT)
+Stencil2D_OBJECTS = $(am_Stencil2D_OBJECTS)
 am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
-Scan_DEPENDENCIES = $(am__DEPENDENCIES_2)
+Stencil2D_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(Scan_SOURCES)
-DIST_SOURCES = $(Scan_SOURCES)
+SOURCES = $(Stencil2D_SOURCES)
+DIST_SOURCES = $(Stencil2D_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
 # How to find source files
-VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -80,13 +90,10 @@ BIBTEX = @BIBTEX@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ $(MPI_CPPFLAGS) $(OCL_CPPFLAGS) \
-	-I${top_srcdir}/src/mpi/common
+CPPFLAGS = @CPPFLAGS@
 CUDA_CPPFLAGS = @CUDA_CPPFLAGS@
 CUDA_INCDIR = @CUDA_INCDIR@
-
-# which compiler to use
-CXX = ${MPICXX}
+CXX = @CXX@
 CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
@@ -192,23 +199,22 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-CXXLD = ${MPICXX}
-AM_LDFLAGS = $(OCL_LDFLAGS)
-L1LIBS = $(OCL_LIBS) $(LIBS)
+AM_LDFLAGS = $(OPENACC_LDFLAGS)
+AM_CFLAGS = $(OPENACC_CFLAGS)
 
 # what is the destination for programs built from this directory?
-tpopencldir = $(bindir)/TP/OpenCL
+openaccdir = $(bindir)/Serial/OpenACC
 
 # how to build those programs
-Scan_SOURCES = scan_cl.cpp \
-				tpScan.cpp \
-				main.cpp
+Stencil2D_SOURCES = Stencil2Dmain.cpp \
+				StencilFuncs.c \
+                main.cpp
 
-Scan_LDADD = $(L1LIBS)
+Stencil2D_LDADD = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .o .obj
+.SUFFIXES: .c .cpp .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -218,9 +224,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/opencl/level1/scan/tpmpi/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/openacc/level1/stencil2d/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/opencl/level1/scan/tpmpi/Makefile
+	  $(AUTOMAKE) --foreign src/openacc/level1/stencil2d/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -239,10 +245,10 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-tpopenclPROGRAMS: $(tpopencl_PROGRAMS)
+install-openaccPROGRAMS: $(openacc_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	test -z "$(tpopencldir)" || $(MKDIR_P) "$(DESTDIR)$(tpopencldir)"
-	@list='$(tpopencl_PROGRAMS)'; test -n "$(tpopencldir)" || list=; \
+	test -z "$(openaccdir)" || $(MKDIR_P) "$(DESTDIR)$(openaccdir)"
+	@list='$(openacc_PROGRAMS)'; test -n "$(openaccdir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
 	while read p p1; do if test -f $$p; \
@@ -259,26 +265,26 @@ install-tpopenclPROGRAMS: $(tpopencl_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(tpopencldir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(tpopencldir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(openaccdir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(openaccdir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-tpopenclPROGRAMS:
+uninstall-openaccPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(tpopencl_PROGRAMS)'; test -n "$(tpopencldir)" || list=; \
+	@list='$(openacc_PROGRAMS)'; test -n "$(openaccdir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' `; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(tpopencldir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(tpopencldir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(openaccdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(openaccdir)" && rm -f $$files
 
-clean-tpopenclPROGRAMS:
-	-test -z "$(tpopencl_PROGRAMS)" || rm -f $(tpopencl_PROGRAMS)
-Scan$(EXEEXT): $(Scan_OBJECTS) $(Scan_DEPENDENCIES) 
-	@rm -f Scan$(EXEEXT)
-	$(CXXLINK) $(Scan_OBJECTS) $(Scan_LDADD) $(LIBS)
+clean-openaccPROGRAMS:
+	-test -z "$(openacc_PROGRAMS)" || rm -f $(openacc_PROGRAMS)
+Stencil2D$(EXEEXT): $(Stencil2D_OBJECTS) $(Stencil2D_DEPENDENCIES) 
+	@rm -f Stencil2D$(EXEEXT)
+	$(CXXLINK) $(Stencil2D_OBJECTS) $(Stencil2D_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -286,9 +292,23 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Stencil2Dmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StencilFuncs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scan_cl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tpScan.Po@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -390,7 +410,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(tpopencldir)"; do \
+	for dir in "$(DESTDIR)$(openaccdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -420,7 +440,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-tpopenclPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-openaccPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -440,7 +460,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-tpopenclPROGRAMS
+install-data-am: install-openaccPROGRAMS
 
 install-dvi: install-dvi-am
 
@@ -485,23 +505,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-tpopenclPROGRAMS
+uninstall-am: uninstall-openaccPROGRAMS
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-tpopenclPROGRAMS ctags distclean distclean-compile \
+	clean-openaccPROGRAMS ctags distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip \
-	install-tpopenclPROGRAMS installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags uninstall uninstall-am \
-	uninstall-tpopenclPROGRAMS
+	install-info-am install-man install-openaccPROGRAMS \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-openaccPROGRAMS
+
 
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
