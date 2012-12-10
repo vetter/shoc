@@ -543,6 +543,7 @@ AC_CONFIG_FILES([Makefile
                  src/openacc/level1/Makefile
                  src/openacc/level1/reduction/Makefile
                  src/openacc/level1/stencil2d/Makefile
+                 src/openacc/level1/stencil2d/tpmpi/Makefile
                  src/stability/Makefile
                  src/stability/epmpi/Makefile
                  tools/Makefile

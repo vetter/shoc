@@ -21,17 +21,24 @@ extern "C" void ApplyFloatStencil( void* data,
                                     unsigned int nCols,
                                     unsigned int nPaddedCols, 
                                     unsigned int nIters, 
+                                    unsigned int nItersPerExchange,
                                     void* vwCenter,
                                     void* vwCardinal,
-                                    void* vwDiagonal );
+                                    void* vwDiagonal,
+                                    void (*preIterBlockFunc)(void* cbData),
+                                    void* cbData );
 extern "C" void ApplyDoubleStencil( void* data, 
                                     unsigned int nRows, 
                                     unsigned int nCols,
                                     unsigned int nPaddedCols, 
                                     unsigned int nIters, 
+                                    unsigned int nItersPerExchange, 
                                     void* vwCenter,
                                     void* vwCardinal,
-                                    void* vwDiagonal );
+                                    void* vwDiagonal,
+                                    void (*preIterBlockCB)(void* cbData),
+                                    void* cbData );
+
 
 template<class T>
 OpenACCStencil<T>::OpenACCStencil( T wCenter,
@@ -64,9 +71,26 @@ template<class T>
 void
 OpenACCStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
+    this->ApplyOperator( mtx, nIters );
+}
+
+
+template<class T>
+void
+OpenACCStencil<T>::ApplyOperator( Matrix2D<T>& mtx,
+                                    unsigned int nIters,
+                                    unsigned int nItersPerBlock,
+                                    void (*preIterBlockCB)(void* cbData),
+                                    void* cbData )
+{
     T wCenter = this->GetCenterWeight();
     T wCardinal = this->GetCardinalWeight();
     T wDiagonal = this->GetDiagonalWeight();
+
+    if( nItersPerBlock == 0 )
+    {
+        nItersPerBlock = nIters;
+    }
 
     // See comment in constructor as to why we don't implement the
     // stencil operation here.
@@ -80,17 +104,12 @@ OpenACCStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                     nCols,
                     nPaddedCols,
                     nIters,
+                    nItersPerBlock,
                     &wCenter,
                     &wCardinal,
-                    &wDiagonal );
+                    &wDiagonal,
+                    preIterBlockCB,
+                    cbData );
 }
 
-
-template<class T>
-void
-OpenACCStencil<T>::DoPreIterationWork( Matrix2D<T>& mtx,
-                                        unsigned int iter )
-{
-    // in single process version, nothing for us to do
-}
 

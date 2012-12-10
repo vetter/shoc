@@ -32,13 +32,20 @@ private:
                         unsigned int nCols, 
                         unsigned int nPaddedCols, 
                         unsigned int nIters, 
+                        unsigned int nItersPerExchange,
                         void* vwCenter,
                         void* vwCardinal, 
-                        void* vwDiagonal );
+                        void* vwDiagonal,
+                        void (*preIterBlockCB)( void* cbData ),
+                        void* cbData );
 
 protected:
-    virtual void DoPreIterationWork( Matrix2D<T>& mtx,
-                                        unsigned int iter );
+    virtual void ApplyOperator( Matrix2D<T>&, 
+                            unsigned int nIters, 
+                            unsigned int nItersPerBlock = 0,    // 0 => nIters
+                            void (*preIterBlockCB)( void* cbData ) = NULL,
+                            void* cbData = NULL );
+
 
 public:
     OpenACCStencil( T wCenter,
