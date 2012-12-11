@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
@@ -161,8 +160,19 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 // Modifications:
 //
 // ****************************************************************************
-extern "C" void ReduceDoubles( void* idata, unsigned int nItems, void* ores );
-extern "C" void ReduceFloats( void* idata, unsigned int nItems, void* ores );
+extern "C" void DoReduceDoublesIters( unsigned int nIters,
+                                        void* idata, 
+                                        unsigned int nItems, 
+                                        void* ores,
+                                        double* totalReduceTime,
+                                        void (*gredfunc)(void*,void*) );
+extern "C" void DoReduceFloatsIters( unsigned int nIters,
+                                        void* idata, 
+                                        unsigned int nItems, 
+                                        void* ores,
+                                        double* totalReduceTime,
+                                        void (*gredfunc)(void*,void*) );
+
 
 template <class T>
 void
@@ -189,14 +199,17 @@ RunTest(const std::string& testName,
     // a return value, so that they can have the correct type for the 
     // output variable.
     //
-    void (*reducefcn)( void*, unsigned int, void* );
+    void (*reducefunc)( unsigned int, void*, unsigned int, void*, double*, void (*func)(void*, void*) );
+    void (*greducefunc)( void*, void* );
     if( sizeof(T) == sizeof(double) )
     {
-        reducefcn = ReduceDoubles;        
+        reducefunc = DoReduceDoublesIters;
+        greducefunc = NULL;
     }
     else if( sizeof(T) == sizeof(float) )
     {
-        reducefcn = ReduceFloats;        
+        reducefunc = DoReduceFloatsIters;
+        greducefunc = NULL;
     }
     else
     {
@@ -223,28 +236,13 @@ RunTest(const std::string& testName,
     std::cout << "Running benchmark" << std::endl;
     int nPasses = opts.getOptionInt("passes");
     int nIters  = opts.getOptionInt("iterations");
-    Timer* timer = Timer::Instance();
-    assert( timer != NULL );
 
     for( int pass = 0; pass < nPasses; pass++ )
     {
-        double totalReduceTime = 0.0;
         T devResult;
 
-        // start timer
-        int timerh = timer->Start();
-
-        // do the reduction
-        for (int m = 0; m < nIters; m++)
-        {
-            (*reducefcn)( idata, nItems, &devResult );
-        }
-
-        // stop the timer
-        double iterReduceTime = timer->Stop( timerh, "" );
-
-        // add the elapsed time to our running total
-        totalReduceTime += iterReduceTime;
+        double totalReduceTime = 0.0;
+        (*reducefunc)( nIters, idata, nItems, &devResult, &totalReduceTime, greducefunc );
 
         // verify result
         bool verified = VerifyResult( devResult, idata, nItems );
@@ -257,7 +255,9 @@ RunTest(const std::string& testName,
         }
 
         // record results
-        double avgTime = (totalReduceTime / (double)nIters) / 1.e9;
+        // avgTime is in seconds, since that is the units returned
+        // by the Timer class.
+        double avgTime = totalReduceTime / nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
 
         std::ostringstream attrstr;

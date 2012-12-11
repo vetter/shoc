@@ -46,8 +46,6 @@ template <class T>
 bool
 VerifyResult(int rank, T devResult, T* idata, const unsigned int nItems)
 {
-    bool ret = false;
-
     // compute the reference result - the "gold standard" against
     // which we will compare the device's result
     //
@@ -60,37 +58,35 @@ VerifyResult(int rank, T devResult, T* idata, const unsigned int nItems)
 
     // reduce across all MPI ranks to rank 0
     T globalResult = 0.0f;
-    MPI_Reduce( &localResult,
+    MPI_Allreduce( &localResult,
                     &globalResult,
                     1,
                     (sizeof(T) == sizeof(double)) ? MPI_DOUBLE : MPI_FLOAT,
                     MPI_SUM,
-                    0,
                     MPI_COMM_WORLD );
+
+    // compute the relative error in the device's result
+    double err;
+    if( globalResult != 0.0 )
+    {
+        err = fabs( (globalResult - devResult) / globalResult );
+    }
+    else
+    {
+        // we cannot compute a relative error
+        // use absolute error
+        std::cerr << "Warning: reference result is 0.0; using absolute error" << std::endl;
+        err = fabs(globalResult - devResult);
+    }
+    
+    double threshold = 1.0e-8;
 
     if( rank == 0 )
     {
-        // compute the relative error in the device's result
-        double err;
-        if( globalResult != 0.0 )
-        {
-            err = fabs( (globalResult - devResult) / globalResult );
-        }
-        else
-        {
-            // we cannot compute a relative error
-            // use absolute error
-            std::cerr << "Warning: reference result is 0.0; using absolute error" << std::endl;
-            err = fabs(globalResult - devResult);
-        }
-        
-        double threshold = 1.0e-8;
-
         std::cout << "TEST ";
         if( err < threshold )
         {
             std::cout << "PASSED";
-            ret = true;
         }
         else
         {
@@ -99,7 +95,8 @@ VerifyResult(int rank, T devResult, T* idata, const unsigned int nItems)
         }
         std::cout << std::endl;
     }
-    return ret;
+
+    return (err < threshold);
 }
 
 
@@ -180,8 +177,47 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 // Modifications:
 //
 // ****************************************************************************
-extern "C" void ReduceDoubles( void* idata, unsigned int nItems, void* ores );
-extern "C" void ReduceFloats( void* idata, unsigned int nItems, void* ores );
+extern "C" void DoReduceDoublesIters( unsigned int nIters,
+                                void* idata, 
+                                unsigned int nItems, 
+                                void* ores,
+                                double* totalReduceTime,
+                                void (*reducefunc)( void*, void* ) );
+extern "C" void DoReduceFloatsIters( unsigned int nIters,
+                                void* idata, 
+                                unsigned int nItems, 
+                                void* ores,
+                                double* totalReduceTime,
+                                void (*reducefunc)( void*, void* ) );
+
+
+extern "C"
+void
+GlobalReduceDouble( void* localval, void* globalval )
+{
+    // reduce across all MPI ranks
+    MPI_Allreduce( localval,
+                    globalval,
+                    1,
+                    MPI_DOUBLE,
+                    MPI_SUM,
+                    MPI_COMM_WORLD );
+}
+
+extern "C"
+void
+GlobalReduceFloat( void* localval, void* globalval )
+{
+    // reduce across all MPI ranks
+    MPI_Allreduce( localval,
+                    globalval,
+                    1,
+                    MPI_FLOAT,
+                    MPI_SUM,
+                    MPI_COMM_WORLD );
+}
+
+
 
 template <class T>
 void
@@ -212,14 +248,22 @@ RunTest(const std::string& testName,
     // a return value, so that they can have the correct type for the 
     // output variable.
     //
-    void (*reducefcn)( void*, unsigned int, void* );
+    void (*reducefcn)( unsigned int nIters,
+                                void* idata, 
+                                unsigned int nItems, 
+                                void* ores,
+                                double* totalReduceTime,
+                                void (*greducefunc)( void*, void* ) );
+    void (*greducefcn)( void*, void* );
     if( sizeof(T) == sizeof(double) )
     {
-        reducefcn = ReduceDoubles;        
+        reducefcn = DoReduceDoublesIters;        
+        greducefcn = GlobalReduceDouble;
     }
     else if( sizeof(T) == sizeof(float) )
     {
-        reducefcn = ReduceFloats;        
+        reducefcn = DoReduceFloatsIters;
+        greducefcn = GlobalReduceFloat;
     }
     else
     {
@@ -254,50 +298,30 @@ RunTest(const std::string& testName,
 
     for( int pass = 0; pass < nPasses; pass++ )
     {
+        T devResult;
         double totalReduceTime = 0.0;
-        T localDevResult;
 
-        // start timer
-        int timerh = timer->Start();
-
-        // do the local reduction
-        for (int m = 0; m < nIters; m++)
-        {
-            (*reducefcn)( idata, nItems, &localDevResult );
-        }
-
-        // reduce across all MPI ranks
-        // final value is only meaningful at rank 0
-        T globalDevResult = 0.0f;
-        MPI_Reduce( &localDevResult,
-                        &globalDevResult,
-                        1,
-                        (sizeof(T) == sizeof(double)) ? MPI_DOUBLE : MPI_FLOAT,
-                        MPI_SUM,
-                        0,
-                        MPI_COMM_WORLD );
-
-
-        // stop the timer
-        double iterReduceTime = timer->Stop( timerh, "" );
-
-        // add the elapsed time to our running total
-        totalReduceTime += iterReduceTime;
+        // do the reduction iterations
+        (*reducefcn)(nIters, idata, nItems, &devResult, &totalReduceTime, greducefcn);
 
         // verify result
-        bool verified = VerifyResult( rank, globalDevResult, idata, nItems );
-        if( (rank == 0) && !verified )
+        bool verified = VerifyResult( rank, devResult, idata, nItems );
+        if( !verified )
         {
             // result computed on device does not match
             // result computed on CPU; do not report results.
-            std::cerr << "reduction failed" << std::endl;
+            if( rank == 0 )
+            {
+                std::cerr << "reduction failed" << std::endl;
+            }
             return;
         }
 
         // record results
         // Note: all ranks must do this, else the merge of results will 
         // deadlock.
-        double avgTime = (totalReduceTime / (double)nIters) / 1.e9;
+        // avgTime is time in seconds, since that is what Timer produces.
+        double avgTime = totalReduceTime / (double)nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
 
         std::ostringstream attrstr;
@@ -306,4 +330,5 @@ RunTest(const std::string& testName,
         resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / avgTime);
     }
 }
+
 
