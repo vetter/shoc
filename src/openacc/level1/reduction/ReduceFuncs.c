@@ -8,12 +8,16 @@ DoReduceFloatsIters( unsigned int nIters,
                         void* ivdata, 
                         unsigned int nItems, 
                         void* ovres, 
+                        double* itersReduceTime,
                         double* totalReduceTime,
                         void (*reducefunc)( void* localsum, void* result ) )
 {
     float sum = 0.0;
     float* restrict idata = (float*)ivdata;
     float* ores = (float*)ovres;
+
+    // start a timer that includes the transfer time and iterations
+    int wholeTimerHandle = Timer_Start();
 
     #pragma acc data pcopyin(idata[0:nItems])
     {
@@ -43,9 +47,11 @@ DoReduceFloatsIters( unsigned int nIters,
         }
 
         // stop the timer and record the result (in seconds)
-        *totalReduceTime = Timer_Stop( iterTimerHandle, "" );
+        *itersReduceTime = Timer_Stop( iterTimerHandle, "" );
 
     } /* end acc data region for idata */
+
+    *totalReduceTime = Timer_Stop( wholeTimerHandle, "" );
 
     // save the result
     *ores = sum;
@@ -59,12 +65,16 @@ DoReduceDoublesIters( unsigned int nIters,
                         void* ivdata, 
                         unsigned int nItems, 
                         void* ovres, 
+                        double* itersReduceTime,
                         double* totalReduceTime,
                         void (*reducefunc)( void* localsum, void* result ) )
 {
     double sum = 0.0;
     double* restrict idata = (double*)ivdata;
     double* ores = (double*)ovres;
+
+    // start a timer that includes both transfer time and iterations
+    int wholeTimerHandle = Timer_Start();
 
     #pragma acc data pcopyin(idata[0:nItems])
     {
@@ -94,9 +104,11 @@ DoReduceDoublesIters( unsigned int nIters,
         }
 
         // stop the timer and record the result (in seconds)
-        *totalReduceTime = Timer_Stop( iterTimerHandle, "" );
+        *itersReduceTime = Timer_Stop( iterTimerHandle, "" );
 
     } /* end acc data region for idata */
+
+    *totalReduceTime = Timer_Stop( wholeTimerHandle, "" );
 
     // save the result
     *ores = sum;

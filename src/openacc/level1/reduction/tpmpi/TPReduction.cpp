@@ -181,12 +181,14 @@ extern "C" void DoReduceDoublesIters( unsigned int nIters,
                                 void* idata, 
                                 unsigned int nItems, 
                                 void* ores,
+                                double* itersReduceTime,
                                 double* totalReduceTime,
                                 void (*reducefunc)( void*, void* ) );
 extern "C" void DoReduceFloatsIters( unsigned int nIters,
                                 void* idata, 
                                 unsigned int nItems, 
                                 void* ores,
+                                double* itersReduceTime,
                                 double* totalReduceTime,
                                 void (*reducefunc)( void*, void* ) );
 
@@ -252,6 +254,7 @@ RunTest(const std::string& testName,
                                 void* idata, 
                                 unsigned int nItems, 
                                 void* ores,
+                                double* itersReduceTime,
                                 double* totalReduceTime,
                                 void (*greducefunc)( void*, void* ) );
     void (*greducefcn)( void*, void* );
@@ -299,10 +302,17 @@ RunTest(const std::string& testName,
     for( int pass = 0; pass < nPasses; pass++ )
     {
         T devResult;
+        double itersReduceTime = 0.0;
         double totalReduceTime = 0.0;
 
         // do the reduction iterations
-        (*reducefcn)(nIters, idata, nItems, &devResult, &totalReduceTime, greducefcn);
+        (*reducefcn)(nIters, 
+                        idata, 
+                        nItems, 
+                        &devResult, 
+                        &itersReduceTime,
+                        &totalReduceTime, 
+                        greducefcn);
 
         // verify result
         bool verified = VerifyResult( rank, devResult, idata, nItems );
@@ -321,13 +331,16 @@ RunTest(const std::string& testName,
         // Note: all ranks must do this, else the merge of results will 
         // deadlock.
         // avgTime is time in seconds, since that is what Timer produces.
-        double avgTime = totalReduceTime / (double)nIters;
+        double itersAvgTime = itersReduceTime / (double)nIters;
+        double totalAvgTime = totalReduceTime / (double)nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
 
         std::ostringstream attrstr;
         attrstr << nItems << "_items";
 
-        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / avgTime);
+        std::string txTestName = testName + "_PCIe";
+        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / itersAvgTime);
+        resultDB.AddResult(txTestName, attrstr.str(), "GB/s", gbytes / totalAvgTime);
     }
 }
 

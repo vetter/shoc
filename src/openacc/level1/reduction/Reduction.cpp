@@ -164,12 +164,14 @@ extern "C" void DoReduceDoublesIters( unsigned int nIters,
                                         void* idata, 
                                         unsigned int nItems, 
                                         void* ores,
+                                        double* itersReduceTime,
                                         double* totalReduceTime,
                                         void (*gredfunc)(void*,void*) );
 extern "C" void DoReduceFloatsIters( unsigned int nIters,
                                         void* idata, 
                                         unsigned int nItems, 
                                         void* ores,
+                                        double* itersReduceTime,
                                         double* totalReduceTime,
                                         void (*gredfunc)(void*,void*) );
 
@@ -199,7 +201,7 @@ RunTest(const std::string& testName,
     // a return value, so that they can have the correct type for the 
     // output variable.
     //
-    void (*reducefunc)( unsigned int, void*, unsigned int, void*, double*, void (*func)(void*, void*) );
+    void (*reducefunc)( unsigned int, void*, unsigned int, void*, double*, double*, void (*func)(void*, void*) );
     void (*greducefunc)( void*, void* );
     if( sizeof(T) == sizeof(double) )
     {
@@ -241,8 +243,15 @@ RunTest(const std::string& testName,
     {
         T devResult;
 
+        double itersReduceTime = 0.0;
         double totalReduceTime = 0.0;
-        (*reducefunc)( nIters, idata, nItems, &devResult, &totalReduceTime, greducefunc );
+        (*reducefunc)( nIters, 
+                        idata, 
+                        nItems, 
+                        &devResult, 
+                        &itersReduceTime, 
+                        &totalReduceTime, 
+                        greducefunc );
 
         // verify result
         bool verified = VerifyResult( devResult, idata, nItems );
@@ -257,13 +266,17 @@ RunTest(const std::string& testName,
         // record results
         // avgTime is in seconds, since that is the units returned
         // by the Timer class.
-        double avgTime = totalReduceTime / nIters;
+        double itersAvgTime = itersReduceTime / nIters;
+        double totalAvgTime = totalReduceTime / nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
 
         std::ostringstream attrstr;
         attrstr << nItems << "_items";
 
-        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / avgTime);
+        std::string txTestName = testName + "_PCIe";
+
+        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / itersAvgTime);
+        resultDB.AddResult(txTestName, attrstr.str(), "GB/s", gbytes / totalAvgTime);
     }
 }
 
