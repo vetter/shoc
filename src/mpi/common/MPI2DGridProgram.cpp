@@ -22,7 +22,6 @@ MPI2DGridProgramBase::MPI2DGridProgramBase( size_t _mpiGridRows,
 
     // build a communicator with 2D cartesian topology
     // for this test, we use non-periodic boundaries
-    int nDims = 2;
     dims[0] = _mpiGridRows;
     dims[1] = _mpiGridCols;
     if( dims[0]*dims[1] > cwsize )
