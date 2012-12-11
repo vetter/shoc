@@ -7,8 +7,10 @@ information about configuring, building, and using the SHOC Benchmark Suite.
 
 =============================  Linux and OS X  =============================
 
-0. Ensure you have either a working installation of OpenCL and/or CUDA.
-   See the SHOC user manual for more information about version requirements.
+0. Ensure you have either a working installation of OpenCL, CUDA, and/or 
+   OpenACC (PGI on Linux is the only tested OpenACC compiler as of 
+   December 2012).  See the SHOC user manual for more information about
+   version requirements.
 
 1. If you are building SHOC with CUDA support, adjust your PATH environment
    variable so that the CUDA nvcc command is found in the PATH.

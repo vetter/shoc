@@ -22,7 +22,7 @@
 \begin{document}
 \title{SHOC: The Scalable HeterOgeneous Computing Benchmark Suite}
 \author{Dakar Team\\Future Technologies Group\\Oak Ridge National Laboratory}
-\date{Version 1.1.5, November 2012}
+\date{Version 1.1.5, December 2012}
 \maketitle
 %\tableofcontents
 
@@ -36,21 +36,24 @@ systems containing Graphics Processing Units (GPUs) and multi-core
 processors, and on the OpenCL\,\cite{openclspec} programming standard.
 It can be used on clusters as well as individual hosts.
 
+SHOC provides benchmarks implemented using OpenCL and CUDA.  
 OpenCL is an open standard for programming a variety of types of computing 
 devices. The OpenCL specification describes a language for programming 
 \emph{kernels} to run on an OpenCL-capable device, and an 
 Application Programming Interface (API) for transferring data to such 
 devices and executing kernels on them. 
+The Compute Unified Device Architecture (CUDA)\cite{cuda} is an API
+and runtime plus tools for developing programs that can execute kernels
+running on NVIDIA GPUs.
+In addition to OpenCL and CUDA, in version 1.1.5 SHOC includes preliminary
+support for OpenACC versions of the benchmarks.
+The OpenACC versions are limited to Linux, and limited to the PGI compiler.
 
 %The OpenCL specification was ratified 
 %by The Khronos Group in late 2008. At the time of this writing, OpenCL 
 %implementations are just becoming publicly available. These early OpenCL 
 %implementations support running OpenCL kernels on GPUs and commodity multi-core
 %processors, though not all implementations support both device types.
-
-In addition to OpenCL-based benchmark programs, SHOC also includes
-Compute Unified Device Architecture (CUDA)\cite{cuda} versions
-of its benchmarks for comparison.
 
 %CUDA, developed by 
 %NVIDIA, is an approach for programming NVIDIA GPUs for general purpose 
@@ -79,13 +82,17 @@ must be used to compile SHOC, and the SHOC configuration files must be
 modified so that the --compiler-bindir switch is passed to nvcc to 
 indicate to nvcc the location of the GCC compiler binaries it should use.}
 \item A working OpenCL implementation. The Dakar team has tested SHOC
-using the following versions:
+using the following OpenCL versions:
     \begin{itemize}
         \item NVIDIA GPU Computing SDK version 4.1 or later
         \item AMD Accelerated Parallel Processing (APP) SDK version 2.6 or later
     \end{itemize}
-\item (Optional) CUDA 4.1 or later
+\item CUDA 4.1 or later
+\item PGI 12.6 or later, with OpenACC support
 \end{itemize}
+
+At least one OpenCL, CUDA, or OpenACC implementation must be installed for
+SHOC to build any benchmarks.
 
 SHOC may work on other platforms with other OpenCL and CUDA versions
 than those listed here, but will most likely require modifications for
@@ -179,7 +186,7 @@ prefix, make, and make install.
 \end{framed}
 
 By default, the configure script will try to determine whether the 
-target system has usable OpenCL, CUDA, and MPI installations.  
+target system has usable OpenCL, CUDA, OpenACC, and MPI installations.  
 The configure script depends on the PATH environment variable to find necessary
 binary programs like CUDA's \verb+nvcc+ and the MPI compiler driver
 program \verb+mpicxx+, so the PATH must be set before the configure script is
@@ -207,12 +214,14 @@ script options to specify the location of MPI headers and libraries, current
 versions of SHOC do not support such options because the MPI compiler drivers
 automatically add the appropriate compiler and linker flags.
 
-If you desire not to use SHOC's OpenCL, CUDA, or MPI support (e.g., because
-no MPI implementation is available), use the \verb+--without-opencl+,
+If you desire not to use SHOC's OpenCL, CUDA, OpenACC, or MPI support 
+(e.g., because no MPI implementation is available), use the 
+\verb+--without-opencl+,
 \verb+--without-cuda+,
+\verb+--without-openacc+,
 and/or \verb+--without-mpi+ configure script flags.
-Note, however, that support for at least one of OpenCL and CUDA must be
-enabled to use SHOC.
+Note, however, that support for at least one of OpenCL, CUDA, or OpenACC 
+must be available to use SHOC.
 
 \subsubsection{Optimization Flags}\label{sec:confoptflags}
 
@@ -417,7 +426,8 @@ $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/mpi/lib/dir
 \end{Verbatim}
 
 To run the benchmarks on a single device, execute the following. Be sure
-to specify \verb+-cuda+ or \verb+-opencl+ and a device number \verb+-d n+
+to specify \verb+-cuda+, \verb+-opencl+, or \verb+-openacc+ and a device 
+number \verb+-d n+
 where \verb+n+ is the device you want to test. The example below shows how
 to test device zero with a small problem using CUDA.
 
@@ -564,35 +574,35 @@ SHOC builds.
 
 \begin{table}
 \centering
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|l||c|c|c||c|c|c||c|c|c|}
 \hline
- & \multicolumn{3}{c|}{\em OpenCL} & \multicolumn{3}{c|}{\em CUDA} \\
+ & \multicolumn{3}{c|}{\em OpenCL} & \multicolumn{3}{c|}{\em CUDA} & \multicolumn{3}{c|}{\em OpenACC} \\
 \hline
-{\em Program} & {\em S} & {\em EP} & {\em TP} & {\em S} & {\em EP} & {\em TP} \\
+{\em Program} & {\em S} & {\em EP} & {\em TP} & {\em S} & {\em EP} & {\em TP} & {\em S} & {\em EP} & {\em TP} \\
 \hline\hline
-BusSpeedDownload    & x & x &   & x & x &   \\
-BusSpeedReadback    & x & x &   & x & x &   \\
-DeviceMemory        & x & x &   & x & x &   \\
-KernelCompile       & x & x &   &   &   &   \\
-MaxFlops            & x & x &   & x & x &   \\
-QueueDelay          & x & x &   &   &   &   \\
-BFS                 & x & x &   & x & x &   \\
-FFT                 & x & x &   & x & x &   \\
-MD                  & x & x &   & x & x &   \\
-Reduction           & x & x & x & x & x & x \\
-QTC                 &   &   &   & x &   & x \\
-S3D                 & x & x &   & x & x &   \\
-SGEMM               & x & x &   & x & x &   \\
-Scan                & x & x & x & x & x & x \\
-Sort                & x & x &   & x & x &   \\
-Spmv                & x & x &   & x & x &   \\
-Stencil2D           & x &   & x & x &   & x \\
-Triad               & x & x &   & x & x &   \\
-BusCont             &   & x &   &   & x &   \\
-MTBusCont           &   & x &   &   & x &   \\
+BusSpeedDownload    & x & x &   & x & x &   &   &   &   \\
+BusSpeedReadback    & x & x &   & x & x &   &   &   &   \\
+DeviceMemory        & x & x &   & x & x &   &   &   &   \\
+KernelCompile       & x & x &   &   &   &   &   &   &   \\
+MaxFlops            & x & x &   & x & x &   &   &   &   \\
+QueueDelay          & x & x &   &   &   &   &   &   &   \\
+BFS                 & x & x &   & x & x &   &   &   &   \\
+FFT                 & x & x &   & x & x &   &   &   &   \\
+MD                  & x & x &   & x & x &   &   &   &   \\
+Reduction           & x & x & x & x & x & x & x & x & x \\
+QTC                 &   &   &   & x &   & x &   &   &   \\
+S3D                 & x & x &   & x & x &   &   &   &   \\
+SGEMM               & x & x &   & x & x &   &   &   &   \\
+Scan                & x & x & x & x & x & x &   &   &   \\
+Sort                & x & x &   & x & x &   &   &   &   \\
+Spmv                & x & x &   & x & x &   &   &   &   \\
+Stencil2D           & x &   & x & x &   & x & x &   & x \\
+Triad               & x & x &   & x & x &   &   &   &   \\
+BusCont             &   & x &   &   & x &   &   &   &   \\
+MTBusCont           &   & x &   &   & x &   &   &   &   \\
 \hline
 \end{tabular}
-\caption{Programming APIs and parallelism models of SHOC programs}
+\caption{Programming APIs and parallelism models of SHOC programs. {\em (Note: OpenACC support is experimental.)} }
 \end{table}
 
 % Source code structure
@@ -636,6 +646,9 @@ $SHOC_ROOT
             common  # code needed by programs using MPI
             contention  # a contention benchmark
             contention-mt  # a multithreaded version of the contention benchmark
+        openacc  # OpenACC benchmarks
+            common  # code needed for all OpenACC benchmarks
+            level1  # higher-level OpenACC benchmarks
         opencl  # OpenCL benchmarks
             common  # code needed for all OpenCL benchmarks
             level0  # low-level OpenCL benchmarks
@@ -675,7 +688,7 @@ development discussions by the SHOC development team.
 \item 1.1.2 November 2011
 \item 1.1.3 December 2011
 \item 1.1.4 May 2012
-\item 1.1.5 November 2012
+\item 1.1.5 December 2012
 \end{itemize}
 
 % References
