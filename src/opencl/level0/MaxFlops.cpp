@@ -587,11 +587,11 @@ RunTest(cl_device_id id,
         err = clSetKernelArg(kernel_madd, 2, sizeof(T), (void*)&val2);
         CL_CHECK_ERROR(err);
 
-
-        // Event object for timing
-        Event evKernel_madd("madd");
         for (int passCounter=0; passCounter < npasses; passCounter++)
         {
+            // Event object for timing
+            Event evKernel_madd("madd");
+            
             err = clEnqueueNDRangeKernel(queue, kernel_madd, 1, NULL,
                       &globalWorkSize, &localWorkSize,
                       0, NULL, &evKernel_madd.CLEvent());
