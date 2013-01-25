@@ -239,6 +239,85 @@ AS_IF([test "x$with_cuda" != xno],
 )
 AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
 
+# build OpenACC versions of the benchmarks?
+# we only support PGI right now
+AC_ARG_WITH([openacc],
+    [AS_HELP_STRING([--with-openacc],
+        [build OpenACC versions of SHOC benchmark programs @<:@default=check@:>@])],
+    [],
+    [with_openacc=check])
+
+AS_IF([test "x$with_openacc" != xno],
+    [
+        dnl Determine whether our C compiler supports OpenACC
+        dnl currently (Dec 2013), compilers with OpenACC support do
+        dnl not support OpenACC programs in C++, only C programs.
+        dnl
+        dnl WARNING: We only know how to check for the PGI compiler.
+        dnl If you are using another compiler, set --with-openacc explicitly,
+        dnl and set OPENACC_CFLAGS and OPENACC_LDFLAGS
+        AC_MSG_CHECKING([whether we can compile and link OpenACC programs])
+        AC_LANG([C])
+        savedCFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -acc"
+        AC_LINK_IFELSE( 
+            [
+                dnl use a simple OpenACC program
+                AC_LANG_PROGRAM(
+                    [[
+                    #include <stdio.h>
+                    #include <stdlib.h>
+                    ]],
+                    [[
+    double pi = 0.0;
+    long int i = 0;
+    long int nTerms = 100;
+
+    acc_set_device_num(1);
+#pragma acc region for
+    for( i = 0; i < nTerms; i++ )
+    {
+        double t = (double)((i+0.5)/nTerms);
+        pi += 4.0 / (1.0 + t*t);
+    }
+
+    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+    return 0;
+                    ]]
+                )
+            ],
+            [
+                AC_MSG_RESULT([yes])
+                OPENACC_CFLAGS="-acc"
+
+                # Because PGI does not yet support OpenACC directives
+                # in C++ code, we cannot just pass the -acc flag in
+                # OPENACC_LDFLAGS because our programs link using the 
+                # C++ compiler and PGI's doesn't understand this flag.
+                # Instead, we have to explicitly add the libraries needed
+                # for OpenACC programs to the set of libraries used 
+                # during a link.
+                # OPENACC_LDFLAGS="-acc"
+                OPENACC_LIBS="-lacc1 -ldl"
+                with_openacc=yes
+            ],
+            [
+                AC_MSG_RESULT([no])
+                AS_IF([test "x$with_openacc" = "xyes"],
+                    [
+                        AC_MSG_FAILURE([OpenACC support requested, but unable to build OpenACC programs])
+                    ]
+                )
+                with_openacc=no
+            ]
+        )
+        AC_LANG([C++])
+        CFLAGS=$savedCFLAGS
+    ]
+)
+AM_CONDITIONAL([BUILD_OPENACC], [test "x$with_openacc" = "xyes"])
+
+
 # build documentation? by default, just copy existing documentation
 AC_ARG_ENABLE([builddoc],
     [AS_HELP_STRING([--enable-builddoc],
@@ -379,6 +458,9 @@ AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
+AC_SUBST([OPENACC_CFLAGS])
+AC_SUBST([OPENACC_LDFLAGS])
+AC_SUBST([OPENACC_LIBS])
 
 AC_CONFIG_FILES([Makefile
                  config/common.mk
@@ -457,6 +539,13 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level2/Makefile
                  src/opencl/level2/s3d/Makefile
                  src/opencl/level2/s3d/epmpi/Makefile
+                 src/openacc/Makefile
+                 src/openacc/level1/Makefile
+                 src/openacc/level1/reduction/Makefile
+                 src/openacc/level1/reduction/epmpi/Makefile
+                 src/openacc/level1/reduction/tpmpi/Makefile
+                 src/openacc/level1/stencil2d/Makefile
+                 src/openacc/level1/stencil2d/tpmpi/Makefile
                  src/stability/Makefile
                  src/stability/epmpi/Makefile
                  tools/Makefile

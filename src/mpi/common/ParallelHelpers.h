@@ -47,7 +47,7 @@ vector<T> ParGather(const T &val, MPI_Comm comm)
 template<class T>
 vector<T> ParAllGather(const T &val, MPI_Comm comm)
 {
-    int rank, size;
+    int size;
     MPI_Comm_size(comm, &size);
     vector<T> retval;
     retval.resize(size);

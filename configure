@@ -606,6 +606,9 @@ ac_includes_default="\
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+OPENACC_LIBS
+OPENACC_LDFLAGS
+OPENACC_CFLAGS
 NVCXXFLAGS
 MPI_SUBDIRS
 USE_CUDA
@@ -620,6 +623,8 @@ BUILD_DOC_TRUE
 LATEXMK
 BIBTEX
 PDFLATEX
+BUILD_OPENACC_FALSE
+BUILD_OPENACC_TRUE
 BUILD_CUDA_FALSE
 BUILD_CUDA_TRUE
 CUDA_CPPFLAGS
@@ -737,6 +742,7 @@ enable_option_checking
 enable_dependency_tracking
 with_opencl
 with_cuda
+with_openacc
 enable_builddoc
 enable_stability
 with_mpi
@@ -1388,6 +1394,8 @@ Optional Packages:
                           [default=check]
   --with-cuda             build CUDA versions of SHOC benchmark programs
                           [default=check]
+  --with-openacc          build OpenACC versions of SHOC benchmark programs
+                          [default=check]
   --with-mpi              build MPI-based parallel versions of SHOC benchmarks
                           [default=check]
 
@@ -1926,6 +1934,52 @@ fi
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_cxx_check_header_mongrel
+
+# ac_fn_c_try_link LINENO
+# -----------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded.
+ac_fn_c_try_link ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  rm -f conftest.$ac_objext conftest$ac_exeext
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_retval=1
+fi
+  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
+  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
+  # interfere with the next link command; also delete a directory that is
+  # left behind by Apple's compiler.  We do this before executing the actions.
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_c_try_link
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -5851,6 +5905,118 @@ else
 fi
 
 
+# build OpenACC versions of the benchmarks?
+# we only support PGI right now
+
+# Check whether --with-openacc was given.
+if test "${with_openacc+set}" = set; then :
+  withval=$with_openacc;
+else
+  with_openacc=check
+fi
+
+
+
+if test "x$with_openacc" != xno; then :
+
+                                                                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can compile and link OpenACC programs" >&5
+$as_echo_n "checking whether we can compile and link OpenACC programs... " >&6; }
+        ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        savedCFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -acc"
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+                    #include <stdio.h>
+                    #include <stdlib.h>
+
+int
+main ()
+{
+
+    double pi = 0.0;
+    long int i = 0;
+    long int nTerms = 100;
+
+    acc_set_device_num(1);
+#pragma acc region for
+    for( i = 0; i < nTerms; i++ )
+    {
+        double t = (double)((i+0.5)/nTerms);
+        pi += 4.0 / (1.0 + t*t);
+    }
+
+    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+    return 0;
+
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+                { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+                OPENACC_CFLAGS="-acc"
+
+                # Because PGI does not yet support OpenACC directives
+                # in C++ code, we cannot just pass the -acc flag in
+                # OPENACC_LDFLAGS because our programs link using the
+                # C++ compiler and PGI's doesn't understand this flag.
+                # Instead, we have to explicitly add the libraries needed
+                # for OpenACC programs to the set of libraries used
+                # during a link.
+                # OPENACC_LDFLAGS="-acc"
+                OPENACC_LIBS="-lacc1 -ldl"
+                with_openacc=yes
+
+else
+
+                { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+                if test "x$with_openacc" = "xyes"; then :
+
+                        { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "OpenACC support requested, but unable to build OpenACC programs
+See \`config.log' for more details" "$LINENO" 5; }
+
+
+fi
+                with_openacc=no
+
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+        ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+        CFLAGS=$savedCFLAGS
+
+
+fi
+ if test "x$with_openacc" = "xyes"; then
+  BUILD_OPENACC_TRUE=
+  BUILD_OPENACC_FALSE='#'
+else
+  BUILD_OPENACC_TRUE='#'
+  BUILD_OPENACC_FALSE=
+fi
+
+
+
 # build documentation? by default, just copy existing documentation
 # Check whether --enable-builddoc was given.
 if test "${enable_builddoc+set}" = set; then :
@@ -6248,7 +6414,10 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
+
+
+
+ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/openacc/Makefile src/openacc/level1/Makefile src/openacc/level1/reduction/Makefile src/openacc/level1/reduction/epmpi/Makefile src/openacc/level1/reduction/tpmpi/Makefile src/openacc/level1/stencil2d/Makefile src/openacc/level1/stencil2d/tpmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6385,6 +6554,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_CUDA_TRUE}" && test -z "${BUILD_CUDA_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_CUDA\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_OPENACC_TRUE}" && test -z "${BUILD_OPENACC_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_OPENACC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_DOC_TRUE}" && test -z "${BUILD_DOC_FALSE}"; then
@@ -7082,6 +7255,13 @@ do
     "src/opencl/level2/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level2/Makefile" ;;
     "src/opencl/level2/s3d/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level2/s3d/Makefile" ;;
     "src/opencl/level2/s3d/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level2/s3d/epmpi/Makefile" ;;
+    "src/openacc/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/Makefile" ;;
+    "src/openacc/level1/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/Makefile" ;;
+    "src/openacc/level1/reduction/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/reduction/Makefile" ;;
+    "src/openacc/level1/reduction/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/reduction/epmpi/Makefile" ;;
+    "src/openacc/level1/reduction/tpmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/reduction/tpmpi/Makefile" ;;
+    "src/openacc/level1/stencil2d/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/stencil2d/Makefile" ;;
+    "src/openacc/level1/stencil2d/tpmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/openacc/level1/stencil2d/tpmpi/Makefile" ;;
     "src/stability/Makefile") CONFIG_FILES="$CONFIG_FILES src/stability/Makefile" ;;
     "src/stability/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/stability/epmpi/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
