@@ -1,1 +1,1 @@
-SUBDIRS=md reduction stencil2d
+SUBDIRS=bfs fft gemm md reduction scan sort spmv stencil2d

@@ -432,23 +432,23 @@ AS_IF([test "x$with_mpi" != xno],
         )
         CXX=$savedCXX
 
-        AS_IF([test "x$MPICXX" != "x"],
-            [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes],
-                  [ with_mpi=yes
-                    USE_MPI=yes
-                  ],
-                  [ AC_MSG_FAILURE([MPI support was requested, but is only meaningful if OpenCL and/or CUDA support is available])
-                    with_mpi=no
-                  ]
-              )
-            ],
-            [ AS_IF([test "x$with_mpi" != xcheck],
-                    [ AC_MSG_FAILURE([--with-mpi specified, but no usable MPI installation found.])
-                      with_mpi=no
-                    ]
-              )
-            ]
-        )
+#        AS_IF([test "x$MPICXX" != "x"],
+#            [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes],
+#                  [ with_mpi=yes
+#                    USE_MPI=yes
+#                  ],
+#                  [ AC_MSG_FAILURE([MPI support was requested, but is only meaningful if OpenCL and/or CUDA support is available])
+#                    with_mpi=no
+#                  ]
+#              )
+#            ],
+#            [ AS_IF([test "x$with_mpi" != xcheck],
+#                    [ AC_MSG_FAILURE([--with-mpi specified, but no usable MPI installation found.])
+#                      with_mpi=no
+#                    ]
+#              )
+#            ]
+#        )
     ]
 )
 AM_CONDITIONAL([BUILD_MPI], [test "x$with_mpi" = "xyes"])
@@ -540,14 +540,35 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level2/s3d/Makefile
                  src/opencl/level2/s3d/epmpi/Makefile
                  src/openacc/Makefile
+                 src/openacc/level0/Makefile
+                 src/openacc/level0/epmpi/Makefile
                  src/openacc/level1/Makefile
+                 src/openacc/level1/bfs/Makefile
+                 src/openacc/level1/bfs/epmpi/Makefile
+                 src/openacc/level1/fft/Makefile
+                 src/openacc/level1/fft/epmpi/Makefile
                  src/openacc/level1/md/Makefile
                  src/openacc/level1/md/epmpi/Makefile
                  src/openacc/level1/reduction/Makefile
                  src/openacc/level1/reduction/epmpi/Makefile
                  src/openacc/level1/reduction/tpmpi/Makefile
+                 src/openacc/level1/scan/Makefile
+                 src/openacc/level1/scan/epmpi/Makefile
+                 src/openacc/level1/gemm/Makefile
+                 src/openacc/level1/gemm/epmpi/Makefile
+                 src/openacc/level1/sort/Makefile
+                 src/openacc/level1/sort/epmpi/Makefile
+                 src/openacc/level1/spmv/Makefile
+                 src/openacc/level1/spmv/epmpi/Makefile
                  src/openacc/level1/stencil2d/Makefile
                  src/openacc/level1/stencil2d/tpmpi/Makefile
+                 src/openacc/level1/triad/Makefile
+                 src/openacc/level1/triad/epmpi/Makefile
+                 src/openacc/level2/Makefile
+                 src/openacc/level2/qtc/Makefile
+                 src/openacc/level2/qtc/epmpi/Makefile
+                 src/openacc/level2/s3d/Makefile
+                 src/openacc/level2/s3d/epmpi/Makefile
                  src/stability/Makefile
                  src/stability/epmpi/Makefile
                  tools/Makefile

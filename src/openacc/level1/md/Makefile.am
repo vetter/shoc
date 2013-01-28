@@ -1,5 +1,5 @@
 if BUILD_MPI
-    MAYBE_MPI = epmpi tpmpi
+    MAYBE_MPI = epmpi
 endif
 SUBDIRS = $(MAYBE_MPI)
 
