@@ -1,1 +1,1 @@
-SUBDIRS=reduction stencil2d
+SUBDIRS=md reduction stencil2d

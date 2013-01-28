@@ -541,6 +541,8 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level2/s3d/epmpi/Makefile
                  src/openacc/Makefile
                  src/openacc/level1/Makefile
+                 src/openacc/level1/md/Makefile
+                 src/openacc/level1/md/epmpi/Makefile
                  src/openacc/level1/reduction/Makefile
                  src/openacc/level1/reduction/epmpi/Makefile
                  src/openacc/level1/reduction/tpmpi/Makefile
