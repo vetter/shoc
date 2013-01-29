@@ -136,19 +136,19 @@ void RunBenchmark(cl::Device& devcpp,
     size_t maxGroupSize = getMaxWorkGroupSize(ctx, kernel1);
     size_t localWorkSize = (maxGroupSize >= 256 ? 256 : maxGroupSize);
     size_t globalWorkSize = localWorkSize * 256;
-    
-    // Declare event objects for the kernels
-    Event evKernel1("Run Kernel1");
-    Event evKernel2("Run Kernel2");
-    Event evKernel3("Run Kernel3");
-    Event evKernel4("Run Kernel4");
-    
-    //Test single kernel
+       
+    // Test single kernel
     for (int j = 0; j < passes; j++)
     {
        double total = 0.0;
        for (int i = 0; i < reps; i++)
        {
+          // Declare event objects for the kernels
+          Event evKernel1("Run Kernel1");
+          Event evKernel2("Run Kernel2");
+          Event evKernel3("Run Kernel3");
+          Event evKernel4("Run Kernel4");
+           
           err = clEnqueueNDRangeKernel(queue, kernel1, 1, NULL,
                                        &globalWorkSize, &localWorkSize,
                                        0, NULL, &evKernel1.CLEvent());
@@ -174,6 +174,7 @@ void RunBenchmark(cl::Device& devcpp,
           evKernel2.FillTimingInfo();
           evKernel3.FillTimingInfo();
           evKernel4.FillTimingInfo();
+
           total += evKernel1.SubmitStartDelay() + 
                    evKernel2.SubmitStartDelay() +
                    evKernel3.SubmitStartDelay() +
@@ -191,7 +192,13 @@ void RunBenchmark(cl::Device& devcpp,
        double total = 0.0;
        for (int i = 0; i < reps; i++)
        {
-          err = clEnqueueNDRangeKernel(queue, kernel1, 1, NULL,
+           // Declare event objects for the kernels
+           Event evKernel1("Run Kernel1");
+           Event evKernel2("Run Kernel2");
+           Event evKernel3("Run Kernel3");
+           Event evKernel4("Run Kernel4");
+
+           err = clEnqueueNDRangeKernel(queue, kernel1, 1, NULL,
                                        &globalWorkSize, &localWorkSize,
                                        0, NULL, &evKernel1.CLEvent());
           CL_CHECK_ERROR(err);
@@ -240,6 +247,12 @@ void RunBenchmark(cl::Device& devcpp,
        double total = 0.0;
        for (int i = 0; i < reps; i++)
        {
+          // Declare event objects for the kernels
+          Event evKernel1("Run Kernel1");
+          Event evKernel2("Run Kernel2");
+          Event evKernel3("Run Kernel3");
+          Event evKernel4("Run Kernel4");
+
           err = clEnqueueNDRangeKernel(queue, kernel1, 1, NULL,
                                        &globalWorkSize, &localWorkSize,
                                        0, NULL, &evKernel1.CLEvent());

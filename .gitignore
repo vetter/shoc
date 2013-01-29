@@ -19,3 +19,6 @@ ipch
 bin
 libexec
 share
+tools/buildFlags.txt
+tools/compilerVersion.txt
+tools/shocdriver
