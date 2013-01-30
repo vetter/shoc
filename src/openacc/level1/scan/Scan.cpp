@@ -39,7 +39,7 @@ void RunTest(const std::string& testName,
 // ****************************************************************************
 template <class T>
 bool
-VerifyResult(T* devResult, T* idata, const unsigned int nItems)
+VerifyResult(T* devResult, T* idata, const unsigned int nItems, bool beVerbose)
 {
     bool ok = true;
     T* refResult = new T[nItems];
@@ -68,14 +68,17 @@ VerifyResult(T* devResult, T* idata, const unsigned int nItems)
         {
             // we cannot compute a relative error - 
             // use absolute error
-            std::cerr << "Warning: reference result item is 0.0; using absolute error" << std::endl;
+            if( beVerbose )
+            {
+                std::cerr << "Warning: reference result item is 0.0; using absolute error" << std::endl;
+            }
             err = fabs(refResult[i] - devResult[i]);
         }
 
         double threshold = 1.0e-8;
         if( err > threshold )
         {
-            std::cerr << "Err (item " << i << "): " << err << std::endl;
+            std::cerr << "Err (refResult[" << i << "]=" << refResult[i] << ", devResult[" << i << "]=" << devResult[i] << std::endl;
             ok = false;
             break;
         }
@@ -272,7 +275,8 @@ RunTest(const std::string& testName,
                         &totalScanTime );
 
         // verify result
-        bool verified = VerifyResult( devResult, idata, nItems );
+        bool beVerbose = opts.getOptionBool("verbose");
+        bool verified = VerifyResult( devResult, idata, nItems, beVerbose );
         if( !verified )
         {
             // result computed on device does not match
