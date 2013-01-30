@@ -20,7 +20,7 @@ epopenacc_PROGRAMS = S3D
 
 # how to build those programs
 S3D_SOURCES = S3D.cpp \
-				ReduceFuncs.c \
+				S3DFuncs.c \
                 main.cpp
 S3D_LDADD   = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
 

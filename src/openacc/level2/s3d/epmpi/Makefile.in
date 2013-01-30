@@ -47,7 +47,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epopenaccdir)"
 PROGRAMS = $(epopenacc_PROGRAMS)
-am_S3D_OBJECTS = S3D.$(OBJEXT) ReduceFuncs.$(OBJEXT) main.$(OBJEXT)
+am_S3D_OBJECTS = S3D.$(OBJEXT) S3DFuncs.$(OBJEXT) main.$(OBJEXT)
 S3D_OBJECTS = $(am_S3D_OBJECTS)
 am__DEPENDENCIES_1 =
 S3D_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -204,7 +204,7 @@ epopenaccdir = $(bindir)/EP/OpenACC
 
 # how to build those programs
 S3D_SOURCES = S3D.cpp \
-				ReduceFuncs.c \
+				S3DFuncs.c \
                 main.cpp
 
 S3D_LDADD = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
@@ -289,8 +289,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ReduceFuncs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/S3D.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/S3DFuncs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .c.o:
