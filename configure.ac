@@ -432,23 +432,23 @@ AS_IF([test "x$with_mpi" != xno],
         )
         CXX=$savedCXX
 
-#        AS_IF([test "x$MPICXX" != "x"],
-#            [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes],
-#                  [ with_mpi=yes
-#                    USE_MPI=yes
-#                  ],
-#                  [ AC_MSG_FAILURE([MPI support was requested, but is only meaningful if OpenCL and/or CUDA support is available])
-#                    with_mpi=no
-#                  ]
-#              )
-#            ],
-#            [ AS_IF([test "x$with_mpi" != xcheck],
-#                    [ AC_MSG_FAILURE([--with-mpi specified, but no usable MPI installation found.])
-#                      with_mpi=no
-#                    ]
-#              )
-#            ]
-#        )
+        AS_IF([test "x$MPICXX" != "x"],
+            [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes -o "x$with_openacc" = xyes],
+                  [ with_mpi=yes
+                    USE_MPI=yes
+                  ],
+                  [ AC_MSG_FAILURE([MPI support was requested, but is only meaningful if OpenCL, CUDA, and/or OpenACC support is available])
+                    with_mpi=no
+                  ]
+              )
+            ],
+            [ AS_IF([test "x$with_mpi" != xcheck],
+                    [ AC_MSG_FAILURE([--with-mpi specified, but no usable MPI installation found.])
+                      with_mpi=no
+                    ]
+              )
+            ]
+        )
     ]
 )
 AM_CONDITIONAL([BUILD_MPI], [test "x$with_mpi" = "xyes"])
