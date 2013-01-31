@@ -57,7 +57,6 @@ void
 DoNaiveScanDoublesIters( unsigned int nIters,
                         void* restrict ivdata, 
                         unsigned int nItems, 
-                        unsigned int nBlocks,
                         void* restrict ovres, 
                         double* itersScanTime,
                         double* totalScanTime )
@@ -101,7 +100,6 @@ void
 DoScanFloatsIters( unsigned int nIters,
                         void* restrict ivdata, 
                         unsigned int nItems, 
-                        unsigned int nBlocks,
                         void* restrict ovres, 
                         double* itersScanTime,
                         double* totalScanTime )
@@ -195,7 +193,6 @@ void
 DoScanDoublesIters( unsigned int nIters,
                         void* restrict ivdata, 
                         unsigned int nItems, 
-                        unsigned int nBlocks,
                         void* restrict ovres, 
                         double* itersScanTime,
                         double* totalScanTime )
