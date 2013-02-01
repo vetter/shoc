@@ -66,11 +66,58 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
     return passed;
 }
 
+extern "C" void spmv_csr_scalar_kernel_float (const float * __restrict__ val,
+                       const int    * __restrict__ cols,
+                       const int    * __restrict__ rowDelimiters,
+                       const int dim, float * __restrict__ out);
+
+extern "C" void spmv_csr_scalar_kernel_double (const double * __restrict__ val,
+                       const int    * __restrict__ cols,
+                       const int    * __restrict__ rowDelimiters,
+                       const int dim, double * __restrict__ out);
+
+extern "C" void spmv_csr_vector_kernel_float (const float * __restrict__ val,
+                       const int    * __restrict__ cols,
+                       const int    * __restrict__ rowDelimiters,
+                       const int dim, float * __restrict__ out);
+
+extern "C" void spmv_csr_vector_kernel_double (const double * __restrict__ val,
+                       const int    * __restrict__ cols,
+                       const int    * __restrict__ rowDelimiters,
+                       const int dim, double * __restrict__ out);
+
+extern "C" void spmv_ellpackr_kernel_float (const float * __restrict__ val,
+                     const int    * __restrict__ cols,
+                     const int    * __restrict__ rowLengths,
+                     const int dim, float * __restrict__ out);
+
+extern "C" void spmv_ellpackr_kernel_double (const double * __restrict__ val,
+                     const int    * __restrict__ cols,
+                     const int    * __restrict__ rowLengths,
+                     const int dim, double * __restrict__ out);
+
+extern "C" void zero_float (float * __restrict__ a, const int size);
+
+extern "C" void zero_double (double * __restrict__ a, const int size);
+
+
 template <typename floatType, typename texReader>
 void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         int* h_cols, int* h_rowDelimiters, floatType* h_vec, floatType* h_out,
         int numRows, int numNonZeroes, floatType* refOut, bool padded)
 {
+	void (*spmv_csr_scalar_kernel)(const void *,  
+                       const int    *,
+                       const int    *,
+                       const int , void *);
+
+	void (*spmv_csr_vector_kernel)(const void *,  
+                       const int    *,
+                       const int    *,
+                       const int , void *);
+
+	void (*zero)(float *, const int);
+
       // Device data structures
       floatType *d_val, *d_vec, *d_out;
       int *d_cols, *d_rowDelimiters;
@@ -104,19 +151,20 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
       CUDA_SAFE_CALL(cudaEventElapsedTime(&iTransferTime, start, stop));
       iTransferTime *= 1.e-3;
 
-      // Bind texture for position
       string suffix;
       if (sizeof(floatType) == sizeof(float))
       {
-          cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-          CUDA_SAFE_CALL(cudaBindTexture(0, vecTex, d_vec, channelDesc,
-                  numRows * sizeof(float)));
+          spmv_csr_scalar_kernel = spmv_csr_scalar_kernel_float;
+          spmv_csr_vector_kernel = spmv_csr_vector_kernel_float;
+          spmv_ellpackr_kernel = spmv_ellpackr_kernel_float;
+          zero = zero_float;
           suffix = "-SP";
       }
       else {
-          cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<int2>();
-          CUDA_SAFE_CALL(cudaBindTexture(0, vecTexD, d_vec, channelDesc,
-                  numRows * sizeof(int2)));
+          spmv_csr_scalar_kernel = spmv_csr_scalar_kernel_double;
+          spmv_csr_vector_kernel = spmv_csr_vector_kernel_double;
+          spmv_ellpackr_kernel = spmv_ellpackr_kernel_double;
+          zero = zero_double;
           suffix = "-DP";
       }
 
@@ -220,6 +268,12 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         int numRows, int numNonZeroes, floatType* refOut, bool padded,
         int paddedSize)
 {
+	void (*spmv_ellpackr_kernel)(const void *,
+                     const int    *,
+                     const int    *,
+                     const int, void *);
+	void (*zero)(float *, const int);
+
     int *h_rowLengths; 
     CUDA_SAFE_CALL(cudaMallocHost(&h_rowLengths, paddedSize * sizeof(int))); 
     int maxrl = 0;
@@ -481,6 +535,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 */
 }
 
+
 // ****************************************************************************
 // Function: RunTest
 //
@@ -579,143 +634,3 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
     delete[] h_colsPad; 
     delete[] h_rowDelimitersPad; 
 }
-
-// ****************************************************************************
-// Function: runtest<T>
-//
-// Purpose:
-//   Executes the reduction (sum) benchmark
-//
-// Arguments:
-//   testName: name of the test as reported via the results database
-//   resultDB: results from the benchmark are stored in this db
-//   opts: the options parser / parameter database
-//
-// Returns:  nothing
-//
-// Programmer: Philip Roth
-// Creation: 2012-12-06 (based on existing SHOC OpenCL and CUDA Reduction implementations)
-//
-// Modifications:
-//
-// ****************************************************************************
-extern "C" void DoReduceDoublesIters( unsigned int nIters,
-                                        void* idata, 
-                                        unsigned int nItems, 
-                                        void* ores,
-                                        double* itersReduceTime,
-                                        double* totalReduceTime,
-                                        void (*gredfunc)(void*,void*) );
-extern "C" void DoReduceFloatsIters( unsigned int nIters,
-                                        void* idata, 
-                                        unsigned int nItems, 
-                                        void* ores,
-                                        double* itersReduceTime,
-                                        double* totalReduceTime,
-                                        void (*gredfunc)(void*,void*) );
-
-
-template <class T>
-void
-RunTest(const std::string& testName, 
-                ResultDatabase& resultDB,
-                OptionParser& opts)
-{
-    // As of Dec 2012, the available compilers with OpenACC support
-    // do not support OpenACC from C++ programs.  We have to call out to
-    // C routines with the OpenACC directives, but we leave the benchmark
-    // skeleton in C++ so we can reuse classes like the ResultsDatabase
-    // and OptionParser.
-    // 
-    // Once compilers start supporting C++, the separate C function with
-    // OpenACC directives can be inlined into this templatized function.
-    //
-    // Determine which function we will use, based on type of T.
-    // We assume that we will only be called with doubles and floats.
-    // Note that our test for type of T is nowhere close to bullet proof -
-    // for example, it would recognize T=uint64_t as a 64-bit double.
-    // Also note that the signature of our C function has to take the
-    // data as a void* since it must handle both types.
-    // Likewise, our reduce functions return via an argument rather than
-    // a return value, so that they can have the correct type for the 
-    // output variable.
-    //
-    void (*reducefunc)( unsigned int, void*, unsigned int, void*, double*, double*, void (*func)(void*, void*) );
-    void (*greducefunc)( void*, void* );
-    if( sizeof(T) == sizeof(double) )
-    {
-        reducefunc = DoReduceDoublesIters;
-        greducefunc = NULL;
-    }
-    else if( sizeof(T) == sizeof(float) )
-    {
-        reducefunc = DoReduceFloatsIters;
-        greducefunc = NULL;
-    }
-    else
-    {
-        // Our assumption was wrong - T is not a double or a float.
-        std::cerr << "unsupported type in runTest; ignoring" << std::endl;
-        return;
-    }
-
-    // Determine the problem sizes
-    int probSizes[4] = { 1, 8, 32, 64 };    // in megabytes
-
-    int size = probSizes[opts.getOptionInt("size")-1];
-    unsigned int nItems = (size * 1024 * 1024) / sizeof(T);
-
-    // Initialize input
-    std::cout << "Initializing input." << std::endl;
-    T* idata = new T[nItems];
-    for( unsigned int i = 0; i < nItems; i++ )
-    {
-        idata[i] = i % 3; //Fill with some pattern
-    }
-
-    // run the benchmark
-    std::cout << "Running benchmark" << std::endl;
-    int nPasses = opts.getOptionInt("passes");
-    int nIters  = opts.getOptionInt("iterations");
-
-    for( int pass = 0; pass < nPasses; pass++ )
-    {
-        T devResult;
-
-        double itersReduceTime = 0.0;
-        double totalReduceTime = 0.0;
-        (*reducefunc)( nIters, 
-                        idata, 
-                        nItems, 
-                        &devResult, 
-                        &itersReduceTime, 
-                        &totalReduceTime, 
-                        greducefunc );
-
-        // verify result
-        bool verified = VerifyResult( devResult, idata, nItems );
-        if( !verified )
-        {
-            // result computed on device does not match
-            // result computed on CPU; do not report results.
-            std::cerr << "reduction failed" << std::endl;
-            return;
-        }
-
-        // record results
-        // avgTime is in seconds, since that is the units returned
-        // by the Timer class.
-        double itersAvgTime = itersReduceTime / nIters;
-        double totalAvgTime = totalReduceTime / nIters;
-        double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
-
-        std::ostringstream attrstr;
-        attrstr << nItems << "_items";
-
-        std::string txTestName = testName + "_PCIe";
-
-        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / itersAvgTime);
-        resultDB.AddResult(txTestName, attrstr.str(), "GB/s", gbytes / totalAvgTime);
-    }
-}
-
