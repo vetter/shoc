@@ -121,8 +121,6 @@ addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("iterations", OPT_INT, "256",
                  "specify scan iterations");
-    op.addOption("blocks", OPT_INT, "16",
-                 "number of parts into which input array is split when processing");
 }
 
 // ****************************************************************************
@@ -180,14 +178,12 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 extern "C" void DoScanDoublesIters( unsigned int nIters,
                                         void* restrict idata, 
                                         unsigned int nItems, 
-                                        unsigned int nBlocks,
                                         void* restrict odata,
                                         double* itersScanTime,
                                         double* totalScanTime );
 extern "C" void DoScanFloatsIters( unsigned int nIters,
                                         void* restrict idata, 
                                         unsigned int nItems, 
-                                        unsigned int nBlocks, 
                                         void* restrict odata,
                                         double* itersScanTime,
                                         double* totalScanTime );
@@ -220,7 +216,6 @@ RunTest(const std::string& testName,
     //
     void (*scanfunc)( unsigned int, 
                         void* restrict, 
-                        unsigned int, 
                         unsigned int, 
                         void* restrict, 
                         double*, 
@@ -258,7 +253,6 @@ RunTest(const std::string& testName,
     std::cout << "Running benchmark" << std::endl;
     int nPasses = opts.getOptionInt("passes");
     int nIters  = opts.getOptionInt("iterations");
-    int nBlocks  = opts.getOptionInt("blocks");
     T* devResult = new T[nItems];
 
     for( int pass = 0; pass < nPasses; pass++ )
@@ -269,7 +263,6 @@ RunTest(const std::string& testName,
         (*scanfunc)( nIters, 
                         idata, 
                         nItems, 
-                        nBlocks,
                         devResult, 
                         &itersScanTime, 
                         &totalScanTime );
