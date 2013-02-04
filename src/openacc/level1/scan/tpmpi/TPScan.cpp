@@ -7,10 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MPICH_SKIP_MPICXX
-#include "mpi.h"
-
-
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
@@ -29,75 +25,78 @@ void RunTest(const std::string& testName,
 //   Uses relative error.
 //
 // Arguments:
-//   devResult: result computed on device (meaningful only for rank 0)
-//   data : the local input data
-//   nItems : number of Ts (items) in the local input data
+//   devResult: result computed on device
+//   data : the input data
+//   nItems : number of Ts (items) in the input
 //
-// Returns:  true if device-computed result is closer than threshold to 
-//           reference result.  (Return value only meaningful on rank 0)
+// Returns:  true if device-computed result passes, false otherwise
 //
-// Programmer: Philip C. Roth, based on earlier OpenCL code by Kyle Spafford
-// Creation: 2012-12-11
+// Programmer: Philip C. Roth
+// Creation: 2013-01-31, based on OpenCL version of Scan
 //
 // Modifications:
 //
 // ****************************************************************************
 template <class T>
 bool
-VerifyResult(int rank, T devResult, T* idata, const unsigned int nItems)
+VerifyResult(T* devResult, T* idata, const unsigned int nItems, bool beVerbose)
 {
+    bool ok = true;
+    T* refResult = new T[nItems];
+
     // compute the reference result - the "gold standard" against
     // which we will compare the device's result
-    //
-    // compute the local reduction
-    T localResult = 0.0f;
+    T runningVal = 0.0f;
     for( unsigned int i = 0; i < nItems; i++ )
     {
-        localResult += idata[i];
+        refResult[i] = idata[i] + runningVal;
+        runningVal = refResult[i];
     }
 
-    // reduce across all MPI ranks to rank 0
-    T globalResult = 0.0f;
-    MPI_Allreduce( &localResult,
-                    &globalResult,
-                    1,
-                    (sizeof(T) == sizeof(double)) ? MPI_DOUBLE : MPI_FLOAT,
-                    MPI_SUM,
-                    MPI_COMM_WORLD );
-
-    // compute the relative error in the device's result
+    // now check the CPU result against the device result
+    // we compute the relative error in the device's result and
+    // if that is greater than our threshold, we consider the test
+    // failed (regardless of the number of bad results in the array)
     double err;
-    if( globalResult != 0.0 )
+    for( unsigned int i = 0; i < nItems; i++ )
     {
-        err = fabs( (globalResult - devResult) / globalResult );
-    }
-    else
-    {
-        // we cannot compute a relative error
-        // use absolute error
-        std::cerr << "Warning: reference result is 0.0; using absolute error" << std::endl;
-        err = fabs(globalResult - devResult);
-    }
-    
-    double threshold = 1.0e-8;
-
-    if( rank == 0 )
-    {
-        std::cout << "TEST ";
-        if( err < threshold )
+        if( refResult[i] != 0 )
         {
-            std::cout << "PASSED";
+            err = fabs( (refResult[i] - devResult[i]) / refResult[i] );
         }
         else
         {
-            std::cout << "FAILED\n"
-                << "RelErr: " << err;
+            // we cannot compute a relative error - 
+            // use absolute error
+            if( beVerbose )
+            {
+                std::cerr << "Warning: reference result item is 0.0; using absolute error" << std::endl;
+            }
+            err = fabs(refResult[i] - devResult[i]);
         }
-        std::cout << std::endl;
+
+        double threshold = 1.0e-8;
+        if( err > threshold )
+        {
+            std::cerr << "Err (refResult[" << i << "]=" << refResult[i] << ", devResult[" << i << "]=" << devResult[i] << std::endl;
+            ok = false;
+            break;
+        }
     }
 
-    return (err < threshold);
+    if( ok )
+    {
+        std::cout << "PASSED" << std::endl;
+    }
+    else
+    {
+        std::cout << "FAILED" << std::endl;
+    }
+
+    return ok;
 }
+
+
 
 
 // ****************************************************************************
@@ -121,14 +120,14 @@ void
 addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("iterations", OPT_INT, "256",
-                 "specify reduction iterations");
+                 "specify scan iterations");
 }
 
 // ****************************************************************************
 // Function: RunBenchmark
 //
 // Purpose:
-//   Executes the reduction (sum) benchmark
+//   Executes the scan benchmark
 //
 // Arguments:
 //   resultDB: results from the benchmark are stored in this db
@@ -136,8 +135,8 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // Returns:  nothing
 //
-// Programmer: Philip Roth, based on OpenCL reduction code by Kyle Spafford
-// Creation: 2012-12-11
+// Programmer: Philip Roth
+// Creation: 2013-01-31
 //
 // Modifications:
 //
@@ -146,13 +145,13 @@ void
 RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 {
     // Always run single precision test
-    RunTest<float>("Reduction", resultDB, opts);
+    RunTest<float>("Scan", resultDB, opts);
 
     // TODO is there a way to check if double precision is supported by device?
     // Or does implementation always fall back to executing on
     // CPU if available accelerators don't support double precision?
     // If double precision is supported, run the DP test
-    RunTest<double>("Reduction-DP", resultDB, opts);
+    RunTest<double>("Scan-DP", resultDB, opts);
 }
 
 
@@ -161,7 +160,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 // Function: runtest<T>
 //
 // Purpose:
-//   Executes the reduction (sum) benchmark
+//   Executes the scan benchmark
 //
 // Arguments:
 //   testName: name of the test as reported via the results database
@@ -171,54 +170,25 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 // Returns:  nothing
 //
 // Programmer: Philip Roth
-// Creation: 2012-12-06 (based on existing SHOC OpenCL and CUDA Reduction 
-//           implementations by Kyle Spafford)
+// Creation: 2013-01-31 (based on existing SHOC OpenCL and CUDA Scan implementations)
 //
 // Modifications:
 //
 // ****************************************************************************
-extern "C" void DoReduceDoublesIters( unsigned int nIters,
-                                void* idata, 
-                                unsigned int nItems, 
-                                void* ores,
-                                double* itersReduceTime,
-                                double* totalReduceTime,
-                                void (*reducefunc)( void*, void* ) );
-extern "C" void DoReduceFloatsIters( unsigned int nIters,
-                                void* idata, 
-                                unsigned int nItems, 
-                                void* ores,
-                                double* itersReduceTime,
-                                double* totalReduceTime,
-                                void (*reducefunc)( void*, void* ) );
-
-
-extern "C"
-void
-GlobalReduceDouble( void* localval, void* globalval )
-{
-    // reduce across all MPI ranks
-    MPI_Allreduce( localval,
-                    globalval,
-                    1,
-                    MPI_DOUBLE,
-                    MPI_SUM,
-                    MPI_COMM_WORLD );
-}
-
-extern "C"
-void
-GlobalReduceFloat( void* localval, void* globalval )
-{
-    // reduce across all MPI ranks
-    MPI_Allreduce( localval,
-                    globalval,
-                    1,
-                    MPI_FLOAT,
-                    MPI_SUM,
-                    MPI_COMM_WORLD );
-}
-
+extern "C" void DoScanDoublesIters( unsigned int nIters,
+                                        void* restrict idata, 
+                                        unsigned int nItems, 
+                                        void* restrict odata,
+                                        double* itersScanTime,
+                                        double* totalScanTime,
+                                        void (*gscanFunc)(void*, void*) );
+extern "C" void DoScanFloatsIters( unsigned int nIters,
+                                        void* restrict idata, 
+                                        unsigned int nItems, 
+                                        void* restrict odata,
+                                        double* itersScanTime,
+                                        double* totalScanTime,
+                                        void (*gscanFunc)(void*, void*) );
 
 
 template <class T>
@@ -227,10 +197,6 @@ RunTest(const std::string& testName,
                 ResultDatabase& resultDB,
                 OptionParser& opts)
 {
-    // determine our place in the MPI world
-    int rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-    
     // As of Dec 2012, the available compilers with OpenACC support
     // do not support OpenACC from C++ programs.  We have to call out to
     // C routines with the OpenACC directives, but we leave the benchmark
@@ -246,27 +212,24 @@ RunTest(const std::string& testName,
     // for example, it would recognize T=uint64_t as a 64-bit double.
     // Also note that the signature of our C function has to take the
     // data as a void* since it must handle both types.
-    // Likewise, our reduce functions return via an argument rather than
+    // Likewise, our scan functions return via an argument rather than
     // a return value, so that they can have the correct type for the 
     // output variable.
     //
-    void (*reducefcn)( unsigned int nIters,
-                                void* idata, 
-                                unsigned int nItems, 
-                                void* ores,
-                                double* itersReduceTime,
-                                double* totalReduceTime,
-                                void (*greducefunc)( void*, void* ) );
-    void (*greducefcn)( void*, void* );
+    void (*scanfunc)( unsigned int, 
+                        void* restrict, 
+                        unsigned int, 
+                        void* restrict, 
+                        double*, 
+                        double*,
+                        void (*)(void*, void*) );
     if( sizeof(T) == sizeof(double) )
     {
-        reducefcn = DoReduceDoublesIters;        
-        greducefcn = GlobalReduceDouble;
+        scanfunc = DoScanDoublesIters;
     }
     else if( sizeof(T) == sizeof(float) )
     {
-        reducefcn = DoReduceFloatsIters;
-        greducefcn = GlobalReduceFloat;
+        scanfunc = DoScanFloatsIters;
     }
     else
     {
@@ -290,58 +253,49 @@ RunTest(const std::string& testName,
     }
 
     // run the benchmark
-    if( rank == 0 )
-    {
-        std::cout << "Running benchmark" << std::endl;
-    }
+    std::cout << "Running benchmark" << std::endl;
     int nPasses = opts.getOptionInt("passes");
     int nIters  = opts.getOptionInt("iterations");
-    Timer* timer = Timer::Instance();
-    assert( timer != NULL );
+    T* devResult = new T[nItems];
 
     for( int pass = 0; pass < nPasses; pass++ )
     {
-        T devResult;
-        double itersReduceTime = 0.0;
-        double totalReduceTime = 0.0;
 
-        // do the reduction iterations
-        (*reducefcn)(nIters, 
+        double itersScanTime = 0.0;
+        double totalScanTime = 0.0;
+        (*scanfunc)( nIters, 
                         idata, 
                         nItems, 
-                        &devResult, 
-                        &itersReduceTime,
-                        &totalReduceTime, 
-                        greducefcn);
+                        devResult, 
+                        &itersScanTime, 
+                        &totalScanTime,
+                        NULL );
 
         // verify result
-        bool verified = VerifyResult( rank, devResult, idata, nItems );
+        bool beVerbose = opts.getOptionBool("verbose");
+        bool verified = VerifyResult( devResult, idata, nItems, beVerbose );
         if( !verified )
         {
             // result computed on device does not match
             // result computed on CPU; do not report results.
-            if( rank == 0 )
-            {
-                std::cerr << "reduction failed" << std::endl;
-            }
+            std::cerr << "scan failed" << std::endl;
             return;
         }
 
         // record results
-        // Note: all ranks must do this, else the merge of results will 
-        // deadlock.
-        // avgTime is time in seconds, since that is what Timer produces.
-        double itersAvgTime = itersReduceTime / (double)nIters;
-        double totalAvgTime = totalReduceTime / (double)nIters;
+        // avgTime is in seconds, since that is the units returned
+        // by the Timer class.
+        double itersAvgTime = itersScanTime / nIters;
+        double totalAvgTime = totalScanTime / nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
 
         std::ostringstream attrstr;
         attrstr << nItems << "_items";
 
         std::string txTestName = testName + "_PCIe";
+
         resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / itersAvgTime);
         resultDB.AddResult(txTestName, attrstr.str(), "GB/s", gbytes / totalAvgTime);
     }
 }
-
 

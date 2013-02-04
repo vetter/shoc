@@ -14,7 +14,8 @@ DoNaiveScanFloatsIters( unsigned int nIters,
                         unsigned int nItems, 
                         void* restrict ovres, 
                         double* itersScanTime,
-                        double* totalScanTime )
+                        double* totalScanTime,
+                        void (*unused)(void*, void*) )
 {
     float* restrict idata = (float*)ivdata;
     float* restrict ores = (float*)ovres;
@@ -59,7 +60,8 @@ DoNaiveScanDoublesIters( unsigned int nIters,
                         unsigned int nItems, 
                         void* restrict ovres, 
                         double* itersScanTime,
-                        double* totalScanTime )
+                        double* totalScanTime,
+                        void (*unused)(void*, void*) )
 {
     double* restrict idata = (double*)ivdata;
     double* restrict ores = (double*)ovres;
@@ -102,7 +104,8 @@ DoScanFloatsIters( unsigned int nIters,
                         unsigned int nItems, 
                         void* restrict ovres, 
                         double* itersScanTime,
-                        double* totalScanTime )
+                        double* totalScanTime,
+                        void (*gscanFunc)(void*, void*) )
 {
     float* restrict idata = (float*)ivdata;
     float* restrict odata = (float*)ovres;
@@ -110,13 +113,15 @@ DoScanFloatsIters( unsigned int nIters,
     unsigned int itemIdx;
     unsigned int pairIdx;
     unsigned int nPairs;
+    float gBaseValue;
 
 
     // start a timer that includes the transfer time and iterations
     int wholeTimerHandle = Timer_Start();
 
-    #pragma acc data copyin(idata[0:nItems]), copyout(odata[0:nItems])
+    #pragma acc data pcopyin(idata[0:nItems]), copyout(odata[0:nItems])
     {
+
         // now that we've copied data to device,
         // time the iterations.
         int iterTimerHandle = Timer_Start();
@@ -125,6 +130,7 @@ DoScanFloatsIters( unsigned int nIters,
         for( iter = 0; iter < nIters; iter++ )
         {
             unsigned int stride;
+
 
             // Copy the input to the output array (we do the prefix scan
             // in-place the output array, because we need to leave the 
@@ -155,7 +161,21 @@ DoScanFloatsIters( unsigned int nIters,
                     odata[currIdx] += odata[combIdx];
                 }
             }
+
             // fprintf( stderr, "after reduce, stride = %d\n", stride );
+
+            // If we are participating in a Truly Parallel scan 
+            // (across multiple MPI tasks), we need to do a scan 
+            // across all tasks using the sum of the values of each
+            // task as their contribution to the scan.  Later, we will
+            // add the value we get from this scan to our local scan
+            // values to get our values for the global scan.
+            // Happily, we have the sum of our local values from the 
+            // Reduce phase, in the last element of the odata array.
+            if( gscanFunc != 0 )
+            {
+                (*gscanFunc)( &odata[nItems - 1], &gBaseValue );
+            }
 
             // downsweep phase
             //
@@ -182,8 +202,7 @@ DoScanFloatsIters( unsigned int nIters,
         // stop the timer and record the result (in seconds)
         *itersScanTime = Timer_Stop( iterTimerHandle, "" );
 
-    } /* end acc data region */
-
+    } /* end of data region */
 
     *totalScanTime = Timer_Stop( wholeTimerHandle, "" );
 }
@@ -195,7 +214,8 @@ DoScanDoublesIters( unsigned int nIters,
                         unsigned int nItems, 
                         void* restrict ovres, 
                         double* itersScanTime,
-                        double* totalScanTime )
+                        double* totalScanTime,
+                        void (*gscanFunc)(void*, void*) )
 {
     double* restrict idata = (double*)ivdata;
     double* restrict odata = (double*)ovres;
