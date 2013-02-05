@@ -20,6 +20,7 @@ tpopenacc_PROGRAMS = Scan
 
 # how to build those programs
 Scan_SOURCES = TPScan.cpp \
+				ScanUtils.cpp \
 				ScanFuncs.c \
                 main.cpp
 Scan_LDADD   = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)

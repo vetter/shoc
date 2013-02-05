@@ -11,6 +11,8 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 
+#include "mpi.h"
+
 
 template <class T>
 void RunTest(const std::string& testName, 
@@ -44,14 +46,81 @@ VerifyResult(T* devResult, T* idata, const unsigned int nItems, bool beVerbose)
     bool ok = true;
     T* refResult = new T[nItems];
 
+    // determine our place in the MPI world
+    int cwRank = -1;
+    int cwSize = -1;
+    MPI_Comm_rank( MPI_COMM_WORLD, &cwRank );
+    MPI_Comm_size( MPI_COMM_WORLD, &cwSize );
+
+
     // compute the reference result - the "gold standard" against
     // which we will compare the device's result
+    //
+    // we are using a naive sequential algorithm for now
     T runningVal = 0.0f;
     for( unsigned int i = 0; i < nItems; i++ )
     {
         refResult[i] = idata[i] + runningVal;
         runningVal = refResult[i];
     }
+
+    // We have done a scan over our local values.
+    // To find the global scan values, we need to 
+    // add the *largest* scan value from task N-1 to each 
+    // local scan value of task N.  And then do it for
+    // task N+1, and so on.
+    // Luckily, determining the values we have to add to the local
+    // values is a scan operation in itself, and we have the
+    // input to that scan in the last value of our local refResult array.
+    T gBaseValue = 0.0f;
+    MPI_Exscan( &(refResult[nItems - 1]), 
+                &gBaseValue, 
+                1, 
+                (sizeof(T) == sizeof(float)) ? MPI_FLOAT : MPI_DOUBLE,
+                MPI_SUM,
+                MPI_COMM_WORLD );
+
+    // Now that we have the global base value, add it to all of our
+    // local values.
+    for( unsigned int i = 0; i < nItems; i++ )
+    {
+        refResult[i] += gBaseValue;
+    }
+
+#if READY
+    int bogusVal;
+    int bogusTag = 7;
+    if( cwRank == 0 )
+    {
+        for( unsigned int i = 0; i < nItems; i++ )
+        {
+            std::cerr << "ref[" << i << "]=" << refResult[i] << "  "
+                << "dev[" << i << "]=" << devResult[i]
+                << std::endl;
+        }
+
+        std::cerr << "rank 0 sending token to rank 1" << std::endl;
+        MPI_Send( &bogusVal, 1, MPI_INT, 1, bogusTag, MPI_COMM_WORLD );
+    }
+    else
+    {
+        MPI_Recv( &bogusVal, 1, MPI_INT, MPI_ANY_SOURCE, bogusTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+        std::cerr << "rank 1 received token from someone" << std::endl; 
+
+        for( unsigned int i = 0; i < nItems; i++ )
+        {
+            std::cerr << "ref[" << (cwRank * nItems) + i << "]=" << refResult[i] << "  "
+                << "dev[" << (cwRank * nItems) + i << "]=" << devResult[i]
+                << std::endl;
+        }
+
+        if( cwRank != (cwSize - 1) )
+        {
+            std::cerr << "rank " << cwRank << " sending token to rank " << (cwRank + 1) << std::endl; 
+            MPI_Send( &bogusVal, 1, MPI_INT, (cwRank + 1), bogusTag, MPI_COMM_WORLD );
+        }
+    }
+#endif // READY
 
     // now check the CPU result against the device result
     // we compute the relative error in the device's result and
@@ -78,22 +147,38 @@ VerifyResult(T* devResult, T* idata, const unsigned int nItems, bool beVerbose)
         double threshold = 1.0e-8;
         if( err > threshold )
         {
-            std::cerr << "Err (refResult[" << i << "]=" << refResult[i] << ", devResult[" << i << "]=" << devResult[i] << std::endl;
+            std::cerr << "Err (refResult[" << cwRank * nItems + i << "]=" << refResult[i] 
+                << ", devResult[" << cwRank * nItems + i << "]=" << devResult[i] 
+                << std::endl;
             ok = false;
             break;
         }
     }
 
-    if( ok )
+    // Reduce statuses from all MPI tasks to see if any failed.
+    // We use 1 for OK, and 0 for failed, so after doing a reduction with
+    // a min operation, if the reduced value is a 0 we know at least one
+    // rank failed to verify (and so the entire scan failed).
+    //
+    // Only MPI rank zero prints the result.
+    int redVal = (ok ? 1 : 0);
+    int gRedVal = -1;
+    MPI_Allreduce( &redVal, &gRedVal, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD );
+
+    // Only MPI rank zero prints the result to the console.
+    if( cwRank == 0 )
     {
-        std::cout << "PASSED" << std::endl;
-    }
-    else
-    {
-        std::cout << "FAILED" << std::endl;
+        if( gRedVal != 0 )
+        {
+            std::cout << "PASSED" << std::endl;
+        }
+        else
+        {
+            std::cout << "FAILED" << std::endl;
+        }
     }
 
-    return ok;
+    return (gRedVal != 0);
 }
 
 
@@ -190,6 +275,27 @@ extern "C" void DoScanFloatsIters( unsigned int nIters,
                                         double* totalScanTime,
                                         void (*gscanFunc)(void*, void*) );
 
+void
+DoGlobalScanDouble( void* vLocalVal, void* vGlobalVal )
+{
+    double* localVal = (double*)vLocalVal;
+    double* globalVal = (double*)vGlobalVal;
+
+    MPI_Exscan( localVal, globalVal, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+}
+
+
+void
+DoGlobalScanFloat( void* vLocalVal, void* vGlobalVal )
+{
+    float* localVal = (float*)vLocalVal;
+    float* globalVal = (float*)vGlobalVal;
+
+    MPI_Exscan( localVal, globalVal, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD );
+}
+
+
+
 
 template <class T>
 void
@@ -223,13 +329,16 @@ RunTest(const std::string& testName,
                         double*, 
                         double*,
                         void (*)(void*, void*) );
+    void (*gscanfunc)( void*, void* );
     if( sizeof(T) == sizeof(double) )
     {
         scanfunc = DoScanDoublesIters;
+        gscanfunc = DoGlobalScanDouble;
     }
     else if( sizeof(T) == sizeof(float) )
     {
         scanfunc = DoScanFloatsIters;
+        gscanfunc = DoGlobalScanFloat;
     }
     else
     {
@@ -238,14 +347,27 @@ RunTest(const std::string& testName,
         return;
     }
 
+    // determine our place in the MPI world
+    int cwRank = -1;
+    int cwSize = -1;
+    MPI_Comm_rank( MPI_COMM_WORLD, &cwRank );
+    MPI_Comm_size( MPI_COMM_WORLD, &cwSize );
+
     // Determine the problem sizes
     int probSizes[4] = { 1, 8, 32, 64 };    // in megabytes
 
     int size = probSizes[opts.getOptionInt("size")-1];
     unsigned int nItems = (size * 1024 * 1024) / sizeof(T);
 
+#if READY
+    nItems = 16;
+#endif // READY
+
     // Initialize input
-    std::cout << "Initializing input." << std::endl;
+    if( cwRank == 0 )
+    {
+        std::cout << "Initializing input." << std::endl;
+    }
     T* idata = new T[nItems];
     for( unsigned int i = 0; i < nItems; i++ )
     {
@@ -253,13 +375,17 @@ RunTest(const std::string& testName,
     }
 
     // run the benchmark
-    std::cout << "Running benchmark" << std::endl;
+    if( cwRank == 0 )
+    {
+        std::cout << "Running benchmark" << std::endl;
+    }
     int nPasses = opts.getOptionInt("passes");
     int nIters  = opts.getOptionInt("iterations");
     T* devResult = new T[nItems];
 
     for( int pass = 0; pass < nPasses; pass++ )
     {
+        MPI_Barrier( MPI_COMM_WORLD );
 
         double itersScanTime = 0.0;
         double totalScanTime = 0.0;
@@ -269,7 +395,7 @@ RunTest(const std::string& testName,
                         devResult, 
                         &itersScanTime, 
                         &totalScanTime,
-                        NULL );
+                        gscanfunc );
 
         // verify result
         bool beVerbose = opts.getOptionBool("verbose");
@@ -278,7 +404,10 @@ RunTest(const std::string& testName,
         {
             // result computed on device does not match
             // result computed on CPU; do not report results.
-            std::cerr << "scan failed" << std::endl;
+            if( cwRank == 0 )
+            {
+                std::cerr << "scan failed" << std::endl;
+            }
             return;
         }
 
@@ -288,14 +417,15 @@ RunTest(const std::string& testName,
         double itersAvgTime = itersScanTime / nIters;
         double totalAvgTime = totalScanTime / nIters;
         double gbytes = (double)(nItems*sizeof(T)) / (1000. * 1000. * 1000.);
+        double global_gbytes = cwSize * gbytes;
 
         std::ostringstream attrstr;
         attrstr << nItems << "_items";
 
         std::string txTestName = testName + "_PCIe";
 
-        resultDB.AddResult(testName, attrstr.str(), "GB/s", gbytes / itersAvgTime);
-        resultDB.AddResult(txTestName, attrstr.str(), "GB/s", gbytes / totalAvgTime);
+        resultDB.AddResult(testName, attrstr.str(), "GB/s", global_gbytes / itersAvgTime);
+        resultDB.AddResult(txTestName, attrstr.str(), "GB/s", global_gbytes / totalAvgTime);
     }
 }
 
