@@ -10,12 +10,11 @@
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
+#include "util.h"
+#include "Spmv.h"
 
-
-template <class T>
-void RunTest(const std::string& testName, 
-                ResultDatabase& resultDB,
-                OptionParser& op);
+template <typename floatType>
+void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0);
 
 // ****************************************************************************
 // Function: verifyResults
@@ -66,105 +65,87 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
     return passed;
 }
 
-extern "C" void spmv_csr_scalar_kernel_float (const float * __restrict__ val,
+extern "C" void spmv_csr_scalar_kernel_float (const void * val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, float * __restrict__ out);
+                       const int dim, const int nItems, void * vec, void * out,
+                       const int niters, double * iTransferTime,
+                       double * oTransferTime, double * kernelTime);
 
-extern "C" void spmv_csr_scalar_kernel_double (const double * __restrict__ val,
+extern "C" void spmv_csr_scalar_kernel_double (const void * val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, double * __restrict__ out);
+                       const int dim, const int nItems, void * vec, void * out,
+                       const int niters, double * iTransferTime,
+                       double * oTransferTime, double * kernelTime);
 
-extern "C" void spmv_csr_vector_kernel_float (const float * __restrict__ val,
+extern "C" void spmv_csr_vector_kernel_float (const void * val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, float * __restrict__ out);
+                       const int dim, const int nItems, void * vec, void * out,
+                       const int niters, double * iTransferTime,
+                       double * oTransferTime, double * kernelTime);
 
-extern "C" void spmv_csr_vector_kernel_double (const double * __restrict__ val,
+extern "C" void spmv_csr_vector_kernel_double (const void * val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, double * __restrict__ out);
+                       const int dim, const int nItems, void * vec, void * out,
+                       const int niters, double * iTransferTime,
+                       double * oTransferTime, double * kernelTime);
 
-extern "C" void spmv_ellpackr_kernel_float (const float * __restrict__ val,
+extern "C" void spmv_ellpackr_kernel_float (const void * val,
                      const int    * __restrict__ cols,
                      const int    * __restrict__ rowLengths,
-                     const int dim, float * __restrict__ out);
+                     const int dim, const int nItems, void * vec, void * out,
+                     const int niters, double * iTransferTime,
+                     double * oTransferTime, double * kernelTime);
 
-extern "C" void spmv_ellpackr_kernel_double (const double * __restrict__ val,
+extern "C" void spmv_ellpackr_kernel_double (const void * val,
                      const int    * __restrict__ cols,
                      const int    * __restrict__ rowLengths,
-                     const int dim, double * __restrict__ out);
+                     const int dim, const int nItems, void * vec, void * out,
+                     const int niters, double * iTransferTime,
+                     double * oTransferTime, double * kernelTime);
 
-extern "C" void zero_float (float * __restrict__ a, const int size);
+extern "C" void zero_float (void * a, const int size);
 
-extern "C" void zero_double (double * __restrict__ a, const int size);
+extern "C" void zero_double (void * a, const int size);
 
 
-template <typename floatType, typename texReader>
+template <typename floatType>
 void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         int* h_cols, int* h_rowDelimiters, floatType* h_vec, floatType* h_out,
         int numRows, int numNonZeroes, floatType* refOut, bool padded)
 {
-	void (*spmv_csr_scalar_kernel)(const void *,  
-                       const int    *,
-                       const int    *,
-                       const int , void *);
+	void (*spmv_csr_scalar_kernel)(const void * ,  
+                       const int    * __restrict__,
+                       const int    * __restrict__,
+                       const int, const int, void *, void *,
+                       const int, double *,
+                       double *, double *);
 
-	void (*spmv_csr_vector_kernel)(const void *,  
-                       const int    *,
-                       const int    *,
-                       const int , void *);
+	void (*spmv_csr_vector_kernel)(const void * ,  
+                       const int    * __restrict__,
+                       const int    * __restrict__,
+                       const int , const int, void *, void * ,
+                       const int, double *,
+                       double *, double *);
 
-	void (*zero)(float *, const int);
+	//void (*zero)(void * , const int);
 
-      // Device data structures
-      floatType *d_val, *d_vec, *d_out;
-      int *d_cols, *d_rowDelimiters;
-
-      // Allocate device memory
-      CUDA_SAFE_CALL(cudaMalloc(&d_val,  numNonZeroes * sizeof(floatType)));
-      CUDA_SAFE_CALL(cudaMalloc(&d_cols, numNonZeroes * sizeof(int)));
-      CUDA_SAFE_CALL(cudaMalloc(&d_vec,  numRows * sizeof(floatType)));
-      CUDA_SAFE_CALL(cudaMalloc(&d_out,  numRows * sizeof(floatType)));
-      CUDA_SAFE_CALL(cudaMalloc(&d_rowDelimiters, (numRows+1) * sizeof(int)));
-
-      // Setup events for timing
-      cudaEvent_t start, stop;
-      CUDA_SAFE_CALL(cudaEventCreate(&start));
-      CUDA_SAFE_CALL(cudaEventCreate(&stop));
-
-      // Transfer data to device
-      CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-      CUDA_SAFE_CALL(cudaMemcpy(d_val, h_val,   numNonZeroes * sizeof(floatType),
-              cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaMemcpy(d_cols, h_cols, numNonZeroes * sizeof(int),
-              cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaMemcpy(d_vec, h_vec, numRows * sizeof(floatType),
-                    cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaMemcpy(d_rowDelimiters, h_rowDelimiters,
-              (numRows+1) * sizeof(int), cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
-      CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-
-      float iTransferTime, oTransferTime;
-      CUDA_SAFE_CALL(cudaEventElapsedTime(&iTransferTime, start, stop));
-      iTransferTime *= 1.e-3;
 
       string suffix;
       if (sizeof(floatType) == sizeof(float))
       {
           spmv_csr_scalar_kernel = spmv_csr_scalar_kernel_float;
           spmv_csr_vector_kernel = spmv_csr_vector_kernel_float;
-          spmv_ellpackr_kernel = spmv_ellpackr_kernel_float;
-          zero = zero_float;
+          //zero = zero_float;
           suffix = "-SP";
       }
       else {
           spmv_csr_scalar_kernel = spmv_csr_scalar_kernel_double;
           spmv_csr_vector_kernel = spmv_csr_vector_kernel_double;
-          spmv_ellpackr_kernel = spmv_ellpackr_kernel_double;
-          zero = zero_double;
+          //zero = zero_double;
           suffix = "-DP";
       }
 
@@ -174,6 +155,8 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
                   (floatType)(BLOCK_SIZE / WARP_SIZE));
       int passes = op.getOptionInt("passes");
       int iters  = op.getOptionInt("iterations");
+      double iTransferTime, oTransferTime;
+      double scalarKernelTime, vectorKernelTime;
 
       // Results description info
       char atts[TEMP_BUFFER_SIZE];
@@ -185,31 +168,14 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
       for (int k=0; k<passes; k++)
       {
           // Run Scalar Kernel
-          CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-          for (int j = 0; j < iters; j++)
-          {
-              spmv_csr_scalar_kernel<floatType, texReader>
-              <<<nBlocksScalar, BLOCK_SIZE>>>
-              (d_val, d_cols, d_rowDelimiters, numRows, d_out);
-          }
-          CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
-          CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-          float scalarKernelTime;
-          CUDA_SAFE_CALL(cudaEventElapsedTime(&scalarKernelTime, start, stop));
-          // Transfer data back to host
-          CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-          CUDA_SAFE_CALL(cudaMemcpy(h_out, d_out, numRows * sizeof(floatType),
-                  cudaMemcpyDeviceToHost));
-          CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
-          CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-          CUDA_SAFE_CALL(cudaEventElapsedTime(&oTransferTime, start, stop));
-          oTransferTime *= 1.e-3;
+          spmv_csr_scalar_kernel(h_val, h_cols, h_rowDelimiters, numRows, numNonZeroes, h_vec,
+          h_out, iters, &iTransferTime, &oTransferTime, &scalarKernelTime);
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
           {
               return;  // If results don't match, don't report performance
           }
-          scalarKernelTime = (scalarKernelTime / (float)iters) * 1.e-3;
+          scalarKernelTime = (scalarKernelTime / (double)iters);
           string testName = prefix+"CSR-Scalar"+suffix;
           double totalTransfer = iTransferTime + oTransferTime;
           resultDB.AddResult(testName, atts, "Gflop/s",
@@ -217,65 +183,44 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
           resultDB.AddResult(testName+"_PCIe", atts, "Gflop/s",
                             gflop / (scalarKernelTime+totalTransfer));
       }
-      zero<floatType><<<nBlocksScalar, BLOCK_SIZE>>>(d_out, numRows);
-      cudaThreadSynchronize();
+      //DEBUG: We don't need this anymore.
+      //zero(h_out, numRows);
 
       cout << "CSR Vector Kernel\n";
       for (int k=0; k<passes; k++)
       {
           // Run Vector Kernel
-          CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-          for (int j = 0; j < iters; j++)
-          {
-              spmv_csr_vector_kernel<floatType, texReader>
-              <<<nBlocksVector, BLOCK_SIZE>>>
-              (d_val, d_cols, d_rowDelimiters, numRows, d_out);
-          }
-          CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
-          CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-          float vectorKernelTime;
-          CUDA_SAFE_CALL(cudaEventElapsedTime(&vectorKernelTime, start, stop));
-          CUDA_SAFE_CALL(cudaMemcpy(h_out, d_out, numRows * sizeof(floatType),
-                  cudaMemcpyDeviceToHost));
-          cudaThreadSynchronize();
+          spmv_csr_vector_kernel(h_val, h_cols, h_rowDelimiters, numRows, numNonZeroes, h_vec,
+          h_out, iters, &iTransferTime, &oTransferTime, &vectorKernelTime);
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
           {
               return;  // If results don't match, don't report performance
           }
-          vectorKernelTime = (vectorKernelTime / (float)iters) * 1.e-3;
+          vectorKernelTime = (vectorKernelTime / (double)iters);
           string testName = prefix+"CSR-Vector"+suffix;
           double totalTransfer = iTransferTime + oTransferTime;
           resultDB.AddResult(testName, atts, "Gflop/s", gflop/vectorKernelTime);
           resultDB.AddResult(testName+"_PCIe", atts, "Gflop/s",
                             gflop/(vectorKernelTime+totalTransfer));
       }
-      // Free device memory
-      CUDA_SAFE_CALL(cudaFree(d_rowDelimiters));
-      CUDA_SAFE_CALL(cudaFree(d_vec));
-      CUDA_SAFE_CALL(cudaFree(d_out));
-      CUDA_SAFE_CALL(cudaFree(d_val));
-      CUDA_SAFE_CALL(cudaFree(d_cols));
-      CUDA_SAFE_CALL(cudaUnbindTexture(vecTexD));
-      CUDA_SAFE_CALL(cudaUnbindTexture(vecTex));
-      CUDA_SAFE_CALL(cudaEventDestroy(start));
-      CUDA_SAFE_CALL(cudaEventDestroy(stop));
 }
 
-template <typename floatType, typename texReader>
+template <typename floatType>
 void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         int* h_cols, int* h_rowDelimiters, floatType* h_vec, floatType* h_out,
         int numRows, int numNonZeroes, floatType* refOut, bool padded,
         int paddedSize)
 {
-	void (*spmv_ellpackr_kernel)(const void *,
-                     const int    *,
-                     const int    *,
-                     const int, void *);
-	void (*zero)(float *, const int);
+	void (*spmv_ellpackr_kernel)(const void * __restrict__,
+                     const int    * __restrict__,
+                     const int    * __restrict__,
+                     const int, void * __restrict__,
+                     const int, double *,
+                     double *, double *);
+	void (*zero)(float * __restrict__, const int);
 
-    int *h_rowLengths; 
-    CUDA_SAFE_CALL(cudaMallocHost(&h_rowLengths, paddedSize * sizeof(int))); 
+    int *h_rowLengths = (int *)malloc(paddedSize*sizeof(int)); 
     int maxrl = 0;
     for (int k=0; k<numRows; k++)
     {
@@ -292,69 +237,34 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
 
     // Column major format host data structures
     int cmSize = padded ? paddedSize : numRows;
-    floatType *h_valcm;
-    CUDA_SAFE_CALL(cudaMallocHost(&h_valcm, maxrl * cmSize * sizeof(floatType))); 
-    int *h_colscm;
-    CUDA_SAFE_CALL(cudaMallocHost(&h_colscm, maxrl * cmSize * sizeof(int))); 
+    floatType *h_valcm = (floatType *)malloc(maxrl*cmSize*sizeof(floatType));
+    int *h_colscm = (floatType *)malloc(maxrl*cmSize*sizeof(int));
     convertToColMajor(h_val, h_cols, numRows, h_rowDelimiters, h_valcm,
                               h_colscm, h_rowLengths, maxrl, padded);
 
-    // Device data structures
-    floatType *d_val, *d_vec, *d_out;
-    int *d_cols, *d_rowLengths;
-
-    // Allocate device memory
-    CUDA_SAFE_CALL(cudaMalloc(&d_val,  maxrl*cmSize * sizeof(floatType)));
-    CUDA_SAFE_CALL(cudaMalloc(&d_cols, maxrl*cmSize * sizeof(int)));
-    CUDA_SAFE_CALL(cudaMalloc(&d_vec,  numRows * sizeof(floatType)));
-    CUDA_SAFE_CALL(cudaMalloc(&d_out,  paddedSize * sizeof(floatType)));
-    CUDA_SAFE_CALL(cudaMalloc(&d_rowLengths, cmSize * sizeof(int)));
-
     // Transfer data to device
-    CUDA_SAFE_CALL(cudaMemcpy(d_val, h_valcm, maxrl*cmSize * sizeof(floatType),
-            cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(d_cols, h_colscm, maxrl*cmSize * sizeof(int),
-            cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(d_vec, h_vec, numRows * sizeof(floatType),
-            cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(d_rowLengths, h_rowLengths,
-            cmSize * sizeof(int), cudaMemcpyHostToDevice));
+    // DEBUG: d_rowLengths may be different from h_rowLengths.
+    //CUDA_SAFE_CALL(cudaMemcpy(d_rowLengths, h_rowLengths,
+    //        cmSize * sizeof(int), cudaMemcpyHostToDevice));
 
     // Bind texture for position
     if (sizeof(floatType) == sizeof(float))
     {
-        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-        CUDA_SAFE_CALL(cudaBindTexture(0, vecTex, d_vec, channelDesc,
-                numRows * sizeof(float)));
+        spmv_ellpackr_kernel = spmv_ellpackr_kernel_float;
     }
     else
     {
-        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<int2>();
-        CUDA_SAFE_CALL(cudaBindTexture(0, vecTexD, d_vec, channelDesc,
-                numRows * sizeof(int2)));
+        spmv_ellpackr_kernel = spmv_ellpackr_kernel_double;
     }
     int nBlocks = (int) ceil((floatType) cmSize / BLOCK_SIZE);
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");
-    cudaEvent_t start, stop;
-    CUDA_SAFE_CALL(cudaEventCreate(&start));
-    CUDA_SAFE_CALL(cudaEventCreate(&stop));
+    double iTransferTime, oTransferTime;
+    double totalKernelTime;
     for (int k=0; k<passes; k++)
     {
-        CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-        for (int j = 0; j < iters; j++)
-        {
-            spmv_ellpackr_kernel<floatType, texReader><<<nBlocks, BLOCK_SIZE>>>
-                    (d_val, d_cols, d_rowLengths, cmSize, d_out);
-        }
-        CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
-        CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-        float totalKernelTime;
-        CUDA_SAFE_CALL(cudaEventElapsedTime(&totalKernelTime, start, stop));
-        totalKernelTime *= 1.e-3;
-
-        CUDA_SAFE_CALL(cudaMemcpy(h_out, d_out, cmSize * sizeof(floatType),
-                cudaMemcpyDeviceToHost));
+        spmv_ellpackr_kernel(h_valcm, h_colscm, h_rowLengths, cmSize, numNonZeros, h_vec,
+        h_out, iters, &iTransferTime, &oTransferTime, &totalKernelTime);
 
         // Compare reference solution to GPU result
         if (! verifyResults(refOut, h_out, numRows, k)) {
@@ -370,26 +280,6 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
                 dpTest ? "DP":"SP");
         resultDB.AddResult(benchName, atts, "Gflop/s", gflop/avgTime);
     }
-
-    // Free device memory
-    CUDA_SAFE_CALL(cudaFree(d_rowLengths));
-    CUDA_SAFE_CALL(cudaFree(d_vec));
-    CUDA_SAFE_CALL(cudaFree(d_out));
-    CUDA_SAFE_CALL(cudaFree(d_val));
-    CUDA_SAFE_CALL(cudaFree(d_cols));
-    if (sizeof(floatType) == sizeof(double))
-    {
-        CUDA_SAFE_CALL(cudaUnbindTexture(vecTexD));
-    }
-    else
-    {
-        CUDA_SAFE_CALL(cudaUnbindTexture(vecTex));
-    }
-    CUDA_SAFE_CALL(cudaEventDestroy(start));
-    CUDA_SAFE_CALL(cudaEventDestroy(stop));
-    CUDA_SAFE_CALL(cudaFreeHost(h_rowLengths));
-    CUDA_SAFE_CALL(cudaFreeHost(h_valcm));
-    CUDA_SAFE_CALL(cudaFreeHost(h_colscm));
 }
 
 // ****************************************************************************
@@ -480,10 +370,10 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     int sizeClass = op.getOptionInt("size") - 1;
 
     cout <<"Single precision tests:\n";
-    RunTest<float, texReaderSP>(resultDB, op, probSizes[sizeClass]);
+    RunTest<float>(resultDB, op, probSizes[sizeClass]);
 
     cout <<"Double precision tests:\n";
-    RunTest<double, texReaderDP>(resultDB, op, probSizes[sizeClass]);
+    RunTest<double>(resultDB, op, probSizes[sizeClass]);
 
 /*
     std::cout << "Double precision not supported by chosen device, skipping" << std::endl;
@@ -556,8 +446,8 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 // Modifications:
 //
 // ****************************************************************************
-template <typename floatType, typename texReader>
-void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0) 
+template <typename floatType>
+void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows) 
 {
     // Host data structures
     // Array of values in the sparse matrix
@@ -610,19 +500,22 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
 
     // Test CSR kernels on normal data
     cout << "CSR Test\n";
-    csrTest<floatType, texReader>(resultDB, op, h_val, h_cols,
+    csrTest<floatType>(resultDB, op, h_val, h_cols,
             h_rowDelimiters, h_vec, h_out, numRows, nItems, refOut, false);
 
+//TODO: below codes need to be implemented.
+/*
     // Test CSR kernels on padded data
     cout << "CSR Test -- Padded Data\n";
-    csrTest<floatType, texReader>(resultDB, op, h_valPad, h_colsPad,
+    csrTest<floatType>(resultDB, op, h_valPad, h_colsPad,
             h_rowDelimitersPad, h_vec, h_out, numRows, nItemsPadded, refOut, true);
 
     // Test ELLPACKR kernel
     cout << "ELLPACKR Test\n";
-    ellPackTest<floatType, texReader>(resultDB, op, h_val, h_cols,
+    ellPackTest<floatType>(resultDB, op, h_val, h_cols,
             h_rowDelimiters, h_vec, h_out, numRows, nItems, refOut, false,
             paddedSize);
+*/
 
     delete[] refOut; 
     delete[] h_val; 
