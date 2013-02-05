@@ -47,7 +47,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epopenaccdir)"
 PROGRAMS = $(epopenacc_PROGRAMS)
-am_Scan_OBJECTS = Scan.$(OBJEXT) ScanFuncs.$(OBJEXT) main.$(OBJEXT)
+am_Scan_OBJECTS = Scan.$(OBJEXT) ScanUtils.$(OBJEXT) \
+	ScanFuncs.$(OBJEXT) main.$(OBJEXT)
 Scan_OBJECTS = $(am_Scan_OBJECTS)
 am__DEPENDENCIES_1 =
 Scan_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -204,6 +205,7 @@ epopenaccdir = $(bindir)/EP/OpenACC
 
 # how to build those programs
 Scan_SOURCES = Scan.cpp \
+				ScanUtils.cpp \
 				ScanFuncs.c \
                 main.cpp
 
@@ -291,6 +293,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Scan.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ScanFuncs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ScanUtils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .c.o:

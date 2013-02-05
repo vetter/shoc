@@ -554,6 +554,7 @@ AC_CONFIG_FILES([Makefile
                  src/openacc/level1/reduction/tpmpi/Makefile
                  src/openacc/level1/scan/Makefile
                  src/openacc/level1/scan/epmpi/Makefile
+                 src/openacc/level1/scan/tpmpi/Makefile
                  src/openacc/level1/gemm/Makefile
                  src/openacc/level1/gemm/epmpi/Makefile
                  src/openacc/level1/sort/Makefile

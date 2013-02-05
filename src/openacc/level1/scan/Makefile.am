@@ -1,5 +1,5 @@
 if BUILD_MPI
-    MAYBE_MPI = epmpi
+    MAYBE_MPI = epmpi tpmpi
 endif
 SUBDIRS = $(MAYBE_MPI)
 
@@ -20,6 +20,7 @@ serialopenacc_PROGRAMS = Scan
 
 # how to build those programs
 Scan_SOURCES = Scan.cpp \
+				ScanUtils.cpp \
 				ScanFuncs.c \
                 main.cpp
 Scan_LDADD   = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
