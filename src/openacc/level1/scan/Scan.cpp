@@ -180,13 +180,15 @@ extern "C" void DoScanDoublesIters( unsigned int nIters,
                                         unsigned int nItems, 
                                         void* restrict odata,
                                         double* itersScanTime,
-                                        double* totalScanTime );
+                                        double* totalScanTime,
+                                        void (*gscanFunc)(void*, void*) );
 extern "C" void DoScanFloatsIters( unsigned int nIters,
                                         void* restrict idata, 
                                         unsigned int nItems, 
                                         void* restrict odata,
                                         double* itersScanTime,
-                                        double* totalScanTime );
+                                        double* totalScanTime,
+                                        void (*gscanFunc)(void*, void*) );
 
 
 template <class T>
@@ -217,10 +219,10 @@ RunTest(const std::string& testName,
     void (*scanfunc)( unsigned int, 
                         void* restrict, 
                         unsigned int, 
-                        unsigned int, 
                         void* restrict, 
                         double*, 
-                        double* );
+                        double*,
+                        void (*)(void*, void*) );
     if( sizeof(T) == sizeof(double) )
     {
         scanfunc = DoScanDoublesIters;
@@ -266,7 +268,8 @@ RunTest(const std::string& testName,
                         nItems, 
                         devResult, 
                         &itersScanTime, 
-                        &totalScanTime );
+                        &totalScanTime,
+                        NULL );
 
         // verify result
         bool beVerbose = opts.getOptionBool("verbose");
