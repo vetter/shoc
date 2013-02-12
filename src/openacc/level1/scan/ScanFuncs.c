@@ -21,7 +21,6 @@ DoScanFloatsIters( unsigned int nIters,
     unsigned int itemIdx;
     unsigned int pairIdx;
     unsigned int nPairs;
-    float lReduceValue = 0.0f;
     float gBaseValue = 0.0f;
 
 
@@ -47,7 +46,8 @@ DoScanFloatsIters( unsigned int nIters,
             // Note: if we were sure we were not going to need to the input
             // data after the function, we could do the parallel prefix
             // operation in place on the input array.
-            #pragma acc kernels loop, present(idata[0:nItems], odata[0:nItems])
+            // #pragma acc kernels loop, present(idata[0:nItems], odata[0:nItems])
+            #pragma acc kernels loop
             for( itemIdx = 0; itemIdx < nItems; itemIdx++ )
             {
                 odata[itemIdx] = idata[itemIdx];
@@ -61,7 +61,7 @@ DoScanFloatsIters( unsigned int nIters,
             // Reduce phase
             for( stride = 1; stride < nItems; stride *= 2 )
             {
-                #pragma acc kernels loop, independent, present(odata[0:nItems]), copyin(stride)
+                #pragma acc kernels loop, independent
                 for( pairIdx = 0; pairIdx < (nItems / (stride * 2)); pairIdx++ )
                 {
                     unsigned int currIdx = ((pairIdx+1)*(stride*2)) - 1;
@@ -81,11 +81,8 @@ DoScanFloatsIters( unsigned int nIters,
             // Reduce phase, in the last element of the odata array.
             if( gscanFunc != 0 )
             {
-                #pragma acc kernels copyout(lReduceValue)
-                {
-                    lReduceValue = odata[nItems - 1];
-                }
-                (*gscanFunc)( &lReduceValue, &gBaseValue );
+                #pragma acc update host(odata[nItems-1:1])
+                (*gscanFunc)( &(odata[nItems-1]), &gBaseValue );
 
                 // The PGI compiler, as of version 12.10, 
                 // does not seem to respect our copyout clause.
@@ -103,7 +100,7 @@ DoScanFloatsIters( unsigned int nIters,
                 //
                 // Note all of it is unnecessary if the compiler would
                 // respect our copyout clause.
-                DummyFloatFunc( lReduceValue );
+                // DummyFloatFunc( lReduceValue );
 
                 /*
                 fprintf( stderr, "lReduceValue=%lf, gBaseValue=%lf\n", 
@@ -125,7 +122,7 @@ DoScanFloatsIters( unsigned int nIters,
             {
                 unsigned int nPairs = (nItems / (stride * 4)) * 2 - 1;
 
-                #pragma acc kernels loop, independent, present(odata[0:nItems]), copyin(stride)
+                #pragma acc kernels loop, independent
                 for( pairIdx = 0; pairIdx < nPairs; pairIdx++ )
                 {
                     unsigned int combIdx = (pairIdx + 1) * (stride * 2) - 1;
