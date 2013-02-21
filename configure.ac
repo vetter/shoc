@@ -256,39 +256,45 @@ AS_IF([test "x$with_openacc" != xno],
         dnl WARNING: We only know how to check for the PGI compiler.
         dnl If you are using another compiler, set --with-openacc explicitly,
         dnl and set OPENACC_CFLAGS and OPENACC_LDFLAGS
-        AC_MSG_CHECKING([whether we can compile and link OpenACC programs])
+        AC_MSG_CHECKING([whether we can compile OpenACC programs])
         AC_LANG([C])
         savedCFLAGS=$CFLAGS
         CFLAGS="$CFLAGS -acc"
-        AC_LINK_IFELSE( 
+
+
+        AC_COMPILE_IFELSE( 
             [
-                dnl use a simple OpenACC program
+                dnl use a simple OpenACC program for these tests
                 AC_LANG_PROGRAM(
                     [[
                     #include <stdio.h>
                     #include <stdlib.h>
                     ]],
                     [[
-    double pi = 0.0;
-    long int i = 0;
-    long int nTerms = 100;
+                    double pi = 0.0;
+                    long int i = 0;
+                    long int nTerms = 100;
 
-    acc_set_device_num(1);
-#pragma acc region for
-    for( i = 0; i < nTerms; i++ )
-    {
-        double t = (double)((i+0.5)/nTerms);
-        pi += 4.0 / (1.0 + t*t);
-    }
+                #pragma acc region for
+                    for( i = 0; i < nTerms; i++ )
+                    {
+                        double t = (double)((i+0.5)/nTerms);
+                        pi += 4.0 / (1.0 + t*t);
+                    }
 
-    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
-    return 0;
+                    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+                    return 0;
                     ]]
                 )
             ],
             [
                 AC_MSG_RESULT([yes])
                 OPENACC_CFLAGS="-acc"
+
+                AC_MSG_CHECKING([whether we can link OpenACC programs with C++ driver using -acc flag])
+                AC_LANG([C++])
+                savedLDFLAGS=$LDFLAGS
+                LDFLAGS="$LDFLAGS -acc"
 
                 # Because PGI does not yet support OpenACC directives
                 # in C++ code, we cannot just pass the -acc flag in
@@ -298,8 +304,100 @@ AS_IF([test "x$with_openacc" != xno],
                 # for OpenACC programs to the set of libraries used 
                 # during a link.
                 # OPENACC_LDFLAGS="-acc"
-                OPENACC_LIBS="-lacc1 -ldl"
-                with_openacc=yes
+
+                # PGI did not allow OpenACC directives in C++ code
+                # in their 12.x compilers, but seem to allow it in
+                # the 13.x compilers.  Also, it does not seem 
+                # sufficient to just add the OpenACC libraries to
+                # the link line with the 13.x compilers, so we will
+                # need to use the -acc flag with the 13.x compilers.
+                # Unfortunately, the 12.x C++ compiler does not
+                # understand the -acc flag when linking, so we need to
+                # detect which version of PGI we are using, and
+                # set the appropriate variables for linking according.
+                AC_LINK_IFELSE(
+                    [
+                        dnl use a simple OpenACC program for these tests
+                        AC_LANG_PROGRAM(
+                            [[
+                            #include <stdio.h>
+                            #include <stdlib.h>
+                            ]],
+                            [[
+                            double pi = 0.0;
+                            long int i = 0;
+                            long int nTerms = 100;
+
+                        #pragma acc region for
+                            for( i = 0; i < nTerms; i++ )
+                            {
+                                double t = (double)((i+0.5)/nTerms);
+                                pi += 4.0 / (1.0 + t*t);
+                            }
+
+                            fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+                            return 0;
+                            ]]
+                        )
+                    ],
+                    [
+                        # we linked using only -acc
+                        # must be the newer compiler that accepts -acc for link
+                        AC_MSG_RESULT([yes])
+                        OPENACC_LDFLAGS="-acc"
+                        with_openacc=yes
+                    ],
+                    [
+                        # we failed to link using just -acc
+                        # it might be the older compiler that does not 
+                        # accept -acc for link
+                        AC_MSG_RESULT([no])
+                        LDFLAGS="$savedLDFLAGS"
+                        savedLIBS=$LIBS
+                        LIBS="$LIBS -lacc1 -ldl"
+
+                        AC_MSG_CHECKING([whether we can link OpenACC programs with C++ driver by explicitly providing libraries])
+
+                        AC_LINK_IFELSE(
+                            [
+                                dnl use a simple OpenACC program for these tests
+                                AC_LANG_PROGRAM(
+                                    [[
+                                    #include <stdio.h>
+                                    #include <stdlib.h>
+                                    ]],
+                                    [[
+                                    double pi = 0.0;
+                                    long int i = 0;
+                                    long int nTerms = 100;
+
+                                #pragma acc region for
+                                    for( i = 0; i < nTerms; i++ )
+                                    {
+                                        double t = (double)((i+0.5)/nTerms);
+                                        pi += 4.0 / (1.0 + t*t);
+                                    }
+
+                                    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+                                    return 0;
+                                    ]]
+                                )
+                            ],
+                            [
+                                AC_MSG_RESULT([yes])
+                                OPENACC_LIBS="-lacc1 -ldl"
+                                with_openacc=yes
+                            ],
+                            [
+                                AC_MSG_RESULT([no])
+                                with_openacc=no
+                            ]
+                        )
+
+                        LIBS=$savedLIBS
+                    ]
+                )
+                LDFLAGS=$savedLDFLAGS
             ],
             [
                 AC_MSG_RESULT([no])
