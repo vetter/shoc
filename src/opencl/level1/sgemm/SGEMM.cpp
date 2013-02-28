@@ -193,7 +193,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
                                  &cl_source_sgemmN, NULL, &err);
     CL_CHECK_ERROR(err);
 
-    string flags = compileFlags + "-cl-mad-enable";
+    string flags = compileFlags + " -cl-mad-enable";
     err = clBuildProgram(prog, 0, NULL, flags.c_str(), NULL,
             NULL);
     CL_CHECK_ERROR(err);
