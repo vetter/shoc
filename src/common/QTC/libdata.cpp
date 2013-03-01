@@ -10,6 +10,7 @@
 #include <assert.h>
 #include "QTC/qtc_common.h"
 #include "QTC/libdata.h"
+#include "qtclib.h"
 
 #define MAX_WIDTH  20.0
 #define MAX_HEIGHT 20.0
