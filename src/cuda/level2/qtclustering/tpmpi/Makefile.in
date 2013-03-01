@@ -66,7 +66,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
 # How to find source files
-VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common
+VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common:$(srcdir)/../../../../common/QTC
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -192,7 +192,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 CXXLD = ${MPICXX}
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common -I$(srcdir)/..
 
 # What is the destination for programs built from this directory?
 tpcudadir = $(bindir)/TP/CUDA

@@ -1,6 +1,10 @@
 #include "comm.h"
 #include <iostream>
 
+#if defined(PARALLEL)
+#  include "mpi.h"
+#endif
+
 using namespace std;
 
 #if defined(PARALLEL)

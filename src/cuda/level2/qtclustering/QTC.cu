@@ -11,7 +11,7 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 #include "support.h"
-#include "libdata.h"
+#include "QTC/libdata.h"
 
 #include "cudacommon.h"
 #define _USE_MATH_DEFINES

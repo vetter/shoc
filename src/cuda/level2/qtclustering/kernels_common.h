@@ -9,7 +9,7 @@
 //#include <float.h> // float.h should be included by math.h and we need it for FLT_MAX
 
 #include "tuningParameters.h"
-#include "qtc_common.h"
+#include "QTC/qtc_common.h"
 
 // Forward declarations
 __global__ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int cwrank, int node_rank, int node_count, int total_thread_block_count, bool can_use_texture);

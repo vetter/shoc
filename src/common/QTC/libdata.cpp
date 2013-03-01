@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <float.h>
 #include <assert.h>
-#include "qtc_common.h"
-#include "libdata.h"
+#include "QTC/qtc_common.h"
+#include "QTC/libdata.h"
 
 #define MAX_WIDTH  20.0
 #define MAX_HEIGHT 20.0

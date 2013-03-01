@@ -105,7 +105,7 @@ am__relativize = \
   reldir="$$dir2"
 
 # How to find source files
-VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common:$(srcdir)/../../../common/QTC
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -230,7 +230,7 @@ top_srcdir = @top_srcdir@
 @BUILD_MPI_TRUE@MAYBE_MPI = tpmpi
 SUBDIRS = $(MAYBE_MPI)
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_CPPFLAGS = $(CUDA_INC) -I$(srcdir)
 
 # What is the destination for programs built from this directory?
 serialcudadir = $(bindir)/Serial/CUDA

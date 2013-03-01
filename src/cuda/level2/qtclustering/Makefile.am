@@ -7,10 +7,10 @@ include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
 
 # How to find source files
-VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common:$(srcdir)/../../../common/QTC
 
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_CPPFLAGS = $(CUDA_INC) -I$(srcdir)
 
 # What is the destination for programs built from this directory?
 serialcudadir = $(bindir)/Serial/CUDA
