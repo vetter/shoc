@@ -74,6 +74,8 @@ inline const char *CLErrorString(cl_int err)
       case CL_INVALID_GL_OBJECT:               return "CL_INVALID_GL_OBJECT";               // break;
       case CL_INVALID_BUFFER_SIZE:             return "CL_INVALID_BUFFER_SIZE";             // break;
       case CL_INVALID_MIP_LEVEL:               return "CL_INVALID_MIP_LEVEL";               // break;
+      case CL_INVALID_GLOBAL_WORK_SIZE:        return "CL_INVALID_GLOBAL_WORK_SIZE";        // break;
+      case CL_INVALID_PROPERTY:                return "CL_INVALID_PROPERTY";                // break;
       default:                                 return "UNKNOWN";                            // break;
   }
 }
