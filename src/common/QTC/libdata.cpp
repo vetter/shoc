@@ -21,7 +21,14 @@ using namespace std;
 // %d %d %g
 // or in other words:
 // integer integer double
-int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float threshold, const char *fname, int maxN, int matrix_type_mask){
+int read_BLAST_data(float **rslt_mtrx, 
+                    int **indr_mtrx, 
+                    int *max_degree, 
+                    float threshold, 
+                    const char *fname, 
+                    int maxN, 
+                    bool useFullLayout)
+{
     FILE *ifp;
     float *dist_mtrx;
     int *index_mtrx;
@@ -63,7 +70,7 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
     //allocHostBuffer((void **)&dist_mtrx, N*N*sizeof(float));
 
     /* new */
-    if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+    if( useFullLayout ){
         bound = N;
     }else{
         bound = D;
@@ -110,7 +117,7 @@ int read_BLAST_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float t
                 delta++;
             assert(delta <= D);
             index_mtrx[p1*D+delta] = p2;
-            if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+            if( useFullLayout ){
                 dist_mtrx[p1*N+p2] = dist;
                 dist_mtrx[p2*N+p1] = dist;
             }else{
@@ -172,14 +179,20 @@ static inline float frand(void){
 // uniformly distributed on the plane, but rather appear in clusters of random
 // radius and cardinality. The maximum cardinality of a cluster is N/30 where
 // N is the total number of data generated.
-float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degree, float threshold, int N, int matrix_type_mask){
+float *generate_synthetic_data(float **rslt_mtrx, 
+                                int **indr_mtrx, 
+                                int *max_degree, 
+                                float threshold, 
+                                int N, 
+                                bool useFullLayout)
+{
     int count, bound, D=0;
     float *dist_mtrx, *points;
     int *index_mtrx;
     float threshold_sq, min_dim;
 
     // Create N points in a MAX_WIDTH x MAX_HEIGHT (20x20) space.
-    points = (float *)malloc(2*N*sizeof(float));
+    points = new float[2*N];
 
     min_dim = MIN(MAX_WIDTH,MAX_HEIGHT);
 
@@ -248,7 +261,7 @@ float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degr
             D = delta;
     }
 
-    if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+    if( useFullLayout ){
         bound = N;
     }else{
         bound = D;
@@ -283,7 +296,7 @@ float *generate_synthetic_data(float **rslt_mtrx, int **indr_mtrx, int *max_degr
             if( dist_sq < threshold_sq ){
                 float dist = (float)sqrt((double)dist_sq);
                 index_mtrx[i*D+delta] = j;
-                if( matrix_type_mask & FULL_STORAGE_MATRIX ){
+                if( useFullLayout ){
                     dist_mtrx[i*N+j] = dist;
                     dist_mtrx[j*N+i] = dist;
                 }else{

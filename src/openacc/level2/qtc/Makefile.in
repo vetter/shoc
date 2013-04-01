@@ -47,7 +47,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(serialopenaccdir)"
 PROGRAMS = $(serialopenacc_PROGRAMS)
-am_QTC_OBJECTS = QTC.$(OBJEXT) QTCFuncs.$(OBJEXT) main.$(OBJEXT)
+am_QTC_OBJECTS = QTC.$(OBJEXT) QTCFuncs.$(OBJEXT) qtclib.$(OBJEXT) \
+	libdata.$(OBJEXT) main.$(OBJEXT)
 QTC_OBJECTS = $(am_QTC_OBJECTS)
 am__DEPENDENCIES_1 =
 QTC_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -109,7 +110,7 @@ am__relativize = \
   reldir="$$dir2"
 
 # How to find source files
-VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common:$(srcdir)/../../../common/QTC
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -242,6 +243,8 @@ serialopenaccdir = $(bindir)/Serial/OpenACC
 # how to build those programs
 QTC_SOURCES = QTC.cpp \
 				QTCFuncs.c \
+				qtclib.cpp \
+				libdata.cpp \
                 main.cpp
 
 QTC_LDADD = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
@@ -328,7 +331,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QTC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QTCFuncs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdata.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qtclib.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
