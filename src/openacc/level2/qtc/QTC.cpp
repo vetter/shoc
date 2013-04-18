@@ -102,7 +102,7 @@ RunTest( const std::string& testName,
 
         // record the results
         std::ostringstream sstr;
-        sstr << numPoints << "pts";
+        sstr << numPoints << "pt";
         resultDB.AddResult( testName + "_clustering", 
                                 sstr.str(), 
                                 "s", 
