@@ -367,9 +367,9 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     if( cwrank == 0 ){
         if( synthetic_data )
-            pnts = generate_synthetic_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, point_count, matrix_type);
+            pnts = generate_synthetic_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, point_count, matrix_type & FULL_STORAGE_MATRIX );
         else
-            (void)read_BLAST_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, fname.c_str(), point_count, matrix_type);
+            (void)read_BLAST_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, fname.c_str(), point_count, matrix_type & FULL_STORAGE_MATRIX );
     }
 
     comm_broadcast ( &point_count, 1, COMM_TYPE_INT, 0);
@@ -629,6 +629,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     freeDeviceBuffer(cardnl);
     freeDeviceBuffer(result);
     freeHostBuffer(output);
+
+    delete[] pnts;
 
     return;
 }

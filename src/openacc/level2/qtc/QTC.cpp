@@ -1,13 +1,16 @@
 #include <iostream>
+#include <sstream>
     
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "QTCFuncs.h"
+#include "QTC/libdata.h"
 
 void
 addBenchmarkSpecOptions(OptionParser &op)
 {
-   ;
+    op.addOption("threshold", OPT_FLOAT, "1", "cluster diameter threshold");
+    op.addOption("compact", OPT_BOOL, "0", "use compact storage distance matrix (default 0)");
 }
 
 
@@ -36,14 +39,14 @@ RunTest( const std::string& testName,
     // a return value, so that they can have the correct type for the 
     // output variable.
 
-    void (*qtcfunc)( void );
-    if( sizeof(T) == sizeof(double) )
+    void (*qtcfunc)( T* points,
+                    unsigned int numPoints,
+                    T threshold,
+                    double* clusteringTime,
+                    double* totalTime );
+    if( sizeof(T) == sizeof(float) )
     {
         qtcfunc = DoFloatQTC;
-    }
-    else if( sizeof(T) == sizeof(float) )
-    {
-        qtcfunc = DoDoubleQTC;
     }
     else
     {
@@ -58,24 +61,28 @@ RunTest( const std::string& testName,
     int numPoints = stdPointCounts[opts.getOptionInt("size") - 1] * 1024;
     float threshold = opts.getOptionFloat("threshold");
     bool verbose = opts.getOptionBool("verbose");
+    unsigned int nPasses = (unsigned int)opts.getOptionInt("passes");
 
-#if READY
     // determine whether to use full or compact storage layout
-#else
-    // assume we are using full layout
-    bool useFullLayout = true;
-#endif // READY
+    // TODO - unlike CUDA, where we can check the size of the memory
+    // on the GPU, we don't have a way to check those device properties,
+    // so we can't automatically determine whether to use full or compact.
+    // Instead, let user tell us with a command line switch.
+    bool useCompactLayout = opts.getOptionBool("compact");
 
     // initialize the input
-    float* points = generate_synthetic_data( &dist_source,
-                                                &indr_mtrx_host,
-                                                &max_degree,
+    // NOTE: this function supports float-type data only.
+    float* dist_source = NULL;
+    int* indr_mtrx = NULL;
+    int max_degree;
+    float* points = generate_synthetic_data( &dist_source,  // rslt_mtrx
+                                                &indr_mtrx,    //indr_mtrx
+                                                &max_degree,    // max degree
                                                 threshold,
                                                 numPoints,
-                                                useFullLayout );
+                                                !useCompactLayout );
 
     // run the benchmark passes
-
     for( unsigned int pass = 0; pass < nPasses; pass++ )
     {
         double totalTime;       // in seconds
@@ -94,8 +101,16 @@ RunTest( const std::string& testName,
 #endif // READY
 
         // record the results
-        resultDB.AddResult( testName + "_total", sizeStr, "s", totalTime );
-        resultDB.AddResult( testName + "_clustering", sizeStr, "s", clusteringTime );
+        std::ostringstream sstr;
+        sstr << numPoints << "pts";
+        resultDB.AddResult( testName + "_clustering", 
+                                sstr.str(), 
+                                "s", 
+                                clusteringTime );
+        resultDB.AddResult( testName + "_total", 
+                                sstr.str(), 
+                                "s", 
+                                totalTime );
     }
 
     // clean up
@@ -109,10 +124,9 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &opts)
 {
     RunTest<float>( "QTC", resultDB, opts );
 
-#if READY
-    // TODO - is there a way in OpenACC to test whether the chosen
-    // device supports double precision arithmetic?
-    RunTest<double>( "QTC", resultDB, opts );
-#endif // READY
+    // no support yet for double precision
+    // TODO: is there a way in OpenACC to have it tell us
+    // whether the device being used supports double precision?
 }
+
 

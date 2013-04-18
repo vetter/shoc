@@ -1,16 +1,20 @@
 #ifndef QTCFUNCS_H
 #define QTCFUNCS_H
 
+#if defined(__cplusplus)
+extern "C"
+{
+#endif // defined(__cplusplus)
+
 void DoFloatQTC( float* points,
                     unsigned int numPoints,
                     float threshold,
                     double* clusteringTime,
-                    double* totalTime )
+                    double* totalTime );
 
 
-#if READY
-// if double precision is to be supported
-void DoDoubleQTC( void );
-#endif // READY
+#if defined(__cplusplus)
+} // extern "C"
+#endif // defined(__cplusplus)
 
-#endif // QTCFUNCS_H
+#endif /* QTCFUNCS_H */

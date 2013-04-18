@@ -33,7 +33,8 @@ int read_BLAST_data(float **rslt_mtrx,
     float *dist_mtrx;
     int *index_mtrx;
     int prev_p1=-1, p1, p2;
-    int bound = 0, N = 0, D = 0, delta = 0, count=0, max_count=0;
+    int bound = 0, N = 0, D = 0, delta = 0;
+    // int count=0, max_count=0;
     int scan;
     float dist;
 
