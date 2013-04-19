@@ -52,7 +52,7 @@ void addBenchmarkSpecOptions(OptionParser &op){
     op.addOption("Verbose", OPT_BOOL, "", "Print cluster cardinalities");
     op.addOption("TextureMem", OPT_BOOL, "0", "Use Texture memory for distance matrix");
     op.addOption("CompactStorage", OPT_BOOL, "0", "Use compact storage distance matrix regardless of problem size");
-            
+    op.addOption("seed", OPT_INT, "-1", "random number generator seed" );
 }
 
 // ****************************************************************************
@@ -204,6 +204,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     int def_size = -1, matrix_type = 0x0;
     float threshold;
     bool use_texture = true, use_compact_storage = false;
+    int rngSeed;
 
     def_size    = op.getOptionInt("size");
     point_count = op.getOptionInt("PointCount");
@@ -213,6 +214,23 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     if( use_compact_storage ){
         use_texture = false;
     }
+
+    // determine if we were given a seed for the random number generator
+    // NOTE: we currently use rand() as a generator in the QTC benchmarks,
+    // mainly for convenience and portability.  The quality of the RNG
+    // isn't as important for these benchmarks as for, say, a Monte Carlo
+    // application.
+    rngSeed = op.getOptionInt("seed");
+    if( rngSeed != -1 )
+    {
+        // the user provided a seed - use it
+        srand( (unsigned int)rngSeed );
+    }
+    else
+    {
+        // the user did not provide a seed - don't seed
+    }
+
 
     switch( def_size ){
         case 1:
@@ -367,7 +385,9 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     if( cwrank == 0 ){
         if( synthetic_data )
+        {
             pnts = generate_synthetic_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, point_count, matrix_type & FULL_STORAGE_MATRIX );
+        }
         else
             (void)read_BLAST_data(&dist_source, &indr_mtrx_host, &max_degree, threshold, fname.c_str(), point_count, matrix_type & FULL_STORAGE_MATRIX );
     }
@@ -473,10 +493,11 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
             seeds_out.open("p_seeds");
         }
 
-        cout << "\nInitial ThreadBlockCount: " << thread_block_count;
-        cout << " PointCount: " << point_count;
-        cout << " Max degree: " << max_degree << "\n" << endl;
-        cout.flush();
+        cout << "\nInitial ThreadBlockCount: " << thread_block_count
+            << ", PointCount: " << point_count
+            << ", Max degree: " << max_degree
+            << ", threshold: " << threshold
+            << std::endl;
     }
 
     max_point_count = point_count;

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <fstream>
     
 #include "OptionParser.h"
 #include "ResultDatabase.h"
@@ -11,6 +12,7 @@ addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("threshold", OPT_FLOAT, "1", "cluster diameter threshold");
     op.addOption("compact", OPT_BOOL, "0", "use compact storage distance matrix (default 0)");
+    op.addOption("seed", OPT_INT, "-1", "seed for random number generator");
 }
 
 
@@ -57,7 +59,7 @@ RunTest( const std::string& testName,
 
     //
     // determine the parameters of the problem we will solve
-    int stdPointCounts[4] = { 1, 8, 16, 26 };   // in "kilo-points"
+    int stdPointCounts[4] = { 4, 8, 16, 26 };   // in "kilo-points"
     int numPoints = stdPointCounts[opts.getOptionInt("size") - 1] * 1024;
     float threshold = opts.getOptionFloat("threshold");
     bool verbose = opts.getOptionBool("verbose");
@@ -70,6 +72,22 @@ RunTest( const std::string& testName,
     // Instead, let user tell us with a command line switch.
     bool useCompactLayout = opts.getOptionBool("compact");
 
+    // determine if we were given a seed for the random number generator
+    // NOTE: we currently use rand() as a generator in the QTC benchmarks,
+    // mainly for convenience and portability.  The quality of the RNG
+    // isn't as important for these benchmarks as for, say, a Monte Carlo
+    // application.
+    int rngSeed = opts.getOptionInt("seed");
+    if( rngSeed != -1 )
+    {
+        // the user provided a seed - use it
+        srand( (unsigned int)rngSeed );
+    }
+    else
+    {
+        // the user did not provide a seed - don't seed
+    }
+
     // initialize the input
     // NOTE: this function supports float-type data only.
     float* dist_source = NULL;
@@ -81,6 +99,23 @@ RunTest( const std::string& testName,
                                                 threshold,
                                                 numPoints,
                                                 !useCompactLayout );
+    std::cout << "point_count: " << numPoints 
+        << ", max_degree: " << max_degree
+        << ", threshold: " << threshold
+        << std::endl;
+
+#if READY
+#else
+    {
+        std::ofstream ofs;
+        ofs.open( "bogus.out" );
+        for( unsigned int i = 0; i < numPoints; i++ )
+        {
+            ofs << points[2*i] << '\t' << points[2*i+1] << std::endl;
+        }
+        ofs.close();
+    }
+#endif // READY
 
     // run the benchmark passes
     for( unsigned int pass = 0; pass < nPasses; pass++ )

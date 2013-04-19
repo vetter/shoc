@@ -6,15 +6,17 @@
 #include "QTCFuncs.h"
 #include "CTimer.h"
 
+
+
 // Compute the Euclidean distance between two points.  
 // NOTE: we return distance squared to avoid having to compute the
 // square root.
 inline
 float
-DistanceSquared( float* a, float* b )
+DistanceSquared( Point* a, Point* b )
 {
-    float dx = (a[0] - b[0]);
-    float dy = (a[1] - b[1]);
+    float dx = (a->x - b->x);
+    float dy = (a->y - b->y);
     return (dx*dx + dy*dy);
 }
 
@@ -24,7 +26,7 @@ DistanceSquared( float* a, float* b )
 // "distance squared," so the diameter value reported by this function is 
 // actually a distance squared.
 float
-Diameter(float* cluster, unsigned int size, float* testPoint)
+Diameter(Point* cluster, unsigned int size, Point* testPoint)
 {
     float maxDistanceSq = 0;
     for( unsigned int i = 0; i < size; i++ )
@@ -40,10 +42,10 @@ Diameter(float* cluster, unsigned int size, float* testPoint)
 
 
 unsigned int
-FindCluster(float* points,
+FindCluster(Point* points,
                 unsigned int seedIdx, 
                 int* isPointInCluster, 
-                float* work, 
+                Point* work, 
                 unsigned int numPoints, 
                 float threshold)
 {
@@ -52,8 +54,7 @@ FindCluster(float* points,
     memset(isPointInCluster, 0, numPoints*sizeof(int));
     isPointInCluster[seedIdx] = 1;
 
-    work[0] = points[2*seedIdx];
-    work[1] = points[2*seedIdx+1];
+    work[0] = points[seedIdx];
 
     while( size < numPoints )
     {
@@ -66,7 +67,7 @@ FindCluster(float* points,
             {
                 // point is not already in the cluster
                 // figure out what our diameter would be if we added it
-                float testDiameter = Diameter(work, size, &(points[2*j]) );
+                float testDiameter = Diameter(work, size, &(points[j]) );
                 if( testDiameter < minDiameter )
                 {
                     // adding the point will give a smaller diameter
@@ -94,8 +95,7 @@ FindCluster(float* points,
 
         // add the point to the cluster, and keep looking to add more
         isPointInCluster[minDiameterIdx] = 1;
-        work[2*size] = points[2*minDiameterIdx];
-        work[2*size+1] = points[2*minDiameterIdx + 1];
+        work[size] = points[minDiameterIdx];
         size++;
     }
 
@@ -105,7 +105,7 @@ FindCluster(float* points,
 
 
 void
-DoFloatQTC( float* points,
+DoFloatQTC( float* pointsAsFloats,
             unsigned int numPoints,
             float threshold,
             double* clusteringTime,
@@ -113,6 +113,8 @@ DoFloatQTC( float* points,
 {
     unsigned int numPointsTotal = numPoints;
     unsigned int numClusters = 0;
+    unsigned int overallMaxClusterSize = 0;
+    Point* points = (Point*)pointsAsFloats;
 
     int totalTimerHandle = Timer_Start();
 
@@ -137,7 +139,7 @@ DoFloatQTC( float* points,
     // #pragma omp parallel
         {
             int* local_isPointInCluster = (int*)malloc( numPoints * sizeof(int) );
-            float* local_work = (float*)malloc( numPoints * 2 * sizeof(float) );
+            Point* local_work = (Point*)malloc( numPoints * sizeof(Point) );
             int myid = omp_get_thread_num();
 
             // For each point, find the largest cluster we can when using that
@@ -170,19 +172,18 @@ DoFloatQTC( float* points,
             }
 
     #if READY
+    #else
         fprintf( stderr, "Cluster seeded at %d is largest (size %d)\n", maxClusterIdx, maxClusterSize );
     #endif // READY
 
         int* isPointInCluster = (int*)malloc( numPoints * sizeof(int) );
-        float* work = (float*)malloc( numPoints * 2 * sizeof(float) );
+        Point* work = (Point*)malloc( numPoints * sizeof(Point));
         unsigned int clusterSize = FindCluster(points,
                                                 maxClusterIdx,
                                                 isPointInCluster, 
                                                 work, 
                                                 numPoints, 
                                                 threshold);
-        numClusters++;
-
         // since the cluster we built was from the same seed point that
         // was previously shown to produce the maximum-sized cluster, it had
         // better be the same size as the maximum-sized cluster.
@@ -195,6 +196,12 @@ DoFloatQTC( float* points,
     #endif // READY
         assert( clusterSize == maxClusterSize );
 
+        numClusters++;
+        if( clusterSize > overallMaxClusterSize )
+        {
+            overallMaxClusterSize = clusterSize;
+        }
+
 
         // Remove the cluster we just found from the set of points.
         unsigned int numPointsRemaining = numPoints - clusterSize;
@@ -202,7 +209,7 @@ DoFloatQTC( float* points,
         if( numPointsRemaining > 0 )
         {
             // build a new points array for the remaining points
-            float* newPoints = (float*)malloc( numPointsRemaining * 2 * sizeof(float) );
+            Point* newPoints = (Point*)malloc( numPointsRemaining * sizeof(Point) );
             unsigned int* newPointMap = (unsigned int*)malloc( numPointsRemaining * sizeof(unsigned int));
 
             unsigned int pointsHandled = 0;
@@ -211,8 +218,7 @@ DoFloatQTC( float* points,
                 if( !isPointInCluster[i] )
                 {
                     newPointMap[pointsHandled] = pointMap[i];
-                    newPoints[2*pointsHandled] = points[2*i];
-                    newPoints[2*pointsHandled + 1] = points[2*i + 1];
+                    newPoints[pointsHandled] = points[i];
                     pointsHandled++;
                 }
                 else
@@ -239,7 +245,9 @@ DoFloatQTC( float* points,
 
     *totalTime = Timer_Stop( totalTimerHandle, "" );
 
-    return numClusters;
+    fprintf(stdout, "%d clusters, max size %d\n",
+        numClusters, 
+        overallMaxClusterSize );
 }
 
 
