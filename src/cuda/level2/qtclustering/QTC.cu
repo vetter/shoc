@@ -18,6 +18,8 @@
 #include <float.h>
 #include <cuda_runtime.h>
 
+#include "PMSMemMgmt.h"
+
 #include "comm.h"
 
 texture<float, 2, cudaReadModeElementType> texDistance;
@@ -382,8 +384,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     }
 
     if( cwrank != 0 ){ // For all nodes except zero, in a distributed run.
-        allocHostBuffer((void **)&dist_source, dst_matrix_elems*sizeof(float));
-        allocHostBuffer((void **)&indr_mtrx_host, point_count*max_degree*sizeof(int));
+        dist_source = pmsAllocHostBuffer<float>( dst_matrix_elems );
+        indr_mtrx_host = pmsAllocHostBuffer<int>( point_count*max_degree );
     }
     // If we need to print the actual clusters later on, we'll need to have all points in all nodes.
     if( save_clusters ){
@@ -402,13 +404,13 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     calculate_participants(point_count, node_count, cwrank, &thread_block_count, &total_thread_block_count, &active_node_count);
 
-    allocHostBuffer((void**)&ungrpd_pnts_indr_host, point_count*sizeof(int));
+    ungrpd_pnts_indr_host = pmsAllocHostBuffer<int>( point_count );
     for(int i=0; i<point_count; i++){
 	ungrpd_pnts_indr_host[i] = i;
     }
 
-    allocHostBuffer((void**)&cardinalities, 2*sizeof(int));
-    allocHostBuffer((void**)&output, max_degree*sizeof(int));
+    cardinalities = pmsAllocHostBuffer<int>(2);
+    output = pmsAllocHostBuffer<int>(max_degree);
 
     if( can_use_texture ){
         texDistance.addressMode[0] = cudaAddressModeClamp;
@@ -613,8 +615,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     resultDB.AddResult(name+"_Algorithm", sizeStr, "s", t);
     resultDB.AddResult(name+"+PCI_Trans.", sizeStr, "s", t+transfer_time);
 
-    freeHostBuffer(dist_source);
-    freeHostBuffer(indr_mtrx_host);
+    pmsFreeHostBuffer(dist_source);
+    pmsFreeHostBuffer(indr_mtrx_host);
     if( can_use_texture ){
         cudaFreeArray(distance_matrix_txt);
         cudaUnbindTexture(texDistance);
@@ -628,7 +630,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     freeDeviceBuffer(Ai_mask);
     freeDeviceBuffer(cardnl);
     freeDeviceBuffer(result);
-    freeHostBuffer(output);
+    pmsFreeHostBuffer(output);
 
     return;
 }
@@ -658,26 +660,11 @@ init(OptionParser& op)
 
 
 void
-allocHostBuffer(void** bufferp, unsigned long bytes)
-{
-    cudaMallocHost(bufferp, bytes);
-    CHECK_CUDA_ERROR();
-}
-
-void
 allocDeviceBuffer(void** bufferp, unsigned long bytes)
 {
     cudaMalloc(bufferp, bytes);
     CHECK_CUDA_ERROR();
 }
-
-void
-freeHostBuffer(void* buffer)
-{
-    cudaFreeHost(buffer);
-    CHECK_CUDA_ERROR();
-}
-
 
 void
 freeDeviceBuffer(void* buffer)
