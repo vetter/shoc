@@ -12,9 +12,6 @@
 // and on the device.  These functions provide an abstract interface
 // to that programming-model-specific interface.
 
-// Memory management on the host, in case the programming language-specific
-// mechanism is not desired/usable for some reason.
-
 template<class T>
 T*
 pmsAllocHostBuffer( size_t nItems )
