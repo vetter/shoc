@@ -29,9 +29,9 @@ OCL_LIBS        = -lSHOCCommonOpenCL -lSHOCCommon @OPENCL_LIBS@
 
 NVCC            = @NVCC@
 CUDA_CXX        = @NVCC@
-CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/include
+CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/common
 CUDA_LDFLAGS	= -L$(top_builddir)/src/cuda/common
-CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/include
+CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/common
 
 USE_CUDA        = @USE_CUDA@
 ifeq ($(USE_CUDA),yes)

@@ -3,7 +3,7 @@
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Spmv.h"
-#include "util.h"
+#include "Spmv/util.h"
 #include <math.h>
 #include "Event.h"
 #include "support.h"

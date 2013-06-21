@@ -6,7 +6,7 @@
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Spmv.h"
-#include "util.h"
+#include "Spmv/util.h"
 
 using namespace std; 
 

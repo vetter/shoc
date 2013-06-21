@@ -2,14 +2,12 @@
 #define SPMV_UTIL_H_
 
 #include <cassert>
-#include "cudacommon.h"
-#include <cuda.h>
-#include <cuda_runtime_api.h>
 #include <iostream>
 #include <fstream>
 #include "OptionParser.h"
 #include "ResultDatabase.h"
-#include "Utility.h"
+#include "PMSMemMgmt.h"
+
 
 // Constants
 
@@ -200,9 +198,9 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
     // create CSR data structures
     *n = nElements; 
     *size = nRows; 
-    CUDA_SAFE_CALL(cudaMallocHost(&(*val_ptr), nElements * sizeof(floatType))); 
-    CUDA_SAFE_CALL(cudaMallocHost(&(*cols_ptr), nElements * sizeof(int))); 
-    CUDA_SAFE_CALL(cudaMallocHost(&(*rowDelimiters_ptr), (nRows+1) * sizeof(int))); 
+    *val_ptr = pmsAllocHostBuffer<floatType>( nElements );
+    *cols_ptr = pmsAllocHostBuffer<int>( nElements );
+    *rowDelimiters_ptr = pmsAllocHostBuffer<int>( nRows + 1 );
     
     floatType *val = *val_ptr; 
     int *cols = *cols_ptr; 
@@ -472,13 +470,14 @@ void convertToPadded(floatType *A, int *cols, int dim, int *rowDelimiters,
     *newSize = paddedSize; 
     newIndices[dim] = paddedSize; 
 
-    CUDA_SAFE_CALL(cudaMallocHost(newA_ptr, paddedSize * sizeof(floatType))); 
-    CUDA_SAFE_CALL(cudaMallocHost(newcols_ptr, paddedSize * sizeof(int))); 
+    *newA_ptr = pmsAllocHostBuffer<floatType>( paddedSize );
+    *newcols_ptr = pmsAllocHostBuffer<int>( paddedSize );
   
     floatType *newA = *newA_ptr; 
     int *newcols = *newcols_ptr; 
 
     memset(newA, 0, paddedSize * sizeof(floatType)); 
+    memset(newcols, 0, paddedSize*sizeof(int));
 
     // fill newA and newcols
     for (int i=0; i<dim; i++) 
