@@ -86,7 +86,7 @@ my @CSVResults = (
 # the result names in the CSV output list above.
 
 # Here is the structure of the benchmark arrays:
-# ["BenchmarkProgram", iscuda, isopencl, istp,
+# ["BenchmarkProgram", iscuda, isopencl, ismic, istp,
 #        ["firstresultname", findmin/findmax/etc, matchtext],
 #        ["secondresultname", .....] ],
 # ["NextBenchmark", ........ ]
@@ -100,17 +100,17 @@ my @CSVResults = (
 
 
 my @SerialBenchmarks = (
-[ "BusSpeedDownload",  1, 1, 0,
+[ "BusSpeedDownload",  1, 1, 0, 0,
   ["bspeed_download",             \&findmax,     "DownloadSpeed"]
 ],
-[ "BusSpeedReadback",  1, 1, 0,
+[ "BusSpeedReadback",  1, 1, 0, 0,
   ["bspeed_readback",             \&findmax,     "ReadbackSpeed"]
 ],
-[ "MaxFlops",          1, 1, 0,
+[ "MaxFlops",          1, 1, 0, 0,
   ["maxspflops",                  \&findanymax,  "-SP"],
   ["maxdpflops",                  \&findanymax,  "-DP"]
 ],
-[ "DeviceMemory",      1, 1, 0,
+[ "DeviceMemory",      1, 1, 0, 0,
   ["gmem_readbw",                 \&findmax,     "readGlobalMemoryCoalesced"],
   ["gmem_readbw_strided",         \&findmax,     "readGlobalMemoryUnit"],
   ["gmem_writebw",                \&findmax,     "writeGlobalMemoryCoalesced"],
@@ -119,19 +119,19 @@ my @SerialBenchmarks = (
   ["lmem_writebw",                \&findmax,     "writeLocalMemory"],
   ["tex_readbw",                  \&findmax,     "TextureRepeatedRandomAccess"]
 ],
-[ "KernelCompile",     0, 1, 0, # OpenCL-only
+[ "KernelCompile",     0, 1, 0, 0, # OpenCL-only
   ["ocl_kernel",                  \&findmin,     "BuildProgram"]
 ],
-[ "QueueDelay",        0, 1, 0, # OpenCL-only
+[ "QueueDelay",        0, 1, 0, 0, # OpenCL-only
   ["ocl_queue",                   \&findmin,     "SSDelay"]
 ],
-[ "BFS",               1, 1, 0,
+[ "BFS",               1, 1, 0, 0,
   ["bfs",                         \&findmax,     "BFS"],
   ["bfs_pcie",                    \&findmax,     "BFS_PCIe"],
   ["bfs_teps",                    \&findmax,     "BFS_teps"]
 ],
 
-[ "FFT",               1, 1, 0,
+[ "FFT",               1, 1, 0, 0,
   ["fft_sp",                      \&findmax,     "SP-FFT"],
   ["fft_sp_pcie",                 \&findmax,     "SP-FFT_PCIe"],
   ["ifft_sp",                     \&findmax,     "SP-FFT-INV"],
@@ -141,7 +141,7 @@ my @SerialBenchmarks = (
   ["ifft_dp",                     \&findmax,     "DP-FFT-INV"],
   ["ifft_dp_pcie",                \&findmax,     "DP-FFT-INV_PCIe"]
 ],
-[ "SGEMM",             1, 1, 0,
+[ "SGEMM",             1, 1, 0, 0,
   ["sgemm_n",                     \&findmax,     "SGEMM-N"],
   ["sgemm_t",                     \&findmax,     "SGEMM-T"],
   ["sgemm_n_pcie",                \&findmax,     "SGEMM-N_PCIe"],
@@ -151,29 +151,29 @@ my @SerialBenchmarks = (
   ["dgemm_n_pcie",                \&findmax,     "DGEMM-N_PCIe"],
   ["dgemm_t_pcie",                \&findmax,     "DGEMM-T_PCIe"]
 ],
-[ "MD",                1, 1, 0,
+[ "MD",                1, 1, 0, 0,
   ["md_sp_bw",                    \&findmax,     "MD-LJ-Bandwidth"],
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
   ["md_dp_bw_pcie",               \&findmax,     "MD-LJ-DP-Bandwidth_PCIe"]
 ],
-[ "Reduction",         1, 1, 0,
+[ "Reduction",         1, 1, 1, 0,
   ["reduction",                   \&findmax,     "Reduction"],
   ["reduction_pcie",              \&findmax,     "Reduction_PCIe"],
   ["reduction_dp",                \&findmax,     "Reduction-DP"],
   ["reduction_dp_pcie",           \&findmax,     "Reduction-DP_PCIe"]
 ],
-[ "Scan",              1, 1, 0,
+[ "Scan",              1, 1, 0, 0,
   ["scan",                        \&findmax,     "Scan"],
   ["scan_pcie",                   \&findmax,     "Scan_PCIe"],
   ["scan_dp",                     \&findmax,     "Scan-DP"],
   ["scan_dp_pcie",                \&findmax,     "Scan-DP_PCIe"]
 ],
-[ "Sort",              1, 1, 0,
+[ "Sort",              1, 1, 0, 0,
   ["sort",                        \&findmax,     "Sort-Rate"],
   ["sort_pcie",                   \&findmax,     "Sort-Rate_PCIe"]
 ],
-[ "Spmv",              1, 1, 0,
+[ "Spmv",              1, 1, 0, 0,
   ["spmv_csr_scalar_sp",          \&findmax,     "CSR-Scalar-SP"],
   ["spmv_csr_scalar_sp_pcie",     \&findmax,     "CSR-Scalar-SP_PCIe"],
   ["spmv_csr_scalar_dp",          \&findmax,     "CSR-Scalar-DP"],
@@ -193,20 +193,20 @@ my @SerialBenchmarks = (
   ["spmv_ellpackr_sp",            \&findmax,     "ELLPACKR-SP"],
   ["spmv_ellpackr_dp",            \&findmax,     "ELLPACKR-DP"]
 ],
-[ "Stencil2D",         1, 1, 0,
+[ "Stencil2D",         1, 1, 0, 0,
   ["stencil",                     \&findmax,     "SP_Sten2D"],
   ["stencil_dp",                  \&findmax,     "DP_Sten2D"]
 ],
-[ "Triad",             1, 1, 0,
+[ "Triad",             1, 1, 0, 0,
   ["triad_bw",                    \&findmax,     "TriadBdwth"]
 ],
-[ "S3D",               1, 1, 0,
+[ "S3D",               1, 1, 0, 0,
   ["s3d",                         \&findmax,     "S3D-SP"],
   ["s3d_pcie",                    \&findmax,     "S3D-SP_PCIe"],
   ["s3d_dp",                      \&findmax,     "S3D-DP"],
   ["s3d_dp_pcie",                 \&findmax,     "S3D-DP_PCIe"]
 ]#,
-#[ "QTC",               1, 0, 1,
+#[ "QTC",               1, 0, 0, 1,
 #  ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
 #  ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
 #]
@@ -220,17 +220,17 @@ my @SerialBenchmarks = (
 # the result names in the CSV output list above.
 
 my @ParallelBenchmarks = (
-[ "BusSpeedDownload",  1, 1, 0,
+[ "BusSpeedDownload",  1, 1, 0, 0,
   ["bspeed_download",             \&findmean,    "DownloadSpeed(max)"]
 ],
-[ "BusSpeedReadback",  1, 1, 0,
+[ "BusSpeedReadback",  1, 1, 0, 0,
   ["bspeed_readback",             \&findmean,    "ReadbackSpeed(max)"]
 ],
-[ "MaxFlops",          1, 1, 0,
+[ "MaxFlops",          1, 1, 0, 0,
   ["maxspflops",                  \&findanymean, "-SP"],
   ["maxdpflops",                  \&findanymean, "-DP"]
 ],
-[ "DeviceMemory",      1, 1, 0,
+[ "DeviceMemory",      1, 1, 0, 0,
   ["gmem_readbw",                 \&findmean,     "readGlobalMemoryCoalesced(max)"],
   ["gmem_readbw_strided",         \&findmean,     "readGlobalMemoryUnit(max)"],
   ["gmem_writebw",                \&findmean,     "writeGlobalMemoryCoalesced(max)"],
@@ -239,36 +239,36 @@ my @ParallelBenchmarks = (
   ["lmem_writebw",                \&findmean,     "writeLocalMemory(max)"],
   ["tex_readbw",                  \&findmean,     "TextureRepeatedRandomAccess(max)"]
 ],
-[ "KernelCompile",     0, 1, 0,
+[ "KernelCompile",     0, 1, 0, 0,
   ["ocl_kernel",                  \&findmean,    "BuildProgram(min)"]
 ],
-[ "QueueDelay",        0, 1, 0,
+[ "QueueDelay",        0, 1, 0, 0,
   ["ocl_queue",                   \&findmean,    "SSDelay(min)"]
 ],
-[ "FFT",               1, 1, 0,
+[ "FFT",               1, 1, 0, 0,
   ["fft_sp",                      \&findmean,    "SP-FFT(max)"],
   ["fft_dp",                      \&findmean,    "DP-FFT(max)"]
 ],
-[ "SGEMM",             1, 1, 0,
+[ "SGEMM",             1, 1, 0, 0,
   ["sgemm_n",                     \&findmean,    "SGEMM-N(max)"],
   ["dgemm_n",                     \&findmean,    "DGEMM-N(max)"]
 ],
-[ "MD",                1, 1, 0,
+[ "MD",                1, 1, 0, 0,
   ["md_sp_flops",                 \&findmean,    "MD-LJ(max)"],
   ["md_dp_flops",                 \&findmean,    "MD-LJ-DP(max)"]
 ],
-[ "Reduction",         1, 1, 0,
+[ "Reduction",         1, 1, 0, 0,
   ["reduction",                   \&findmean,    "Reduction(max)"],
   ["reduction_dp",                \&findmean,    "Reduction-DP(max)"]
 ],
-[ "Scan",              1, 1, 0,
+[ "Scan",              1, 1, 0, 0,
   ["scan",                        \&findmean,    "Scan(max)"],
   ["scan_dp",                     \&findmean,    "Scan-DP(max)"]
 ],
-[ "Sort",              1, 1, 0,
+[ "Sort",              1, 1, 0, 0,
   ["sort",                        \&findmean,    "Sort-Rate(max)"]
 ],
-[ "Spmv",              1, 1, 0,
+[ "Spmv",              1, 1, 0, 0,
   ["spmv_csr_scalar_sp",          \&findmean,    "CSR-Scalar-SP(max)"],
   ["spmv_csr_vector_sp",          \&findmean,    "CSR-Vector-SP(max)"],
   ["spmv_ellpackr_sp",            \&findmean,    "ELLPACKR-SP(max)"],
@@ -276,18 +276,18 @@ my @ParallelBenchmarks = (
   ["spmv_csr_vector_dp",          \&findmean,    "CSR-Vector-DP(max)"],
   ["spmv_ellpackr_dp",            \&findmean,    "ELLPACKR-DP(max)"]
 ],
-[ "Stencil2D",         1, 1, 1,
+[ "Stencil2D",         1, 1, 0, 1,
   ["stencil",                     \&findmean,     "SP_Sten2D(max)"],
   ["stencil_dp",                  \&findmean,     "DP_Sten2D(max)"]
 ],
-[ "Triad",             1, 1, 0,
+[ "Triad",             1, 1, 0, 0,
   ["triad_bw",                    \&findmean,    "TriadBdwth(max)"]
 ],
-[ "S3D",               1, 1, 0,
+[ "S3D",               1, 1, 0, 0,
   ["s3d",                         \&findmean,    "S3D-SP(max)"],
   ["s3d_dp",                      \&findmean,    "S3D-DP(max)"]
 ],
-[ "QTC",                1, 0, 1,
+[ "QTC",                1, 0, 0, 1,
   ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
   ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
 ]
@@ -362,15 +362,21 @@ while (scalar(@ARGV) > 0) {
     }
     elsif ($arg eq "-cuda")
     {
-        die "Please choose one of '-cuda' or '-opencl' to set the operating mode.\n"
+        die "Please choose one of '-cuda', '-opencl', '-mic' to set the operating mode.\n"
           if ($mode ne "");
         $mode = "cuda";
     }
     elsif ($arg eq "-opencl")
     {
-        die "Please choose one of '-cuda' or '-opencl' to set the operating mode.\n"
+        die "Please choose one of '-cuda', '-opencl', '-mic' to set the operating mode.\n"
           if ($mode ne "");
         $mode = "opencl";
+    }
+    elsif ($arg eq "-mic")
+    {
+        die "Please choose one of '-cuda', '-opencl', '-mic' to set the operating mode.\n"
+          if ($mode ne "");
+        $mode = "mic";
     }
     elsif ($arg eq "-read-only")
     {
@@ -393,7 +399,8 @@ if (! -d "$bindir/Serial")
 # Check if there are executables in the binary directory.
 # Note: this check is not exhaustive.
 if ( ! (( -f "$bindir/Serial/OpenCL/Sort" && -x "$bindir/Serial/OpenCL/Sort" ) ||
-        ( -f "$bindir/Serial/CUDA/Sort" && -x "$bindir/Serial/CUDA/Sort" )) )
+        ( -f "$bindir/Serial/CUDA/Sort" && -x "$bindir/Serial/CUDA/Sort" ) ||
+        ( -f "$bindir/Serial/MIC/Reduction" && -x "$bindir/Serial/MIC/Reduction")) )
     
 {
     die "The SHOC benchmark programs are not present in $bindir.\n" .
@@ -402,10 +409,10 @@ if ( ! (( -f "$bindir/Serial/OpenCL/Sort" && -x "$bindir/Serial/OpenCL/Sort" ) |
         "sequence of commands) and/or check your -bindir argument.\n";
 }
 
-# test cuda vs opencl
+# test cuda, opencl, or mic
 if ($mode eq "")
 {
-    die "Please choose either -cuda or -opencl.\n";
+    die "Please choose either -cuda, -opencl, or -mic.\n";
 }
 
 # ----------------------------------------------------------------------------
@@ -487,13 +494,16 @@ else
 my %results;
 foreach my $bench (@$benchmarks)
 {
+    # create named variables for each possible version of the benchmark
     my $program = $$bench[0];
     my $incuda  = $$bench[1];
     my $inopencl= $$bench[2];
-    my $istp    = $$bench[3];
+    my $inmic   = $$bench[3];
+    my $istp    = $$bench[4];
 
     if ((!$incuda   and ($mode eq "cuda")) or
-        (!$inopencl and ($mode eq "opencl")))
+        (!$inopencl and ($mode eq "opencl")) or
+        (!$inmic and ($mode eq "mic")))
     {
         print "Skipping non-$mode benchmark $program\n";
         next;
@@ -526,10 +536,14 @@ foreach my $bench (@$benchmarks)
         }
     }
 
-    my $numResults = ($#$bench) - 3;
+    # determine number of results to expect
+    # Note that when you add a new programming model/configuration for
+    # a benchmark, you need to increment the number subtracted from $#$bench
+    # and the base index when defining the $res variable.
+    my $numResults = ($#$bench) - 4;
     for (my $r=0; $r<$numResults; $r++)
     {
-        my $res = $$bench[4+$r];
+        my $res = $$bench[5+$r];
         my $resname = $$res[0];
         my $resfunc = $$res[1];
         my $respatt = $$res[2];

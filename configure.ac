@@ -239,6 +239,122 @@ AS_IF([test "x$with_cuda" != xno],
 )
 AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
 
+
+# MIC support
+AC_ARG_WITH([mic],
+    [AS_HELP_STRING([--with-mic],
+        [build versions of the SHOC benchmark programs for Intel MIC @<:@default=check@:>@])],
+    [],
+    [with_mic=check])
+
+# TODO need to test for correct compiler, that compiler supports MIC build flags, etc.
+AS_IF([test "x$with_mic" != xno],
+    [
+        dnl Determine whether our C++ compiler supports MIC.
+        dnl
+        dnl WARNING: We only know how to check for the Intel C/C++ compiler.
+        dnl If you are using another compiler and you *know* it supports
+        dnl the MIC target, set --with-mic explicitly and set 
+        dnl MIC_NATIVE_CXXFLAGS, MIC_OFFLOAD_CXXFLAGS, MIC_NATIVE_LDFLAGS,
+        dnl and MIC_OFFLOAD_LDFLAGS explicitly.
+        AC_MSG_CHECKING([whether we can compiler programs for Intel MIC])
+        savedCXXFLAGS=$CXXFLAGS
+        CXXFLAGS="$CXXFLAGS -Werror -openmp"
+
+        AC_COMPILE_IFELSE(
+            [
+                dnl use a simple MIC offload-mode program for the test
+                AC_LANG_PROGRAM(
+                    [[
+                    #include <stdio.h>
+                    #include <stdlib.h>
+                    ]],
+                    [[
+                    double pi = 0.0;
+                    long int i = 0;
+                    long int nTerms = 100;
+
+                    #pragma offload target(mic)
+                    #pragma omp parallel for reduction(+:pi)
+                    for( i = 0; i < nTerms; i++ )
+                    {
+                        double t = (double)((i+0.5)/nTerms);
+                        pi += 4.0 / (1.0 + t*t);
+                    }
+
+                    fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+                    return 0;
+                    ]]
+                )
+            ],
+            [
+                AC_MSG_RESULT([yes])
+                dnl TODO are we using native or offload mode?
+                dnl the test above should test whichever mode we actually use
+                MIC_NATIVE_CXXFLAGS="-openmp -mmic"
+                MIC_OFFLOAD_CXXFLAGS="-openmp"
+
+                AC_MSG_CHECKING([whether we can link MIC programs with C++ driver])
+                savedLDFLAGS=$LDFLAGS
+                LDFLAGS="$LDFLAGS -openmp"
+
+                AC_LINK_IFELSE(
+                    [
+                        dnl use a simple MIC offload-mode program for the test
+                        AC_LANG_PROGRAM(
+                            [[
+                            #include <stdio.h>
+                            #include <stdlib.h>
+                            ]],
+                            [[
+                            double pi = 0.0;
+                            long int i = 0;
+                            long int nTerms = 100;
+
+                            #pragma offload target(mic)
+                            #pragma omp parallel for reduction(+:pi)
+                            for( i = 0; i < nTerms; i++ )
+                            {
+                                double t = (double)((i+0.5)/nTerms);
+                                pi += 4.0 / (1.0 + t*t);
+                            }
+
+                            fprintf( stdout, "pi ~= %lf\n", pi / nTerms );
+                            return 0;
+                            ]]
+                        )
+                    ],
+                    [
+                        AC_MSG_RESULT([yes])
+                        with_mic=yes
+                        MIC_NATIVE_LDFLAGS="-openmp -mmic"
+                        MIC_OFFLOAD_LDFLAGS="-openmp"
+                    ],
+                    [
+                        AC_MSG_RESULT([no])
+                        with_mic=no
+                    ]
+                )
+                LDFLAGS=$savedLDFLAGS
+            ],
+            [
+                AC_MSG_RESULT([no])
+                AS_IF([test "x$with_mic" = "xyes"],
+                    [
+                        AC_MSG_FAILURE([MIC versions requested, but unable to build programs for MIC target])
+                    ]
+                )
+                with_mic=no
+            ]
+        )
+
+        CXXFLAGS=$savedCXXFLAGS
+    ]
+)
+AM_CONDITIONAL([BUILD_MIC], [test "x$with_mic" = "xyes"])
+
+
+
 # build documentation? by default, just copy existing documentation
 AC_ARG_ENABLE([builddoc],
     [AS_HELP_STRING([--enable-builddoc],
@@ -379,6 +495,10 @@ AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
+AC_SUBST([MIC_NATIVE_CXXFLAGS])
+AC_SUBST([MIC_OFFLOAD_CXXFLAGS])
+AC_SUBST([MIC_NATIVE_LDFLAGS])
+AC_SUBST([MIC_OFFLOAD_LDFLAGS])
 
 AC_CONFIG_FILES([Makefile
                  config/common.mk
@@ -419,6 +539,9 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level2/qtclustering/tpmpi/Makefile
                  src/cuda/level2/s3d/Makefile
                  src/cuda/level2/s3d/epmpi/Makefile
+                 src/mic/Makefile
+                 src/mic/level1/Makefile
+                 src/mic/level1/reduction/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile
