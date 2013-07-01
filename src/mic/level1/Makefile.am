@@ -1,1 +1,1 @@
-SUBDIRS=reduction scan sort
+SUBDIRS=reduction scan sort triad

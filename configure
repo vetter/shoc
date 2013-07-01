@@ -627,9 +627,7 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 MIC_OFFLOAD_LDFLAGS
-MIC_NATIVE_LDFLAGS
 MIC_OFFLOAD_CXXFLAGS
-MIC_NATIVE_CXXFLAGS
 NVCXXFLAGS
 MPI_SUBDIRS
 USE_CUDA
@@ -5956,10 +5954,12 @@ fi
 # TODO need to test for correct compiler, that compiler supports MIC build flags, etc.
 if test "x$with_mic" != xno; then :
 
-                                                                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can compiler programs for Intel MIC" >&5
+                                                        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can compiler programs for Intel MIC" >&5
 $as_echo_n "checking whether we can compiler programs for Intel MIC... " >&6; }
+        MIC_OFFLOAD_CXXFLAGS="-Werror -openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report"
         savedCXXFLAGS=$CXXFLAGS
-        CXXFLAGS="$CXXFLAGS -Werror -openmp"
+        CXXFLAGS="$CXXFLAGS $MIC_OFFLOAD_CXXFLAGS"
+
 
         cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -5997,13 +5997,12 @@ if ac_fn_cxx_try_compile "$LINENO"; then :
 
                 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-                                                MIC_NATIVE_CXXFLAGS="-openmp -mmic"
-                MIC_OFFLOAD_CXXFLAGS="-openmp"
 
                 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can link MIC programs with C++ driver" >&5
 $as_echo_n "checking whether we can link MIC programs with C++ driver... " >&6; }
+                MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl"
                 savedLDFLAGS=$LDFLAGS
-                LDFLAGS="$LDFLAGS -openmp"
+                LDFLAGS="$LDFLAGS $MIC_OFFLOAD_LDFLAGS"
 
                 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -6042,8 +6041,6 @@ if ac_fn_cxx_try_link "$LINENO"; then :
                         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
                         with_mic=yes
-                        MIC_NATIVE_LDFLAGS="-openmp -mmic"
-                        MIC_OFFLOAD_LDFLAGS="-openmp"
 
 else
 
@@ -6490,9 +6487,7 @@ fi
 
 
 
-
-
-ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mic/Makefile src/mic/level1/Makefile src/mic/level1/reduction/Makefile src/mic/level1/scan/Makefile src/mic/level1/sort/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
+ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/sgemm/Makefile src/cuda/level1/sgemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mic/Makefile src/mic/level1/Makefile src/mic/level1/reduction/Makefile src/mic/level1/scan/Makefile src/mic/level1/sort/Makefile src/mic/level1/triad/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/sgemm/Makefile src/opencl/level1/sgemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -7293,6 +7288,7 @@ do
     "src/mic/level1/reduction/Makefile") CONFIG_FILES="$CONFIG_FILES src/mic/level1/reduction/Makefile" ;;
     "src/mic/level1/scan/Makefile") CONFIG_FILES="$CONFIG_FILES src/mic/level1/scan/Makefile" ;;
     "src/mic/level1/sort/Makefile") CONFIG_FILES="$CONFIG_FILES src/mic/level1/sort/Makefile" ;;
+    "src/mic/level1/triad/Makefile") CONFIG_FILES="$CONFIG_FILES src/mic/level1/triad/Makefile" ;;
     "src/mpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/mpi/Makefile" ;;
     "src/mpi/common/Makefile") CONFIG_FILES="$CONFIG_FILES src/mpi/common/Makefile" ;;
     "src/mpi/contention/Makefile") CONFIG_FILES="$CONFIG_FILES src/mpi/contention/Makefile" ;;

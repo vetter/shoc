@@ -14,6 +14,11 @@
 
 @SET_MAKE@
 
+#if BUILD_MPI
+#    MAYBE_MPI = epmpi tpmpi
+#endif
+#SUBDIRS = $(MAYBE_MPI)
+
 am__make_dryrun = \
   { \
     am__dry=no; \
@@ -50,8 +55,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-epcuda_PROGRAMS = BusCont$(EXEEXT)
-subdir = src/mpi/contention/cuda
+serialmic_PROGRAMS = Triad$(EXEEXT)
+subdir = src/mic/level1/triad
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/build-aux/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -62,15 +67,12 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(epcudadir)"
-PROGRAMS = $(epcuda_PROGRAMS)
-am_BusCont_OBJECTS = CUDADriver.$(OBJEXT) BusCont.$(OBJEXT) \
-	bcmain.$(OBJEXT)
-BusCont_OBJECTS = $(am_BusCont_OBJECTS)
+am__installdirs = "$(DESTDIR)$(serialmicdir)"
+PROGRAMS = $(serialmic_PROGRAMS)
+am_Triad_OBJECTS = main.$(OBJEXT) Triad.$(OBJEXT)
+Triad_OBJECTS = $(am_Triad_OBJECTS)
 am__DEPENDENCIES_1 =
-BusCont_DEPENDENCIES =  \
-	$(top_builddir)/src/cuda/level0/BusSpeedDownload.o \
-	$(am__DEPENDENCIES_1)
+Triad_DEPENDENCIES = $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -93,14 +95,15 @@ AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
 am__v_CXX_1 = 
+CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(BusCont_SOURCES)
-DIST_SOURCES = $(BusCont_SOURCES)
+SOURCES = $(Triad_SOURCES)
+DIST_SOURCES = $(Triad_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -128,7 +131,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
 # How to find source files
-VPATH = $(srcdir):$(srcdir)/..:$(top_srcdir)/src/cuda/level0
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -145,9 +148,7 @@ CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CUDA_CPPFLAGS = @CUDA_CPPFLAGS@
 CUDA_INCDIR = @CUDA_INCDIR@
-
-# Which compiler to use?
-CXX = ${MPICXX}
+CXX = @CXX@
 CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
@@ -252,19 +253,15 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-CXXLD = ${MPICXX}
-AM_LDFLAGS = $(CUDA_LDFLAGS) -L$(top_builddir)/src/mpi/common
-AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+AM_LDFLAGS = $(MIC_OFFLOAD_LDFLAGS)
+AM_CXXFLAGS = $(MIC_OFFLOAD_CXXFLAGS)
 
 # What is the destination for programs built from this directory?
-epcudadir = $(bindir)/EP/CUDA
+serialmicdir = $(bindir)/Serial/MIC
 
 # How to build those programs?
-BusCont_SOURCES = CUDADriver.cpp \
-					BusCont.cpp \
-					bcmain.cpp
-
-BusCont_LDADD = $(top_builddir)/src/cuda/level0/BusSpeedDownload.o -lSHOCCommonMPI $(CUDA_LIBS) $(LIBS)
+Triad_SOURCES = main.cpp Triad.cpp
+Triad_LDADD = $(MIC_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -278,9 +275,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/mpi/contention/cuda/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/mic/level1/triad/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/mpi/contention/cuda/Makefile
+	  $(AUTOMAKE) --foreign src/mic/level1/triad/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -299,12 +296,12 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-epcudaPROGRAMS: $(epcuda_PROGRAMS)
+install-serialmicPROGRAMS: $(serialmic_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	@list='$(epcuda_PROGRAMS)'; test -n "$(epcudadir)" || list=; \
+	@list='$(serialmic_PROGRAMS)'; test -n "$(serialmicdir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(epcudadir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(epcudadir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(serialmicdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(serialmicdir)" || exit 1; \
 	fi; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
@@ -323,27 +320,27 @@ install-epcudaPROGRAMS: $(epcuda_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(epcudadir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(epcudadir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(serialmicdir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(serialmicdir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-epcudaPROGRAMS:
+uninstall-serialmicPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(epcuda_PROGRAMS)'; test -n "$(epcudadir)" || list=; \
+	@list='$(serialmic_PROGRAMS)'; test -n "$(serialmicdir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' \
 	`; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(epcudadir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(epcudadir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(serialmicdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(serialmicdir)" && rm -f $$files
 
-clean-epcudaPROGRAMS:
-	-test -z "$(epcuda_PROGRAMS)" || rm -f $(epcuda_PROGRAMS)
-BusCont$(EXEEXT): $(BusCont_OBJECTS) $(BusCont_DEPENDENCIES) $(EXTRA_BusCont_DEPENDENCIES) 
-	@rm -f BusCont$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(BusCont_OBJECTS) $(BusCont_LDADD) $(LIBS)
+clean-serialmicPROGRAMS:
+	-test -z "$(serialmic_PROGRAMS)" || rm -f $(serialmic_PROGRAMS)
+Triad$(EXEEXT): $(Triad_OBJECTS) $(Triad_DEPENDENCIES) $(EXTRA_Triad_DEPENDENCIES) 
+	@rm -f Triad$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(Triad_OBJECTS) $(Triad_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -351,9 +348,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BusCont.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CUDADriver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bcmain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Triad.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -455,7 +451,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(epcudadir)"; do \
+	for dir in "$(DESTDIR)$(serialmicdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -490,7 +486,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-epcudaPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-generic clean-serialmicPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -510,7 +506,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-epcudaPROGRAMS
+install-data-am: install-serialmicPROGRAMS
 
 install-dvi: install-dvi-am
 
@@ -555,23 +551,24 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-epcudaPROGRAMS
+uninstall-am: uninstall-serialmicPROGRAMS
 
 .MAKE: install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
-	clean-epcudaPROGRAMS clean-generic cscopelist-am ctags \
-	ctags-am distclean distclean-compile distclean-generic \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-epcudaPROGRAMS install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
+.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
+	clean-serialmicPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am \
+	install-serialmicPROGRAMS install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-epcudaPROGRAMS
+	uninstall-am uninstall-serialmicPROGRAMS
+
 
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk

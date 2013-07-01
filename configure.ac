@@ -255,11 +255,12 @@ AS_IF([test "x$with_mic" != xno],
         dnl WARNING: We only know how to check for the Intel C/C++ compiler.
         dnl If you are using another compiler and you *know* it supports
         dnl the MIC target, set --with-mic explicitly and set 
-        dnl MIC_NATIVE_CXXFLAGS, MIC_OFFLOAD_CXXFLAGS, MIC_NATIVE_LDFLAGS,
-        dnl and MIC_OFFLOAD_LDFLAGS explicitly.
+        dnl MIC_OFFLOAD_CXXFLAGS and MIC_OFFLOAD_LDFLAGS explicitly.
         AC_MSG_CHECKING([whether we can compiler programs for Intel MIC])
+        MIC_OFFLOAD_CXXFLAGS="-Werror -openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report"
         savedCXXFLAGS=$CXXFLAGS
-        CXXFLAGS="$CXXFLAGS -Werror -openmp"
+        CXXFLAGS="$CXXFLAGS $MIC_OFFLOAD_CXXFLAGS"
+
 
         AC_COMPILE_IFELSE(
             [
@@ -289,14 +290,11 @@ AS_IF([test "x$with_mic" != xno],
             ],
             [
                 AC_MSG_RESULT([yes])
-                dnl TODO are we using native or offload mode?
-                dnl the test above should test whichever mode we actually use
-                MIC_NATIVE_CXXFLAGS="-openmp -mmic"
-                MIC_OFFLOAD_CXXFLAGS="-openmp"
 
                 AC_MSG_CHECKING([whether we can link MIC programs with C++ driver])
+                MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl"
                 savedLDFLAGS=$LDFLAGS
-                LDFLAGS="$LDFLAGS -openmp"
+                LDFLAGS="$LDFLAGS $MIC_OFFLOAD_LDFLAGS"
 
                 AC_LINK_IFELSE(
                     [
@@ -327,8 +325,6 @@ AS_IF([test "x$with_mic" != xno],
                     [
                         AC_MSG_RESULT([yes])
                         with_mic=yes
-                        MIC_NATIVE_LDFLAGS="-openmp -mmic"
-                        MIC_OFFLOAD_LDFLAGS="-openmp"
                     ],
                     [
                         AC_MSG_RESULT([no])
@@ -495,9 +491,7 @@ AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
-AC_SUBST([MIC_NATIVE_CXXFLAGS])
 AC_SUBST([MIC_OFFLOAD_CXXFLAGS])
-AC_SUBST([MIC_NATIVE_LDFLAGS])
 AC_SUBST([MIC_OFFLOAD_LDFLAGS])
 
 AC_CONFIG_FILES([Makefile
@@ -544,6 +538,7 @@ AC_CONFIG_FILES([Makefile
                  src/mic/level1/reduction/Makefile
                  src/mic/level1/scan/Makefile
                  src/mic/level1/sort/Makefile
+                 src/mic/level1/triad/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile

@@ -181,8 +181,6 @@ LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
-MIC_NATIVE_CXXFLAGS = @MIC_NATIVE_CXXFLAGS@
-MIC_NATIVE_LDFLAGS = @MIC_NATIVE_LDFLAGS@
 MIC_OFFLOAD_CXXFLAGS = @MIC_OFFLOAD_CXXFLAGS@
 MIC_OFFLOAD_LDFLAGS = @MIC_OFFLOAD_LDFLAGS@
 MKDIR_P = @MKDIR_P@
@@ -264,7 +262,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = reduction scan sort
+SUBDIRS = reduction scan sort triad
 all: all-recursive
 
 .SUFFIXES:
