@@ -1,1 +1,1 @@
-SUBDIRS=fft reduction scan sort triad
+SUBDIRS=fft md reduction scan sort triad
