@@ -535,6 +535,7 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level2/s3d/epmpi/Makefile
                  src/mic/Makefile
                  src/mic/level1/Makefile
+                 src/mic/level1/fft/Makefile
                  src/mic/level1/reduction/Makefile
                  src/mic/level1/scan/Makefile
                  src/mic/level1/sort/Makefile
