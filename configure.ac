@@ -257,9 +257,9 @@ AS_IF([test "x$with_mic" != xno],
         dnl the MIC target, set --with-mic explicitly and set 
         dnl MIC_OFFLOAD_CXXFLAGS and MIC_OFFLOAD_LDFLAGS explicitly.
         AC_MSG_CHECKING([whether we can compiler programs for Intel MIC])
-        MIC_OFFLOAD_CXXFLAGS="-Werror -openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report"
+        MIC_OFFLOAD_CXXFLAGS="-openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report"
         savedCXXFLAGS=$CXXFLAGS
-        CXXFLAGS="$CXXFLAGS $MIC_OFFLOAD_CXXFLAGS"
+        CXXFLAGS="$CXXFLAGS $MIC_OFFLOAD_CXXFLAGS -Werror"
 
 
         AC_COMPILE_IFELSE(
@@ -541,6 +541,8 @@ AC_CONFIG_FILES([Makefile
                  src/mic/level1/scan/Makefile
                  src/mic/level1/sort/Makefile
                  src/mic/level1/triad/Makefile
+                 src/mic/level2/Makefile
+                 src/mic/level2/s3d/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile
