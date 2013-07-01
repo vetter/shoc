@@ -1,6 +1,6 @@
 // This example from an alpha release of the Scalable HeterOgeneous Computing
 // (SHOC) Benchmark Suite Alpha v1.1.4a-mic for Intel MIC architecture
-// Contact: Jeff Vetter <vetter@ornl.gov>
+// Contact: Jeffrey Vetter <vetter@ornl.gov>
 //          Rezaur Rahman <rezaur.rahman@intel.com>
 //
 // Copyright (c) 2011-2013, UT-Battelle, LLC

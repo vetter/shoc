@@ -1,1 +1,1 @@
-SUBDIRS=reduction
+SUBDIRS=reduction scan
