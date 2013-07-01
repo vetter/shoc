@@ -400,7 +400,7 @@ if (! -d "$bindir/Serial")
 # Note: this check is not exhaustive.
 if ( ! (( -f "$bindir/Serial/OpenCL/Sort" && -x "$bindir/Serial/OpenCL/Sort" ) ||
         ( -f "$bindir/Serial/CUDA/Sort" && -x "$bindir/Serial/CUDA/Sort" ) ||
-        ( -f "$bindir/Serial/MIC/Reduction" && -x "$bindir/Serial/MIC/Reduction")) )
+        ( -f "$bindir/Serial/MIC/Sort" && -x "$bindir/Serial/MIC/Sort")) )
     
 {
     die "The SHOC benchmark programs are not present in $bindir.\n" .
