@@ -151,8 +151,8 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     {
     }
 
-    int txToCardTimerHandle = Timer::Start();
     // Get data transfer time
+    int txToCardTimerHandle = Timer::Start();
     #pragma offload target(mic:micdev) in(h_idata:length(size) alloc_if(0) \
             free_if(0)) out(h_odata:length(size) alloc_if(0) free_if(0))
     {

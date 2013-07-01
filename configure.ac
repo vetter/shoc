@@ -543,6 +543,7 @@ AC_CONFIG_FILES([Makefile
                  src/mic/level1/Makefile
                  src/mic/level1/reduction/Makefile
                  src/mic/level1/scan/Makefile
+                 src/mic/level1/sort/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile
