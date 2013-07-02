@@ -1,1 +1,1 @@
-SUBDIRS=fft md reduction scan sort spmv triad
+SUBDIRS=fft gemm md reduction scan sort spmv triad
