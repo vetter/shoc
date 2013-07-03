@@ -125,7 +125,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     size = (size *1024*1024)/sizeof(T);
     
     unsigned int bytes = size * sizeof(T);
-    int micdev = op.getOptionInt("target");
+    int micdev = op.getOptionInt("device");
 
     // Allocate Host Memory
     __declspec(target(MIC)) static T* h_idata;

@@ -111,7 +111,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     }
 
     const unsigned int passes = op.getOptionInt("passes");
-    int micdev = op.getOptionInt("target");
+    int micdev = op.getOptionInt("device");
 
     // Allocate memory on the card
     #pragma offload target(mic:micdev) \

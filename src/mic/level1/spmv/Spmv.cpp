@@ -300,7 +300,7 @@ void RunTest( ResultDatabase &resultDB, OptionParser &op, enum spmv_target
     spmvCpu(h_val, h_cols, h_rowDelimiters, h_vec, numRows, refOut);
 
     cout << target_str[target] << " Test\n";
-    int micdev = op.getOptionInt("target"); 
+    int micdev = op.getOptionInt("device"); 
 
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");

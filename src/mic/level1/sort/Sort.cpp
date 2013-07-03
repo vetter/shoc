@@ -142,7 +142,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         hkey[i] = hvalue[i]= (i+255) % 1089; // Fill with some pattern
     }
 
-    int micdev = op.getOptionInt("target");
+    int micdev = op.getOptionInt("device");
     int iters = op.getOptionInt("passes");
     int numThreads = op.getOptionInt("nthreads");
 

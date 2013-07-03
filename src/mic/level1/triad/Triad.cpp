@@ -77,7 +77,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
     const bool verbose = op.getOptionBool("verbose");
     const int n_passes = op.getOptionInt("passes");
-    const int micdev = op.getOptionInt("target");
+    const int micdev = op.getOptionInt("device");
 
     const int nSizes = 9;
     const size_t blockSizes[] = { 64, 128, 256, 512, 1024, 2048, 4096, 8192,

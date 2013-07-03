@@ -105,7 +105,7 @@ void RunTest(const string& name, ResultDatabase &resultDB, OptionParser &op)
     static __declspec(target(mic)) T2 *source;
     int chk;
     unsigned long bytes = 0;
-    const int micdev = op.getOptionInt("target");
+    const int micdev = op.getOptionInt("device");
     const bool verbose = op.getOptionBool("verbose");
     
     // Get problem size

@@ -155,7 +155,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     // Quiet == no progress bar.
     const bool quiet   = op.getOptionBool("quiet");
     const unsigned int passes = op.getOptionInt("passes");
-    const int micdev = op.getOptionInt("target");
+    const int micdev = op.getOptionInt("device");
 
     double repeatF = 3;
     cout << "Adjust repeat factor = " << repeatF << "\n";

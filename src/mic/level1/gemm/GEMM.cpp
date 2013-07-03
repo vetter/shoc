@@ -191,7 +191,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 template <class T>
 void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 {
-    const int micdev = op.getOptionInt("target");
+    const int micdev = op.getOptionInt("device");
     
     // Repeat the test multiple times
     int passes = op.getOptionInt("passes");

@@ -145,7 +145,7 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
     __attribute__ ((target(mic))) T *indata  = NULL;
     __attribute__ ((target(mic))) T *outdata = NULL;
 
-    const int micdev = op.getOptionInt("target");
+    const int micdev = op.getOptionInt("device");
 
     // Get Problem Size
     int probSizes[4] = { 4, 8, 32, 64 };
