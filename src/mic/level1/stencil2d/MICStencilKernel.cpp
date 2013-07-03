@@ -52,6 +52,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Kernel Author:   Valentin Andrei - valentin.andrei@intel.com (SSG/SSD/PTAC/PAC Power & Characterization)
+//
+// Modified: 7-3-2013 Philip C. Roth to integrate with SHOC infrastructure.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <class T>
@@ -70,6 +72,7 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
     __declspec(target(mic), align(4)) unsigned int  nrows           = mtx.GetNumRows();
     __declspec(target(mic), align(4)) unsigned int  ncols           = mtx.GetNumColumns();
+    __declspec(target(mic), align(4)) unsigned int  nPaddedCols     = mtx.GetNumPaddedColumns();
     __declspec(target(mic), align(4)) unsigned int  nextralines     = (nrows - 2) % uOMP_Threads;
     __declspec(target(mic), align(4)) unsigned int  uLinesPerThread = (unsigned int)floor((double)(nrows - 2) / uOMP_Threads);
 
@@ -81,24 +84,49 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int len = nrows * ncols;
+    unsigned int len = nrows * nPaddedCols;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     #pragma offload target(mic) in(rarr1:length(len)) out(rarr1:length(len))    \
                                 in(uOMP_Threads) in(uLinesPerThread) in(nrows)  \
-                                in(ncols) in(nextralines) in(wcenter) in(wdiag) \
+                                in(ncols) in(nPaddedCols) in(nextralines) in(wcenter) in(wdiag) \
                                 in(wcardinal)
     {
         T*  pTmp    = rarr1;
         T*  pCrnt   = (T*)_mm_malloc(len * sizeof(T), sizeof(T));
         T*  pAux    = NULL;
 
+        // copy the halo from the initial buffer into the second buffer
+        // Note: when doing local iterations, these values do not change
+        // but they can change in the MPI vesrion after an inter-process
+        // halo exchange.
+        //
+        #pragma omp parallel for firstprivate(pTmp, pCrnt, nrows, ncols, nPaddedCols)
+        for( unsigned int c = 0; c < ncols; c++ )
+        {
+            // logically: pCrnt[0][c] = pTmp[0][c];
+            pCrnt[0*nPaddedCols + c] = pTmp[0*nPaddedCols + c];
+            // logically: pCrnt[nrows - 1][c] = pTmp[nrows - 1][c];
+            pCrnt[(nrows - 1)*nPaddedCols + c] = pTmp[(nrows - 1)*nPaddedCols + c];
+        }
+
+        #pragma omp parallel for firstprivate(pTmp, pCrnt, nrows, ncols, nPaddedCols)
+        for( unsigned int r = 0; r < nrows; r++ )
+        {
+            // logically: pCrnt[r][0] = pTmp[r][0];
+            pCrnt[r*nPaddedCols + 0] = pTmp[r*nPaddedCols + 0];
+            // logically: pCrnt[r][ncols - 1] = pTmp[r][ncols - 1];
+            pCrnt[r*nPaddedCols + (ncols - 1)] = pTmp[r*nPaddedCols + (ncols - 1)];
+        }
+
+
+
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         for (unsigned int cntIterations = 0; cntIterations < nIters; cntIterations ++)
         {
-            #pragma omp parallel for firstprivate(pTmp, pCrnt, uLinesPerThread, wdiag, wcardinal, wcenter, ncols)
+            #pragma omp parallel for firstprivate(pTmp, pCrnt, uLinesPerThread, wdiag, wcardinal, wcenter, ncols, nPaddedCols)
             for (unsigned int uThreadId = 0; uThreadId < uOMP_Threads; uThreadId++)
             {
                 unsigned int uStartLine = 0;
@@ -124,20 +152,20 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                     #pragma ivdep
                     for (unsigned int cntColumn = 1; cntColumn < (ncols - 1); cntColumn ++)
                     {
-                        cardinal0   =   pTmp[(cntLine - 1) * ncols + cntColumn] +
-                                        pTmp[(cntLine + 1) * ncols + cntColumn] +
-                                        pTmp[ cntLine * ncols + cntColumn - 1] +
-                                        pTmp[ cntLine * ncols + cntColumn + 1];
+                        cardinal0   =   pTmp[(cntLine - 1) * nPaddedCols + cntColumn] +
+                                        pTmp[(cntLine + 1) * nPaddedCols + cntColumn] +
+                                        pTmp[ cntLine * nPaddedCols + cntColumn - 1] +
+                                        pTmp[ cntLine * nPaddedCols + cntColumn + 1];
 
-                        diagonal0   =   pTmp[(cntLine - 1) * ncols + cntColumn - 1] +
-                                        pTmp[(cntLine - 1) * ncols + cntColumn + 1] +
-                                        pTmp[(cntLine + 1) * ncols + cntColumn - 1] +
-                                        pTmp[(cntLine + 1) * ncols + cntColumn + 1];
+                        diagonal0   =   pTmp[(cntLine - 1) * nPaddedCols + cntColumn - 1] +
+                                        pTmp[(cntLine - 1) * nPaddedCols + cntColumn + 1] +
+                                        pTmp[(cntLine + 1) * nPaddedCols + cntColumn - 1] +
+                                        pTmp[(cntLine + 1) * nPaddedCols + cntColumn + 1];
 
-                        center0     =   pTmp[cntLine * ncols + cntColumn];
+                        center0     =   pTmp[cntLine * nPaddedCols + cntColumn];
 
 
-                        pCrnt[cntLine * ncols + cntColumn]  = wcenter * center0 + wdiag * diagonal0 + wcardinal * cardinal0;
+                        pCrnt[cntLine * nPaddedCols + cntColumn]  = wcenter * center0 + wdiag * diagonal0 + wcardinal * cardinal0;
                     }
                 }
             }

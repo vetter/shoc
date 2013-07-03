@@ -55,10 +55,8 @@
 #include "ValidateMatrix2D.cpp"
 #include "StencilUtil.h"
 #include "StencilUtil.cpp"
-#if 0 
 #include "SerialStencilUtil.h"
 #include "SerialStencilUtil.cpp"
-#endif
 #include "StencilFactory.cpp"
 #include "CommonMICStencilFactory.cpp"
 #include "HostStencil.cpp"
@@ -81,56 +79,6 @@ void CheckOptions( const OptionParser& opts );
 
 void EnsureStencilInstantiation( void );
 
-template<class T>
-void
-MICValidate(const Matrix2D<T>& s, const Matrix2D<T>& t,double valErrThreshold,unsigned int nValErrsToPrint)
-{
-
-    assert( (s.GetNumRows() == t.GetNumRows()) && (s.GetNumColumns() == t.GetNumColumns()) );
-	#if 1
-    for( unsigned int i = 0; i < s.GetNumRows(); i++ )
-    {
-        for( unsigned int j = 0; j < s.GetNumColumns(); j++ )
-        {
-            T expVal = s.GetConstData()[i][j];
-            T actualVal = t.GetConstData()[i][j];
-            T delta = fabsf( actualVal - expVal );
-            T relError = (expVal != 0.0f) ? delta / expVal : 0.0f;
-
-            if( relError > valErrThreshold )
-            {
-		std::cout<<"Failed\n";
-		return;
-            }
-        }
-    }
-    std::cout<<"Passed\n";
-	#endif
-	#if 0
-	std::cout<<"Expected Value \n";
-for( unsigned int i = 0; i < s.GetNumRows(); i++ )
-    {
-        for( unsigned int j = 0; j < s.GetNumColumns(); j++ )
-        {
-            T expVal = s.GetConstData()[i][j];
-            std::cout<<expVal<<" ";
-        }
-	std::cout<<endl;
-    }
-
-	std::cout<<"Calculated vaue \n";
-for( unsigned int i = 0; i < s.GetNumRows(); i++ )
-    {   
-        for( unsigned int j = 0; j < s.GetNumColumns(); j++ )
-        {
-            T expVal = t.GetConstData()[i][j];
-            std::cout<<expVal<<" ";
-        }   
-        std::cout<<endl;
-    }   
-	#endif
-}
-
 
 template<class T>
 void
@@ -141,7 +89,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
     StencilFactory<T>* testStencilFactory = NULL;
     Stencil<T>* testStencil = NULL;
 
-    //try
+    try
     {
         stdStencilFactory = new HostStencilFactory<T>;
         testStencilFactory = new MICStencilFactory<T>;
@@ -185,20 +133,24 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         float haloVal = (float)opts.getOptionFloat( "haloVal" );
 
         // build a description of this experiment
-        std::vector<long long> lDims = opts.getOptionVecInt( "lsize" );
-        assert( lDims.size() == 2 );
         std::ostringstream experimentDescriptionStr;
         experimentDescriptionStr 
             << nIters << ':'
-            << arrayDims[0] << 'x' << arrayDims[1] << ':'
-            << lDims[0] << 'x' << lDims[1];
+            << arrayDims[0] << 'x' << arrayDims[1];
 
         unsigned int nPasses =(unsigned int)opts.getOptionInt( "passes" );
-         unsigned long npts = (arrayDims[0] + 2*haloWidth - 2) * 
+        unsigned long npts = (arrayDims[0] + 2*haloWidth - 2) * 
                                      (arrayDims[1] + 2*haloWidth - 2); 
 
-unsigned long nflops = npts * 11 * nIters;
-cout<<"flops are = "<<nflops<<endl;
+        // In our 9-point stencil, there are 11 floating point operations 
+        // per point (3 multiplies and 11 adds):
+        //
+        // newval = weight_center * centerval +
+        //      weight_cardinal * (northval + southval + eastval + westval) + 
+        //      weight_diagnoal * (neval + nwval + seval + swval)
+        // 
+        // we do this stencil operation 'nIters' times
+        unsigned long nflops = npts * 11 * nIters;
 
         // compute the expected result on the host
 #if defined(PARALLEL)
@@ -254,9 +206,13 @@ cout<<"flops are = "<<nflops<<endl;
         std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output." 
             << std::endl;
 #endif // !defined(PARALLEL)
-	std::cout<<"Passes:"<<nPasses<<endl;
+
+
         for( unsigned int pass = 0; pass < nPasses; pass++ )
         {
+#if !defined(PARALLEL)
+            std::cout << "pass " << pass << ": ";
+#endif // !defined(PARALLEL)
             init( data );
 
             int kernelTimerHandle = Timer::Start();
@@ -276,18 +232,17 @@ cout<<"flops are = "<<nflops<<endl;
 
             // validate the result
 #if defined(PARALLEL)
-            //StencilValidater<T>* validater = new MPIStencilValidater<T>;
+            StencilValidater<T>* validater = new MPIStencilValidater<T>;
 #else
-            //StencilValidater<T>* validater = new SerialStencilValidater<T>;            
+            StencilValidater<T>* validater = new SerialStencilValidater<T>;            
 #endif // defined(PARALLEL)
-	   MICValidate(exp,data,valErrThreshold,nValErrsToPrint);
-            /*validater->ValidateResult( exp,
+
+            validater->ValidateResult( exp,
                             data,
                             valErrThreshold,
-                            nValErrsToPrint );*/
+                            nValErrsToPrint );
         }
     }
-    /*
     catch( ... )
     {
         // clean up - abnormal termination
@@ -298,7 +253,7 @@ cout<<"flops are = "<<nflops<<endl;
         delete testStencil;
         delete testStencilFactory;
         throw;
-    }*/
+    }
 
     // clean up - normal termination
     delete stdStencil;
@@ -372,7 +327,6 @@ void
 addBenchmarkSpecOptions( OptionParser& opts )
 {
     opts.addOption("customSize", OPT_VECINT, "0,0", "specify custom problem size");
-    opts.addOption( "lsize", OPT_VECINT, "16,16", "block dimensions" );
     opts.addOption( "num-iters", OPT_INT, "1000", "number of stencil iterations" );
     opts.addOption( "weight-center", OPT_FLOAT, "0.25", "center value weight" );
     opts.addOption( "weight-cardinal", OPT_FLOAT, "0.15", "cardinal values weight" );

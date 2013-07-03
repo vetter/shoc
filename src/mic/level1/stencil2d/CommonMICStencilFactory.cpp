@@ -47,16 +47,6 @@ CommonMICStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     StencilFactory<T>::CheckOptions( opts );
 
     // check our options
-    std::vector<long long> shDims = opts.getOptionVecInt( "lsize" );
-    if( shDims.size() != 2 )
-    {
-        throw InvalidArgValue( "lsize must have two dimensions" );
-    }
-    if( (shDims[0] <= 0) || (shDims[1] <= 0) )
-    {
-        throw InvalidArgValue( "all lsize values must be positive" );
-    }
-
     std::vector<long long> arrayDims = opts.getOptionVecInt( "customSize" );
     assert( arrayDims.size() == 2 );
 
@@ -65,23 +55,6 @@ CommonMICStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     {
         return;
     }
-
-    size_t gRows = (size_t)arrayDims[0];
-    size_t gCols = (size_t)arrayDims[1];
-    size_t lRows = (size_t)shDims[0];
-    size_t lCols = (size_t)shDims[1];
-
-    // verify that local dimensions evenly divide global dimensions
-    if( ((gRows % lRows) != 0) || (lRows > gRows) )
-    {
-        throw InvalidArgValue( "number of rows must be even multiple of lsize rows" );
-    }
-    if( ((gCols % lCols) != 0) || (lCols > gCols) )
-    {
-        throw InvalidArgValue( "number of columns must be even multiple of lsize columns" );
-    }
-
-    // TODO ensure local dims are smaller than CUDA implementation limits
 }
 
 template<class T>
@@ -96,7 +69,6 @@ CommonMICStencilFactory<T>::ExtractOptions( const OptionParser& options,
     StencilFactory<T>::ExtractOptions( options, wCenter, wCardinal, wDiagonal );
 
     // extract our options
-    // with hardcoded lsize, we no longer have any to extract
 
     // determine which device to use
     // We would really prefer this to be done in main() but 
