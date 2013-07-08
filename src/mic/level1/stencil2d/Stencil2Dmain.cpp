@@ -139,18 +139,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
             << arrayDims[0] << 'x' << arrayDims[1];
 
         unsigned int nPasses =(unsigned int)opts.getOptionInt( "passes" );
-        unsigned long npts = (arrayDims[0] + 2*haloWidth - 2) * 
-                                     (arrayDims[1] + 2*haloWidth - 2); 
-
-        // In our 9-point stencil, there are 11 floating point operations 
-        // per point (3 multiplies and 11 adds):
-        //
-        // newval = weight_center * centerval +
-        //      weight_cardinal * (northval + southval + eastval + westval) + 
-        //      weight_diagnoal * (neval + nwval + seval + swval)
-        // 
-        // we do this stencil operation 'nIters' times
-        unsigned long nflops = npts * 11 * nIters;
+        unsigned int nWarmupPasses = (unsigned int)opts.getOptionInt( "warmupPasses" );
 
         // compute the expected result on the host
 #if defined(PARALLEL)
@@ -188,6 +177,62 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         Matrix2D<T> data( arrayDims[0] + 2*haloWidth, 
                             arrayDims[1] + 2*haloWidth );
         Stencil<T>* testStencil = testStencilFactory->BuildStencil( opts );
+
+        // Compute the number of floating point operations we will perform.
+        //
+        // Note: in the truly-parallel case, we count flops for redundant 
+        // work due to the need for a halo.
+        // But we do not add to the count for the local 1-wide halo since
+        // we aren't computing new values for those items.
+        unsigned long npts = (arrayDims[0] + 2*haloWidth - 2) *
+                            (arrayDims[1] + 2*haloWidth - 2);
+#if defined(PARALLEL)
+        MPICUDAStencil<T>* mpiTestStencil = static_cast<MPICUDAStencil<T>*>( testStencil );
+        assert( mpiTestStencil != NULL );
+        int participating = mpiTestStencil->ParticipatingInProgram() ? 1 : 0;
+        int numParticipating = 0;
+        MPI_Allreduce( &participating,      // src
+                        &numParticipating,  // dest
+                        1,                  // count
+                        MPI_INT,            // type
+                        MPI_SUM,            // op
+                        MPI_COMM_WORLD );   // communicator
+        npts *= numParticipating;
+#endif // defined(PARALLEL)
+
+        // In our 9-point stencil, there are 11 floating point operations 
+        // per point (3 multiplies and 11 adds):
+        //
+        // newval = weight_center * centerval +
+        //      weight_cardinal * (northval + southval + eastval + westval) + 
+        //      weight_diagnoal * (neval + nwval + seval + swval)
+        // 
+        // we do this stencil operation 'nIters' times
+        unsigned long nflops = npts * 11 * nIters;
+
+#if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
+            std::cout << "Performing " << nWarmupPasses << " warmup passes...";
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+
+    for( unsigned int pass = 0; pass < nWarmupPasses; pass++ )
+    {
+        init(data);
+        (*testStencil)( data, nIters );
+    }
+#if defined(PARALLEL)
+        if( cwrank == 0 )
+        {
+#endif // defined(PARALLEL)
+            std::cout << "done." << std::endl;
+#if defined(PARALLEL)
+        }
+#endif // defined(PARALLEL)
+
 
 #if defined(PARALLEL)
         MPI_Comm_rank( MPI_COMM_WORLD, &cwrank );
@@ -336,6 +381,8 @@ addBenchmarkSpecOptions( OptionParser& opts )
     opts.addOption( "val-print-limit", OPT_INT, "15", "number of validation errors to print" );
     opts.addOption( "haloVal", OPT_FLOAT, "0.0", "value to use for halo data" );
 
+    opts.addOption( "warmupPasses", OPT_INT, "1", "Number of warmup passes to do before starting timings", 'w' );
+
 #if defined(PARALLEL)
     opts.addOption( "msize", OPT_VECINT, "2,2", "MPI 2D grid topology dimensions" );
     opts.addOption( "iters-per-exchange", OPT_INT, "1", "Number of local iterations between MPI boundary exchange operations (also, halo width)" );
@@ -372,5 +419,10 @@ CheckOptions( const OptionParser& opts )
         throw InvalidArgValue( "number of validation errors to print must be non-negative" );
     }
 	
+    int nWarmupPasses = opts.getOptionInt( "warmupPasses" );
+    if( nWarmupPasses < 0 )
+    {
+        throw InvalidArgValue( "number of warmup passes must be non-negative" );
+    }
 }
 
