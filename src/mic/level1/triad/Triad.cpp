@@ -36,7 +36,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include<iostream>
+#include <iostream>
+#include "offload.h"
 
 #include "OptionParser.h"
 #include "ResultDatabase.h"
@@ -47,10 +48,17 @@ void addBenchmarkSpecOptions(OptionParser &op)
     ;
 }
 
-__declspec(target(MIC)) void Triad(const float* A, const float* B, 
-        float* C, const float s, const int start, const int length)
+__declspec(target(MIC))
+void
+Triad(const float* A,
+        const float* B, 
+        float* C,
+        const float s,
+        const int start,
+        const int length,
+        const int nThreads)
 {
-    int index = (int)((length/256) * 240);
+    int index = (int)((length/256) * nThreads);
 
     #pragma omp parallel for
     #pragma vector aligned
@@ -85,6 +93,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     const size_t memSize =  blockSizes[nSizes - 1];
     int  numMaxFloats = 1024 * memSize / sizeof(float);
     int  halfNumFloats = numMaxFloats / 2;
+    int nThreads = omp_get_max_threads_target( TARGET_MIC, micdev );
 
     __declspec(target(MIC)) float *h_mem;
     h_mem = (float *) _mm_malloc(sizeof(float)*numMaxFloats,ALIGNMENT);
@@ -105,13 +114,13 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     C1dummy = C1;
 
 
-    #pragma offload target(MIC:0) \
+    #pragma offload target(MIC:micdev) \
     in(A0:length(numMaxFloats) free_if (0) alloc_if (1) align(4096)) \
     in(B0:length(numMaxFloats) free_if (0) alloc_if (1) align(4096)) \
     inout(C0:length(numMaxFloats) free_if (0) alloc_if (1) align(4096))
     { }
 
-    #pragma offload target(MIC:0) \
+    #pragma offload target(MIC:micdev) \
     in(A1:length(numMaxFloats) free_if (0) alloc_if (1) align(4096)) \
     in(B1:length(numMaxFloats) free_if (0) alloc_if (1) align(4096)) \
     inout(C1:length(numMaxFloats) free_if (0) alloc_if (1) align(4096))
@@ -138,9 +147,11 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 
             if (verbose)
             {
-                cout << ">> Executing Triad with vectors of length "
-                     << numMaxFloats << " and block size of "
-                     << elemsInBlock << " elements." << "\n";
+                cout << ">> Executing Triad: "
+                     << "vector length: " << numMaxFloats 
+                     << ", block size: " << elemsInBlock << " elements" 
+                     << ", nThreads: " << nThreads
+                     << std::endl;
             }
             sprintf(sizeStr, "Block:%05ldKB", blockSizes[i]);
 
@@ -148,21 +159,22 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 
             int kernelTimerHandle = Timer::Start();
 
-            #pragma offload target(MIC:0) \
+            #pragma offload target(MIC:micdev) \
             in(A0:length(elemsInBlock) free_if (0) alloc_if (0) ) \
             in(B0:length(elemsInBlock) free_if (0) alloc_if (0) ) \
             nocopy(C0:free_if (0) alloc_if (0))
             {
                 fflush(0);
-                Triad(A0, B0, C0,  scalar, crtIdx, elemsInBlock);
+                Triad(A0, B0, C0,  scalar, crtIdx, elemsInBlock, nThreads);
             }
-            #pragma offload_transfer target(mic:0) \
+
+            #pragma offload_transfer target(mic:micdev) \
             out(C0 [0:elemsInBlock]:alloc_if (0) free_if (0)) signal(C0)
 
             if (elemsInBlock < numMaxFloats)
             {
                 // start downloading data for next block
-                #pragma offload_transfer target(MIC:0)                      \
+                #pragma offload_transfer target(MIC:micdev) \ 
                 in(A1[elemsInBlock:elemsInBlock]: free_if (0) alloc_if (0)) \
                 in(B1[elemsInBlock:elemsInBlock]: free_if (0) alloc_if (0)) \
                 signal(A1)
@@ -175,12 +187,12 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
                 currStream = blockIdx & 1;
                 if (currStream)
                 {
-                    #pragma offload_wait target(mic:0) wait(C0)
+                    #pragma offload_wait target(mic:micdev) wait(C0)
                 }
 
                 else
                 {
-                    #pragma offload_wait target(mic:0) wait(C1)
+                    #pragma offload_wait target(mic:micdev) wait(C1)
                 }
 
                 crtIdx += elemsInBlock;
@@ -188,33 +200,34 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
                 {
                     if (currStream)
                     {
-                        #pragma offload target(MIC:0) \
+                        #pragma offload target(MIC:micdev) \
                         nocopy(A1,B1) wait(A1) nocopy(C1)
                         {
-                            Triad(A1, B1, C1,  scalar, crtIdx, elemsInBlock);
+                            Triad(A1, B1, C1,  scalar, crtIdx, elemsInBlock, nThreads);
                         }
-                        #pragma offload_transfer target(mic:0)                 \
+                        #pragma offload_transfer target(mic:micdev)                 \
                         out(C1[crtIdx:elemsInBlock]:alloc_if (0) free_if (0) ) \
                         signal(C1)
                     }
                     else
                     {
-                        #pragma offload target(MIC:0) nocopy(A0,B0) wait(A0)  \
-                        nocopy(C0)
+                        #pragma offload target(MIC:micdev) \
+                        nocopy(A0,B0) wait(A0) nocopy(C0)
                         {
-                            Triad(A0, B0, C0,  scalar, crtIdx, elemsInBlock);
+                            Triad(A0, B0, C0,  scalar, crtIdx, elemsInBlock, nThreads);
                         }
 
-                        #pragma offload_transfer target(mic:0)                \
+                        #pragma offload_transfer target(mic:micdev)                \
                         out(C0[crtIdx:elemsInBlock]:alloc_if (0) free_if (0) )\
                         signal(C0)
                     }
                 }
+               
                 if (crtIdx+elemsInBlock < numMaxFloats)
                 {
                     if (currStream)
                     {
-                        #pragma offload_transfer target(MIC:0)                 \
+                        #pragma offload_transfer target(MIC:micdev)            \
                         in(A0[crtIdx+elemsInBlock:elemsInBlock]: free_if (0)   \
                              alloc_if (0))                                     \
                         in(B0[crtIdx+elemsInBlock:elemsInBlock]: free_if (0)   \
@@ -222,7 +235,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
                     }
                     else
                     {
-                        #pragma offload_transfer target(MIC:0)                 \
+                        #pragma offload_transfer target(MIC:micdev)            \
                         in(A1[crtIdx+elemsInBlock:elemsInBlock]: free_if (0)   \
                             alloc_if (0))                                      \
                         in(B1[crtIdx+elemsInBlock:elemsInBlock]: free_if (0)   \
@@ -263,13 +276,13 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
         } // end for
     } // end for
 
-    #pragma offload target(MIC:0)                        \
+    #pragma offload target(MIC:micdev)                   \
     in(A0:length(numMaxFloats) alloc_if (0) free_if (1)) \
     in(B0:length(numMaxFloats) alloc_if (0) free_if (1)) \
     out(C0:length(numMaxFloats) alloc_if (0) free_if (1))
     { }
 
-    #pragma offload target(MIC:0)                        \
+    #pragma offload target(MIC:micdev)                   \
     in(A1:length(numMaxFloats) alloc_if (0) free_if (1)) \
     in(B1:length(numMaxFloats) alloc_if (0) free_if (1)) \
     out(C1:length(numMaxFloats) alloc_if (0) free_if (1))
