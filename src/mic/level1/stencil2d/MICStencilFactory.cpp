@@ -53,12 +53,13 @@ MICStencilFactory<T>::BuildStencil( const OptionParser& options )
                     wDiagonal,
                     devs );
 
-    // determine whcih device to use
+    // determine which device to use
     // We would really prefer this to be done in main() but
     // since BuildStencil is a virtual function, we cannot change its 
     // signature, and OptionParser provides no way to override an
     // options' value after it is set during parsing.
-    int chosenDevice = 0;//(int)devs[0];
+    assert( devs.size() > 0 );
+    int chosenDevice = (int)devs[0];
 
     return new MICStencil<T>( wCenter, 
                                 wCardinal, 

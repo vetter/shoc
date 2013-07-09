@@ -62,7 +62,7 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int uOMP_Threads = 240;
+    unsigned int uOMP_Threads = omp_get_max_threads_target(TARGET_MIC, device);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +88,8 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    #pragma offload target(mic) in(rarr1:length(len)) out(rarr1:length(len))    \
+    #pragma offload target(mic:device) \
+                                in(rarr1:length(len)) out(rarr1:length(len)) \
                                 in(uOMP_Threads) in(uLinesPerThread) in(nrows)  \
                                 in(ncols) in(nPaddedCols) in(nextralines) in(wcenter) in(wdiag) \
                                 in(wcardinal)
