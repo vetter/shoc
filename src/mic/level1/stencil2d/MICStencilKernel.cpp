@@ -92,7 +92,9 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                 in(rarr1:length(len)) out(rarr1:length(len)) \
                                 in(uOMP_Threads) in(uLinesPerThread) in(nrows)  \
                                 in(ncols) in(nPaddedCols) in(nextralines) in(wcenter) in(wdiag) \
-                                in(wcardinal)
+                                in(wcardinal) \
+                                in(nIters) \
+                                in(len)
     {
         T*  pTmp    = rarr1;
         T*  pCrnt   = (T*)_mm_malloc(len * sizeof(T), sizeof(T));
