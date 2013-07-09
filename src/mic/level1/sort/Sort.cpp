@@ -105,7 +105,7 @@ RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     int device;
 
     cout << "Running test with unsigned int" << endl;
-    RunTest<unsigned int>("Sort", resultDB, op);
+    RunTest<unsigned int>("Sort-Rate", resultDB, op);
 
 }
 

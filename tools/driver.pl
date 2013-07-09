@@ -100,17 +100,17 @@ my @CSVResults = (
 
 
 my @SerialBenchmarks = (
-[ "BusSpeedDownload",  1, 1, 0, 0,
+[ "BusSpeedDownload",  1, 1, 1, 0,
   ["bspeed_download",             \&findmax,     "DownloadSpeed"]
 ],
-[ "BusSpeedReadback",  1, 1, 0, 0,
+[ "BusSpeedReadback",  1, 1, 1, 0,
   ["bspeed_readback",             \&findmax,     "ReadbackSpeed"]
 ],
-[ "MaxFlops",          1, 1, 0, 0,
+[ "MaxFlops",          1, 1, 1, 0,
   ["maxspflops",                  \&findanymax,  "-SP"],
   ["maxdpflops",                  \&findanymax,  "-DP"]
 ],
-[ "DeviceMemory",      1, 1, 0, 0,
+[ "DeviceMemory",      1, 1, 1, 0,
   ["gmem_readbw",                 \&findmax,     "readGlobalMemoryCoalesced"],
   ["gmem_readbw_strided",         \&findmax,     "readGlobalMemoryUnit"],
   ["gmem_writebw",                \&findmax,     "writeGlobalMemoryCoalesced"],
@@ -131,7 +131,7 @@ my @SerialBenchmarks = (
   ["bfs_teps",                    \&findmax,     "BFS_teps"]
 ],
 
-[ "FFT",               1, 1, 0, 0,
+[ "FFT",               1, 1, 1, 0,
   ["fft_sp",                      \&findmax,     "SP-FFT"],
   ["fft_sp_pcie",                 \&findmax,     "SP-FFT_PCIe"],
   ["ifft_sp",                     \&findmax,     "SP-FFT-INV"],
@@ -141,7 +141,7 @@ my @SerialBenchmarks = (
   ["ifft_dp",                     \&findmax,     "DP-FFT-INV"],
   ["ifft_dp_pcie",                \&findmax,     "DP-FFT-INV_PCIe"]
 ],
-[ "SGEMM",             1, 1, 0, 0,
+[ "GEMM",              1, 1, 1, 0,
   ["sgemm_n",                     \&findmax,     "SGEMM-N"],
   ["sgemm_t",                     \&findmax,     "SGEMM-T"],
   ["sgemm_n_pcie",                \&findmax,     "SGEMM-N_PCIe"],
@@ -151,7 +151,7 @@ my @SerialBenchmarks = (
   ["dgemm_n_pcie",                \&findmax,     "DGEMM-N_PCIe"],
   ["dgemm_t_pcie",                \&findmax,     "DGEMM-T_PCIe"]
 ],
-[ "MD",                1, 1, 0, 0,
+[ "MD",                1, 1, 1, 0,
   ["md_sp_bw",                    \&findmax,     "MD-LJ-Bandwidth"],
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
@@ -163,17 +163,17 @@ my @SerialBenchmarks = (
   ["reduction_dp",                \&findmax,     "Reduction-DP"],
   ["reduction_dp_pcie",           \&findmax,     "Reduction-DP_PCIe"]
 ],
-[ "Scan",              1, 1, 0, 0,
+[ "Scan",              1, 1, 1, 0,
   ["scan",                        \&findmax,     "Scan"],
   ["scan_pcie",                   \&findmax,     "Scan_PCIe"],
   ["scan_dp",                     \&findmax,     "Scan-DP"],
   ["scan_dp_pcie",                \&findmax,     "Scan-DP_PCIe"]
 ],
-[ "Sort",              1, 1, 0, 0,
+[ "Sort",              1, 1, 1, 0,
   ["sort",                        \&findmax,     "Sort-Rate"],
   ["sort_pcie",                   \&findmax,     "Sort-Rate_PCIe"]
 ],
-[ "Spmv",              1, 1, 0, 0,
+[ "Spmv",              1, 1, 1, 0,
   ["spmv_csr_scalar_sp",          \&findmax,     "CSR-Scalar-SP"],
   ["spmv_csr_scalar_sp_pcie",     \&findmax,     "CSR-Scalar-SP_PCIe"],
   ["spmv_csr_scalar_dp",          \&findmax,     "CSR-Scalar-DP"],
@@ -193,14 +193,14 @@ my @SerialBenchmarks = (
   ["spmv_ellpackr_sp",            \&findmax,     "ELLPACKR-SP"],
   ["spmv_ellpackr_dp",            \&findmax,     "ELLPACKR-DP"]
 ],
-[ "Stencil2D",         1, 1, 0, 0,
+[ "Stencil2D",         1, 1, 1, 0,
   ["stencil",                     \&findmax,     "SP_Sten2D"],
   ["stencil_dp",                  \&findmax,     "DP_Sten2D"]
 ],
-[ "Triad",             1, 1, 0, 0,
+[ "Triad",             1, 1, 1, 0,
   ["triad_bw",                    \&findmax,     "TriadBdwth"]
 ],
-[ "S3D",               1, 1, 0, 0,
+[ "S3D",               1, 1, 1, 0,
   ["s3d",                         \&findmax,     "S3D-SP"],
   ["s3d_pcie",                    \&findmax,     "S3D-SP_PCIe"],
   ["s3d_dp",                      \&findmax,     "S3D-DP"],
@@ -249,7 +249,7 @@ my @ParallelBenchmarks = (
   ["fft_sp",                      \&findmean,    "SP-FFT(max)"],
   ["fft_dp",                      \&findmean,    "DP-FFT(max)"]
 ],
-[ "SGEMM",             1, 1, 0, 0,
+[ "GEMM",              1, 1, 1, 0,
   ["sgemm_n",                     \&findmean,    "SGEMM-N(max)"],
   ["dgemm_n",                     \&findmean,    "DGEMM-N(max)"]
 ],
@@ -782,6 +782,7 @@ sub buildCommand {
    }
    $command .= "/OpenCL/" if ($mode eq "opencl");
    $command .= "/CUDA/"   if ($mode eq "cuda");
+   $command .= "/MIC/"    if ($mode eq "mic");
    $command .= $progname;
 
    # Add size and maybe device options
@@ -829,6 +830,15 @@ sub printDevInfo {
           system("nvidia-smi -r -a >Logs/eccConfig.txt 2> Logs/eccConfig.err");
           system("nvcc --version >Logs/nvccVersion.txt 2> Logs/nvccVersion.err");
           system("cat /proc/driver/nvidia/version >Logs/driverVersion.txt 2>Logs/driverVersion.err");
+       }
+       elsif ($mode eq "mic") {
+          $devNameString = "DeviceName";
+          my $command = $hostfileString . $bindir .
+              "/Serial/MIC/BusSpeedDownload -i > Logs/deviceInfo.txt 2> Logs/deviceInfo.err";
+          open(DETECT,">Logs/detect.txt");
+          print DETECT "Running this command to detect devices:\n$command\n";
+          close(DETECT);
+          $retval = system($command);
        }
        else {
           $devNameString = "DeviceName";
@@ -899,9 +909,10 @@ sub usage() {
    print "Usage: perl driver.pl [options]\n";
    print "Mandatory Options\n";
    print "-s      - Problem size (see SHOC wiki for specifics)\n";
-   print "-cuda   - Use the cuda version of benchmarks\n";
-   print "-opencl - Use the opencl version of the benchmarks\n";
-   print "Note -cuda and -opencl are mutually exlcusive.\n\n";
+   print "-cuda   - Use the CUDA version of benchmarks\n";
+   print "-opencl - Use the OpenCL version of the benchmarks\n";
+   print "-mic    - Use the Intel MIC version of the benchmarks\n";
+   print "Note -cuda, -opencl, and -mic are mutually exlcusive.\n\n";
 
    print "Other options\n";
    print "-n        - Number of nodes to run on\n";

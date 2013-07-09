@@ -119,8 +119,8 @@ addBenchmarkSpecOptions(OptionParser &op)
 // ****************************************************************************
 void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
-    RunTest<float, 16>("S3D-SP_16", resultDB, op); 
-    RunTest<double, 8>("S3D-DP_8", resultDB, op);
+    RunTest<float, 16>("S3D-SP", resultDB, op); 
+    RunTest<double, 8>("S3D-DP", resultDB, op);
 }
 
 #define gridarr_G(name,i,j) (name)[i-1+(n)*(j-1)]

@@ -262,8 +262,8 @@ bool checkResults(forceVecType* d_force, posVecType *position,
 void
 RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
-   runTest<float,   float3,  float3, true>("MIC-MD-LJ",    resultDB, op);
-   runTest<double, double3, double3, true>("MIC-MD-LJ-DP", resultDB, op);
+   runTest<float,   float3,  float3, true>("MD-LJ",    resultDB, op);
+   runTest<double, double3, double3, true>("MD-LJ-DP", resultDB, op);
 }
 
 template <class T, class forceVecType, class posVecType, bool useMIC>
@@ -380,6 +380,10 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
         }
         double kernelTime = Timer::Stop(kernelTimerHandle, "md") / (double)iter;
         double totalTime = kernelTime + transferTime;
+
+        // TODO this version does not measure and include
+        // time required to transfer data in the same way as the
+        // other SHOC MD versions do.unlike other MD versions, this version does not
         
         // Total number of flops
         // Every pair of atoms compute distance - 8 flops
@@ -398,10 +402,10 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
                           (sizeof(int) * numPairs); // neighbor list 
         double gbytes = (double)nbytes / (1000. * 1000. * 1000.);
         resultDB.AddResult(testName + "-Bandwidth", atts, "GB/s", gbytes /
-                totalTime);
+                kernelTime);
 
         resultDB.AddResult(testName + "-Bandwidth_PCIe", atts, "GB/s",
-                gbytes / (kernelTime+transferTime));
+                gbytes / totalTime);
 
         resultDB.AddResult(testName+"_Parity", atts, "N",
                 (transferTime) / kernelTime);
