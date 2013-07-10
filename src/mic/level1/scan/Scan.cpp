@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "omp.h"
+#include "offload.h"
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
@@ -55,7 +56,6 @@ using namespace std;
 
 #define BLOCK 768
 #define ERR 1.0e-4
-#define NUM_THREADS (240)
 #define ALIGN (4096)
 // Last tuned for KNC hardware.
 #define KNC_IDEAL_L2_BUFFER (256*16) * 1024  
@@ -161,6 +161,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 
     int passes = op.getOptionInt("passes");
     int iters = op.getOptionInt("iterations");
+    int ThreadCount = omp_get_max_threads_target( TARGET_MIC, micdev );
 
     // cout << "Running benchmark with size " << size << endl;
     for (int k = 0; k < passes; k++)
@@ -172,7 +173,6 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                 alloc_if(0) free_if(0))
         {
             
-        int ThreadCount = NUM_THREADS;
         T* ipblocksum = (T*)malloc((ThreadCount+1)*sizeof(T));
         for (int j = 0; j < iters; j++)
         {    

@@ -48,17 +48,17 @@ __declspec(target(MIC)) void scanTiling(T *input,  T* output, const size_t n,
 
     memset(opblocksum, 0, sizeof(T)*ThreadCount);
 
-    for(int k = 0; k < n; k += ideal_buffer_size*NUM_THREADS) 
+    for(int k = 0; k < n; k += ideal_buffer_size*ThreadCount) 
     {
-        if (k + ideal_buffer_size*NUM_THREADS > n)  // if last buffer...
+        if (k + ideal_buffer_size*ThreadCount > n)  // if last buffer...
         {
-	  bufsize = (int)((((int)n)-k)/NUM_THREADS);
+	  bufsize = (int)((((int)n)-k)/ThreadCount);
         }
         
-        lastElement = k + bufsize * NUM_THREADS - 1;
+        lastElement = k + bufsize * ThreadCount - 1;
 
-        #pragma omp parallel for shared(input, output) num_threads(NUM_THREADS)
-        for(int i = 0; i < NUM_THREADS; i++) 
+        #pragma omp parallel for shared(input, output) num_threads(ThreadCount)
+        for(int i = 0; i < ThreadCount; i++) 
         {
             int offset=k + omp_get_thread_num()*bufsize;
             opblocksum[i+1] = input[offset];  // this is an inclusive scan
@@ -73,8 +73,8 @@ __declspec(target(MIC)) void scanTiling(T *input,  T* output, const size_t n,
             opblocksum[i] += opblocksum[i-1];
         }
 
-        #pragma omp parallel for shared(output,opblocksum) num_threads(NUM_THREADS)
-        for(int i = 0; i < NUM_THREADS; i++) 
+        #pragma omp parallel for shared(output,opblocksum) num_threads(ThreadCount)
+        for(int i = 0; i < ThreadCount; i++) 
         {
             int offset=k + omp_get_thread_num()*bufsize;
             output[offset] = opblocksum[i] + input[offset];
