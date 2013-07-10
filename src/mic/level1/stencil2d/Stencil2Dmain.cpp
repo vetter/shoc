@@ -37,6 +37,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <assert.h>
 #include "omp.h"
 #include "OptionParser.h"
@@ -45,6 +46,8 @@
 #include "BadCommandLine.h"
 #include "InvalidArgValue.h"
 #include "Matrix2D.h"
+#include "Matrix2D.cpp"
+#include "Matrix2DFileSupport.cpp"
 #include "HostStencilFactory.h"
 #include "HostStencil.h"
 #include "MICStencilFactory.h"
@@ -142,36 +145,86 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         unsigned int nWarmupPasses = (unsigned int)opts.getOptionInt( "warmupPasses" );
 
         // compute the expected result on the host
+        // or read it from a pre-existing file
+        std::string matrixFilenameBase = (std::string)opts.getOptionString( "expMatrixFile" );
 #if defined(PARALLEL)
         int cwrank;
         MPI_Comm_rank( MPI_COMM_WORLD, &cwrank );
         if( cwrank == 0 )
         {
 #endif // defined(PARALLEL)
-        std::cout << "\nPerforming stencil operation on host for later comparison with MIC output\n"
-            << "Depending on host capabilities, this may take a while."
-            << std::endl;
+        if( !matrixFilenameBase.empty() )
+        {
+            std::cout << "\nReading expected stencil operation result from file for later comparison with device output\n"
+                << std::endl;
+        }
+        else
+        {
+            std::cout << "\nPerforming stencil operation on host for later comparison with MIC output\n"
+                << "Depending on host capabilities, this may take a while."
+                << std::endl;
+        }
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
-        Matrix2D<T> exp( arrayDims[0] + 2*haloWidth, 
+        Matrix2D<T> expected( arrayDims[0] + 2*haloWidth, 
                             arrayDims[1] + 2*haloWidth );
         Initialize<T> init( seed,
                         haloWidth,
                         haloVal );	
 
-        init( exp );
-        if( beVerbose )
+        bool haveExpectedData = false;
+        if( ! matrixFilenameBase.empty() )
         {
-            std::cout << "initial state:\n" << exp << std::endl;
+            bool readOK = ReadMatrixFromFile( expected, GetMatrixFileName<T>( matrixFilenameBase ) );
+            if( readOK )
+            {
+
+                if( (expected.GetNumRows() != arrayDims[0] + 2*haloWidth) ||
+                    (expected.GetNumColumns() != arrayDims[1] + 2*haloWidth) )
+                {
+                    std::cerr << "The matrix read from file \'"
+                        << GetMatrixFileName<T>( matrixFilenameBase )
+                        << "\' does not match the matrix size specified on the command line.\n";
+                    expected.Reset( arrayDims[0] + 2*haloWidth, arrayDims[1] + 2*haloWidth );
+                }
+                else
+                {
+                    haveExpectedData = true;
+                }
+            }
+
+            if( !haveExpectedData )
+            {
+                std::cout << "\nSince we could not read the expected matrix values,\nperforming stencil operation on host for later comparison with OpenCL output.\n"
+                    << "Depending on host capabilities, this may take a while."
+                    << std::endl;
+            }
         }
-        Stencil<T>* stdStencil = stdStencilFactory->BuildStencil( opts );
-        (*stdStencil)( exp, nIters );
+        if( !haveExpectedData )
+        {
+            init( expected );
+            haveExpectedData = true;
+            if( beVerbose )
+            {
+                std::cout << "initial state:\n" << expected << std::endl;
+            }
+            stdStencil = stdStencilFactory->BuildStencil( opts );
+            (*stdStencil)( expected, nIters );
+        }
         if( beVerbose )
         {
-            std::cout << "expected result:\n" << exp << std::endl;
+            std::cout << "expected result:\n" << expected << std::endl;
         }
 	
+        // determine whether we are to save the expected matrix values to a file
+        // to speed up future runs
+        matrixFilenameBase = (std::string)opts.getOptionString( "saveExpMatrixFile" );
+        if( !matrixFilenameBase.empty() )
+        {
+            SaveMatrixToFile( expected, GetMatrixFileName<T>( matrixFilenameBase ) );
+        }
+        assert( haveExpectedData );
 
         // compute the result on the MIC device
         Matrix2D<T> data( arrayDims[0] + 2*haloWidth, 
@@ -279,10 +332,10 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 #if defined(PARALLEL)
             StencilValidater<T>* validater = new MPIStencilValidater<T>;
 #else
-            StencilValidater<T>* validater = new SerialStencilValidater<T>;            
+            StencilValidater<T>* validater = new SerialStencilValidater<T>;
 #endif // defined(PARALLEL)
 
-            validater->ValidateResult( exp,
+            validater->ValidateResult( expected,
                             data,
                             valErrThreshold,
                             nValErrsToPrint );
@@ -380,6 +433,9 @@ addBenchmarkSpecOptions( OptionParser& opts )
     opts.addOption( "val-threshold", OPT_FLOAT, "0.01", "validation error threshold" );
     opts.addOption( "val-print-limit", OPT_INT, "15", "number of validation errors to print" );
     opts.addOption( "haloVal", OPT_FLOAT, "0.0", "value to use for halo data" );
+
+    opts.addOption( "expMatrixFile", OPT_STRING, "", "Basename for file(s) holding expected matrices" );
+    opts.addOption( "saveExpMatrixFile", OPT_STRING, "", "Basename for output file(s) that will hold expected matrices" );
 
     opts.addOption( "warmupPasses", OPT_INT, "1", "Number of warmup passes to do before starting timings", 'w' );
 
