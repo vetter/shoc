@@ -249,7 +249,7 @@ my @ParallelBenchmarks = (
   ["fft_sp",                      \&findmean,    "SP-FFT(max)"],
   ["fft_dp",                      \&findmean,    "DP-FFT(max)"]
 ],
-[ "GEMM",              1, 1, 1, 0,
+[ "GEMM",              1, 1, 0, 0,
   ["sgemm_n",                     \&findmean,    "SGEMM-N(max)"],
   ["dgemm_n",                     \&findmean,    "DGEMM-N(max)"]
 ],

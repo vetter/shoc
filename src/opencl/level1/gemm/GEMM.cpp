@@ -86,7 +86,7 @@ addBenchmarkSpecOptions(OptionParser &op)
 //   Use pinned memory for better PCIe speeds.
 //
 // ****************************************************************************
-extern const char *cl_source_sgemmN;
+extern const char *cl_source_gemmN;
 
 void
 RunBenchmark(cl::Device& devcpp,
@@ -190,7 +190,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     // Create program object
     cl_program prog = clCreateProgramWithSource(ctx, 1,
-                                 &cl_source_sgemmN, NULL, &err);
+                                 &cl_source_gemmN, NULL, &err);
     CL_CHECK_ERROR(err);
 
     string flags = compileFlags + " -cl-mad-enable";

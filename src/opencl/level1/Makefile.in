@@ -262,7 +262,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = bfs fft sgemm stencil2d reduction scan sort triad md spmv
+SUBDIRS = bfs fft gemm stencil2d reduction scan sort triad md spmv
 all: all-recursive
 
 .SUFFIXES:
