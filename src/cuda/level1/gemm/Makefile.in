@@ -34,8 +34,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-serialcuda_PROGRAMS = SGEMM$(EXEEXT)
-subdir = src/cuda/level1/sgemm
+serialcuda_PROGRAMS = GEMM$(EXEEXT)
+subdir = src/cuda/level1/gemm
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -47,10 +47,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(serialcudadir)"
 PROGRAMS = $(serialcuda_PROGRAMS)
-am_SGEMM_OBJECTS = SGEMM.$(OBJEXT) main.$(OBJEXT)
-SGEMM_OBJECTS = $(am_SGEMM_OBJECTS)
+am_GEMM_OBJECTS = GEMM.$(OBJEXT) main.$(OBJEXT)
+GEMM_OBJECTS = $(am_GEMM_OBJECTS)
 am__DEPENDENCIES_1 =
-SGEMM_DEPENDENCIES = $(am__DEPENDENCIES_1)
+GEMM_DEPENDENCIES = $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -60,8 +60,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(SGEMM_SOURCES)
-DIST_SOURCES = $(SGEMM_SOURCES)
+SOURCES = $(GEMM_SOURCES)
+DIST_SOURCES = $(GEMM_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -233,10 +233,10 @@ AM_CPPFLAGS = $(CUDA_INC)
 serialcudadir = $(bindir)/Serial/CUDA
 
 # How to build those programs?
-SGEMM_SOURCES = SGEMM.cpp \
+GEMM_SOURCES = GEMM.cpp \
                 main.cpp
 
-SGEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
+GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
 all: all-recursive
 
 .SUFFIXES:
@@ -250,9 +250,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/sgemm/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/gemm/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/cuda/level1/sgemm/Makefile
+	  $(AUTOMAKE) --foreign src/cuda/level1/gemm/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -308,9 +308,9 @@ uninstall-serialcudaPROGRAMS:
 
 clean-serialcudaPROGRAMS:
 	-test -z "$(serialcuda_PROGRAMS)" || rm -f $(serialcuda_PROGRAMS)
-SGEMM$(EXEEXT): $(SGEMM_OBJECTS) $(SGEMM_DEPENDENCIES) 
-	@rm -f SGEMM$(EXEEXT)
-	$(CXXLINK) $(SGEMM_OBJECTS) $(SGEMM_LDADD) $(LIBS)
+GEMM$(EXEEXT): $(GEMM_OBJECTS) $(GEMM_DEPENDENCIES) 
+	@rm -f GEMM$(EXEEXT)
+	$(CXXLINK) $(GEMM_OBJECTS) $(GEMM_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -318,7 +318,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SGEMM.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GEMM.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .cpp.o:

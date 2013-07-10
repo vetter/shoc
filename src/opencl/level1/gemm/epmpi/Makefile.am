@@ -16,11 +16,11 @@ L1LIBS = $(OCL_LIBS) $(LIBS)
 epopencldir = $(bindir)/EP/OpenCL
 
 # what programs should be installed in the destination?
-epopencl_PROGRAMS = SGEMM
+epopencl_PROGRAMS = GEMM
 
 # how to build those programs
-SGEMM_SOURCES = SGEMM.cpp \
-				sgemmN_cl.cpp \
+GEMM_SOURCES = GEMM.cpp \
+				gemmN_cl.cpp \
 				main.cpp
-SGEMM_LDADD   = $(L1LIBS)
+GEMM_LDADD   = $(L1LIBS)
 

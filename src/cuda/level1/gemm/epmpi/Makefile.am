@@ -15,10 +15,10 @@ AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 epcudadir = $(bindir)/EP/CUDA
 
 # What programs should be installed to that destination?
-epcuda_PROGRAMS = SGEMM
+epcuda_PROGRAMS = GEMM
 
 # How to build those programs?
-SGEMM_SOURCES = SGEMM.cpp \
+GEMM_SOURCES = GEMM.cpp \
                 main.cpp
-SGEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
+GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
 

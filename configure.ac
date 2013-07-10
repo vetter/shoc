@@ -404,8 +404,8 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/scan/Makefile
                  src/cuda/level1/scan/epmpi/Makefile
                  src/cuda/level1/scan/tpmpi/Makefile
-                 src/cuda/level1/sgemm/Makefile
-                 src/cuda/level1/sgemm/epmpi/Makefile
+                 src/cuda/level1/gemm/Makefile
+                 src/cuda/level1/gemm/epmpi/Makefile
                  src/cuda/level1/sort/Makefile
                  src/cuda/level1/sort/epmpi/Makefile
                  src/cuda/level1/spmv/Makefile
@@ -444,8 +444,8 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level1/scan/Makefile
                  src/opencl/level1/scan/epmpi/Makefile
                  src/opencl/level1/scan/tpmpi/Makefile
-                 src/opencl/level1/sgemm/Makefile
-                 src/opencl/level1/sgemm/epmpi/Makefile
+                 src/opencl/level1/gemm/Makefile
+                 src/opencl/level1/gemm/epmpi/Makefile
                  src/opencl/level1/sort/Makefile
                  src/opencl/level1/sort/epmpi/Makefile
                  src/opencl/level1/spmv/Makefile

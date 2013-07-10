@@ -34,8 +34,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-epopencl_PROGRAMS = SGEMM$(EXEEXT)
-subdir = src/opencl/level1/sgemm/epmpi
+epcuda_PROGRAMS = GEMM$(EXEEXT)
+subdir = src/cuda/level1/gemm/epmpi
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -45,13 +45,12 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(epopencldir)"
-PROGRAMS = $(epopencl_PROGRAMS)
-am_SGEMM_OBJECTS = SGEMM.$(OBJEXT) sgemmN_cl.$(OBJEXT) main.$(OBJEXT)
-SGEMM_OBJECTS = $(am_SGEMM_OBJECTS)
+am__installdirs = "$(DESTDIR)$(epcudadir)"
+PROGRAMS = $(epcuda_PROGRAMS)
+am_GEMM_OBJECTS = GEMM.$(OBJEXT) main.$(OBJEXT)
+GEMM_OBJECTS = $(am_GEMM_OBJECTS)
 am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
-SGEMM_DEPENDENCIES = $(am__DEPENDENCIES_2)
+GEMM_DEPENDENCIES = $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -60,8 +59,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(SGEMM_SOURCES)
-DIST_SOURCES = $(SGEMM_SOURCES)
+SOURCES = $(GEMM_SOURCES)
+DIST_SOURCES = $(GEMM_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -80,12 +79,11 @@ BIBTEX = @BIBTEX@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ $(MPI_CPPFLAGS) $(OCL_CPPFLAGS) \
-	-I${top_srcdir}/src/mpi/common
+CPPFLAGS = @CPPFLAGS@
 CUDA_CPPFLAGS = @CUDA_CPPFLAGS@
 CUDA_INCDIR = @CUDA_INCDIR@
 
-# which compiler to use
+# Which compiler to use to build and link
 CXX = ${MPICXX}
 CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
@@ -190,18 +188,17 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 CXXLD = ${MPICXX}
-AM_LDFLAGS = $(OCL_LDFLAGS)
-L1LIBS = $(OCL_LIBS) $(LIBS)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 
-# what is the destination for programs built from this directory?
-epopencldir = $(bindir)/EP/OpenCL
+# What is the destination for programs built from this directory?
+epcudadir = $(bindir)/EP/CUDA
 
-# how to build those programs
-SGEMM_SOURCES = SGEMM.cpp \
-				sgemmN_cl.cpp \
-				main.cpp
+# How to build those programs?
+GEMM_SOURCES = GEMM.cpp \
+                main.cpp
 
-SGEMM_LDADD = $(L1LIBS)
+GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -215,9 +212,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/opencl/level1/sgemm/epmpi/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/gemm/epmpi/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/opencl/level1/sgemm/epmpi/Makefile
+	  $(AUTOMAKE) --foreign src/cuda/level1/gemm/epmpi/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -236,10 +233,10 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-epopenclPROGRAMS: $(epopencl_PROGRAMS)
+install-epcudaPROGRAMS: $(epcuda_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	test -z "$(epopencldir)" || $(MKDIR_P) "$(DESTDIR)$(epopencldir)"
-	@list='$(epopencl_PROGRAMS)'; test -n "$(epopencldir)" || list=; \
+	test -z "$(epcudadir)" || $(MKDIR_P) "$(DESTDIR)$(epcudadir)"
+	@list='$(epcuda_PROGRAMS)'; test -n "$(epcudadir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
 	while read p p1; do if test -f $$p; \
@@ -256,26 +253,26 @@ install-epopenclPROGRAMS: $(epopencl_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(epopencldir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(epopencldir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(epcudadir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(epcudadir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-epopenclPROGRAMS:
+uninstall-epcudaPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(epopencl_PROGRAMS)'; test -n "$(epopencldir)" || list=; \
+	@list='$(epcuda_PROGRAMS)'; test -n "$(epcudadir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' `; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(epopencldir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(epopencldir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(epcudadir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(epcudadir)" && rm -f $$files
 
-clean-epopenclPROGRAMS:
-	-test -z "$(epopencl_PROGRAMS)" || rm -f $(epopencl_PROGRAMS)
-SGEMM$(EXEEXT): $(SGEMM_OBJECTS) $(SGEMM_DEPENDENCIES) 
-	@rm -f SGEMM$(EXEEXT)
-	$(CXXLINK) $(SGEMM_OBJECTS) $(SGEMM_LDADD) $(LIBS)
+clean-epcudaPROGRAMS:
+	-test -z "$(epcuda_PROGRAMS)" || rm -f $(epcuda_PROGRAMS)
+GEMM$(EXEEXT): $(GEMM_OBJECTS) $(GEMM_DEPENDENCIES) 
+	@rm -f GEMM$(EXEEXT)
+	$(CXXLINK) $(GEMM_OBJECTS) $(GEMM_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -283,9 +280,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SGEMM.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GEMM.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sgemmN_cl.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -387,7 +383,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(epopencldir)"; do \
+	for dir in "$(DESTDIR)$(epcudadir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -417,7 +413,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-epopenclPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-epcudaPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -437,7 +433,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-epopenclPROGRAMS
+install-data-am: install-epcudaPROGRAMS
 
 install-dvi: install-dvi-am
 
@@ -482,23 +478,22 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-epopenclPROGRAMS
+uninstall-am: uninstall-epcudaPROGRAMS
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean \
-	clean-epopenclPROGRAMS clean-generic ctags distclean \
+	clean-epcudaPROGRAMS clean-generic ctags distclean \
 	distclean-compile distclean-generic distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dvi install-dvi-am \
-	install-epopenclPROGRAMS install-exec install-exec-am \
+	install-epcudaPROGRAMS install-exec install-exec-am \
 	install-html install-html-am install-info install-info-am \
 	install-man install-pdf install-pdf-am install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags uninstall uninstall-am \
-	uninstall-epopenclPROGRAMS
+	ps ps-am tags uninstall uninstall-am uninstall-epcudaPROGRAMS
 
 include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk

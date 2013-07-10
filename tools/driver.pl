@@ -141,7 +141,7 @@ my @SerialBenchmarks = (
   ["ifft_dp",                     \&findmax,     "DP-FFT-INV"],
   ["ifft_dp_pcie",                \&findmax,     "DP-FFT-INV_PCIe"]
 ],
-[ "SGEMM",             1, 1, 0,
+[ "GEMM",             1, 1, 0,
   ["sgemm_n",                     \&findmax,     "SGEMM-N"],
   ["sgemm_t",                     \&findmax,     "SGEMM-T"],
   ["sgemm_n_pcie",                \&findmax,     "SGEMM-N_PCIe"],
@@ -249,7 +249,7 @@ my @ParallelBenchmarks = (
   ["fft_sp",                      \&findmean,    "SP-FFT(max)"],
   ["fft_dp",                      \&findmean,    "DP-FFT(max)"]
 ],
-[ "SGEMM",             1, 1, 0,
+[ "GEMM",             1, 1, 0,
   ["sgemm_n",                     \&findmean,    "SGEMM-N(max)"],
   ["dgemm_n",                     \&findmean,    "DGEMM-N(max)"]
 ],
