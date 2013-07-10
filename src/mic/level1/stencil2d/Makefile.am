@@ -11,6 +11,7 @@ VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 
 MIC_ALTOFFLOAD_FLAGS=-opt-assume-safe-padding -no-opt-prefetch -opt-threads-per-core=4 -restrict -opt-streaming-stores always -opt-streaming-cache-evict=0
 
+AM_CPPFLAGS = -I$(srcdir)/../../common
 AM_CXXFLAGS = $(MIC_OFFLOAD_CXXFLAGS) $(MIC_ALTOFFLOAD_FLAGS)
 AM_LDFLAGS = $(MIC_OFFLOAD_LDFLAGS) $(MIC_ALTOFFLOAD_FLAGS)
 

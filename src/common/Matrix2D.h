@@ -1,6 +1,8 @@
 #ifndef MATRIX2D_H
 #define MATRIX2D_H
 
+#include "PMSMemMgmt.h"
+
 #include <iostream>
 #ifdef _WIN32
 #define restrict __restrict
@@ -47,7 +49,7 @@ private:
     {
         nPaddedColumns =  FindNumPaddedColumns( nColumns, pad );
 
-        flatData = new T[nRows * nPaddedColumns];
+        flatData = pmsAllocHostBuffer<T>( nRows * nPaddedColumns );
         data = new T*[nRows];
 
         for( size_t i = 0; i < nRows; i++ )
@@ -73,7 +75,7 @@ public:
         delete[] data;
         data = NULL;
 
-        delete[] flatData;
+        pmsFreeHostBuffer<T>( flatData );
         flatData = NULL;
     }
 
@@ -83,7 +85,7 @@ public:
         if( (_nRows != nRows) || (_nColumns != nColumns) )
         {
             delete[] data;
-            delete[] flatData;
+            pmsFreeHostBuffer<T>( flatData );
 
             nRows = _nRows;
             nColumns = _nColumns;
