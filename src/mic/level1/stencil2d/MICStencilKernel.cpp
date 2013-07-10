@@ -179,7 +179,35 @@ MICStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
             pCrnt   = pAux;
         }
 
-        _mm_free(pCrnt);
+        // Check for an odd number of iterations.
+        // Set pAux to point to the auxiliary array, regardless of
+        // the number of iterations.
+        if( nIters & 0x01 )
+        {
+            // We did an odd number of iterations.
+            // Right now, pTmp points to the auxiliary buffer we allocated
+            // in this function, and pCrnt points to the mtx object's 
+            // flat array.
+            pAux = pTmp;
+
+            // Copy from the auxiliary buffer back into the mtx 
+            // argument's buffer.
+            #pragma omp parallel for \
+                firstprivate(rarr1, pCrnt, nrows, nPaddedCols)
+            for( unsigned int i = 0; i < nrows * nPaddedCols; i++ )
+            {
+                rarr1[i] = pAux[i];
+            }
+        }
+        else
+        {
+            // We did an even number of iterations.
+            // Right now, pCrnt points to the auxiliary buffer we allocated
+            // in this function.
+            pAux = pCrnt;
+        }
+
+        _mm_free(pAux);
     }
 }
 
