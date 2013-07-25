@@ -33,6 +33,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
+#include <sstream>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,8 @@
 #include "ResultDatabase.h"
 #include "Timer.h"
 #include "Spmv/util.h"
+
+#include "offload.h"
 
 using namespace std; 
 
@@ -115,6 +118,7 @@ void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters,
 
 }
 
+
 // *******************************************************************
 // Function: spmvMic
 //
@@ -162,6 +166,250 @@ __declspec(target(mic)) void spmvMkl(double *val, int *cols, int *rowDelimiters,
 {
     char t='n';
     mkl_cspblas_dcsrgemv(&t, &dim, val, rowDelimiters, cols, vec, out);
+}
+
+
+
+//----------------------------------------------------------------------------
+// Perform sparse matrix-vector multiplication on MIC.
+// Inner loop is executed in parallel, in contrast to spmvMic where inner loop
+// is executed sequentially by each thread.
+//----------------------------------------------------------------------------
+
+template <typename floatType>
+__declspec(target(mic)) 
+void
+spmvMicVector(const floatType* mtxVals, 
+                const int* cols,
+                const int* rowDelimiters, 
+                const floatType* vec,
+                int nNonZeros, 
+                floatType* res,
+                int micdev ) 
+{
+//    int maxThreads = omp_get_max_threads_target( TARGET_MIC, micdev );
+    int maxThreads = omp_get_max_threads();
+    int redThreads = 4; // TODO change to not be hardcoded
+    int outerThreads = maxThreads / redThreads;
+
+    if( (outerThreads == 0) || (redThreads > maxThreads) )
+    {
+        // We have a small number of threads to work with.
+        // Fall back to the "serial" case where inner loop is computed
+        // by one thread.
+        outerThreads = maxThreads;
+        redThreads = 1;
+    }
+
+    if( omp_get_thread_num() == 0 )
+    {
+        printf( "vector kernel using %d outer threads, %d inner threads\n",
+            outerThreads, redThreads );
+    }
+
+    // set the OpenMP runtime to *not* use dynamic thread provisioning
+    int dynSaved = omp_get_dynamic();
+    omp_set_dynamic(0);
+
+    #pragma omp parallel num_threads(outerThreads)
+    for( int i = 0; i < nNonZeros; i++ )
+    {
+        floatType rowRes = 0; 
+        #pragma omp parallel for \
+            num_threads(redThreads) \
+            reduction(+:rowRes)
+        // #pragma ivdep
+        for( int j = rowDelimiters[i]; j < rowDelimiters[i+1]; j++ )
+        {
+            int col = cols[j]; 
+            rowRes = rowRes + (mtxVals[j] * vec[col]);
+        }    
+        res[i] = rowRes; 
+    }
+
+    // restore the OpenMP runtime's setting for dynamic thread provisioning
+    omp_set_dynamic(dynSaved);    
+}
+
+
+//----------------------------------------------------------------------------
+// Zero the output array (on the device,
+// so we can be sure it is computing 
+// something on each pass)
+//----------------------------------------------------------------------------
+template<typename floatType>
+__declspec(target(mic))
+void
+zero( floatType* h_out, int numRows )
+{
+    #pragma omp parallel for
+    for( unsigned int i = 0; i < numRows; i++ )
+    {
+        h_out[i] = 0;
+    }
+}
+
+
+//----------------------------------------------------------------------------
+// Measure performance of sparse matrix-vector multiply,
+// with matrix stored in CSR form (possibly padded).
+//----------------------------------------------------------------------------
+template<typename floatType>
+void
+csrTest( ResultDatabase& resultDB,
+            OptionParser& op,
+            floatType* h_val,
+            int* h_cols,
+            int* h_rowDelimiters,
+            floatType* h_vec,
+            floatType* h_out,
+            int numRows,
+            int numNonZeros,
+            floatType* refOut,
+            bool padded )
+{
+    int nPasses = op.getOptionInt( "passes" );
+    int nIters = op.getOptionInt( "iterations" );
+    int micdev = op.getOptionInt( "device" );
+
+    // Results description
+    std::ostringstream attstr;
+    attstr << numNonZeros << "_elements_" << numRows << "_rows";
+    double gflop = 2 * (double)numNonZeros / 1.0e9;
+    std::string prefix = (padded ? "Padded_" : "");
+    std::string suffix = (sizeof(floatType) == sizeof(float)) ? "-SP" : "-DP";
+
+    // transfer data to device
+    int txToDevTimerHandle = Timer::Start();
+    #pragma offload_transfer \
+        target(mic:micdev) \
+        in( h_val:length(numNonZeros) alloc_if(1) free_if(0) ) \
+        in( h_cols:length(numNonZeros) alloc_if(1) free_if(0) ) \
+        in( h_rowDelimiters:length(numRows+1) alloc_if(1) free_if(0) ) \
+        in( h_vec:length(numRows) alloc_if(1) free_if(0) ) \
+        nocopy( h_out:length(numRows) alloc_if(1) free_if(0) )
+    double iTransferTime = Timer::Stop( txToDevTimerHandle, "tx to dev" );
+
+    // Do as many passes as desired
+    for( int p = 0; p < nPasses; p++ )
+    {
+        // run the scalar kernel
+        int kernelTimerHandle = Timer::Start();
+        #pragma offload \
+            target(mic:micdev) \
+            nocopy( h_val:length(numNonZeros) alloc_if(0) free_if(0) ) \
+            nocopy( h_cols:length(numNonZeros) alloc_if(0) free_if(0) ) \
+            nocopy( h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0) ) \
+            nocopy( h_vec:length(numRows) alloc_if(0) free_if(0) ) \
+            nocopy( h_out:length(numRows) alloc_if(0) free_if(0) )
+        for( int i = 0; i < nIters; i++ )
+        {
+            spmvMic( h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out );
+        }
+        double scalarKernelTime = Timer::Stop( kernelTimerHandle, "kernel timer" );
+
+        // Transfer data back to the host.
+        int txFromDevTimerHandle = Timer::Start();
+        #pragma offload_transfer \
+            target(mic:micdev) \
+            out( h_out:length(numRows) alloc_if(0) free_if(0) )
+        double oTransferTime = Timer::Stop( txFromDevTimerHandle, "tx from dev" );
+        
+        // Compare the device result to the reference result.
+        if( verifyResults( refOut, h_out, numRows, p ) )
+        {
+            // Results match - the device computed a result equivalent to
+            // the host.
+            //
+            // Record the average performance of for one iteration.
+            scalarKernelTime = (scalarKernelTime / (double)nIters) * 1.e-3;
+            std::string testName = prefix+"CSR-Scalar"+suffix;
+            double totalTransfer = iTransferTime + oTransferTime;
+
+            resultDB.AddResult( testName,
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop/(scalarKernelTime) );
+            resultDB.AddResult( testName+"_PCIe",
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop / (scalarKernelTime + totalTransfer) );
+        }
+        else
+        {
+            // Results do not match.
+            // Don't report performance, and don't continue to run tests.
+            return;
+        }
+    }
+    #pragma offload \
+        target(mic:micdev) \
+        nocopy( h_out:length(numRows) alloc_if(0) free_if(0) )
+    zero<floatType>( h_out, numRows );
+
+#if READY
+    std::cout << "CSR Vector Kernel\n";
+    for( int p = 0; p < nPasses; p++ )
+    {
+        // run the vector kernel
+        int kernelTimerHandle = Timer::Start();
+        #pragma offload \
+            target(mic:micdev) \
+            nocopy( h_val:length(numNonZeros) alloc_if(0) free_if(0) ) \
+            nocopy( h_cols:length(numNonZeros) alloc_if(0) free_if(0) ) \
+            nocopy( h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0) ) \
+            nocopy( h_vec:length(numRows) alloc_if(0) free_if(0) ) \
+            nocopy( h_out:length(numRows) alloc_if(0) free_if(0) )
+        for( int i = 0; i < nIters; i++ )
+        {
+            spmvMicVector( h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out, micdev );
+        }
+        double vectorKernelTime = Timer::Stop( kernelTimerHandle, "kernel timer" );
+
+        // Transfer data back to the host.
+        int txFromDevTimerHandle = Timer::Start();
+        #pragma offload_transfer \
+            target(mic:micdev) \
+            out( h_out:length(numRows) alloc_if(0) free_if(0) )
+        double oTransferTime = Timer::Stop( txFromDevTimerHandle, "tx from dev" );
+        
+        // Compare the device result to the reference result.
+        if( verifyResults( refOut, h_out, numRows, p ) )
+        {
+            // Results match - the device computed a result equivalent to
+            // the host.
+            //
+            // Record the average performance of for one iteration.
+            vectorKernelTime = (vectorKernelTime / (double)nIters) * 1.e-3;
+            std::string testName = prefix+"CSR-Scalar"+suffix;
+            double totalTransfer = iTransferTime + oTransferTime;
+
+            resultDB.AddResult( testName,
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop/(vectorKernelTime) );
+            resultDB.AddResult( testName+"_PCIe",
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop / (vectorKernelTime + totalTransfer) );
+        }
+        else
+        {
+            // Results do not match.
+            // Don't report performance, and don't continue to run tests.
+            return;
+        }
+    }
+#endif // READY
+
+    // release the data from the device
+    #pragma offload_transfer \
+        target(mic:micdev) \
+        nocopy( h_val:length(numNonZeros) alloc_if(0) free_if(1) ) \
+        nocopy( h_cols:length(numNonZeros) alloc_if(0) free_if(1) ) \
+        nocopy( h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(1) ) \
+        nocopy( h_vec:length(numRows) alloc_if(0) free_if(1) ) \
+        nocopy( h_out:length(numRows) alloc_if(0) free_if(1) )
 }
 
 // ****************************************************************************
@@ -299,12 +547,50 @@ void RunTest( ResultDatabase &resultDB, OptionParser &op, enum spmv_target
     // Compute reference solution
     spmvCpu(h_val, h_cols, h_rowDelimiters, h_vec, numRows, refOut);
 
-    cout << target_str[target] << " Test\n";
     int micdev = op.getOptionInt("device"); 
 
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");
 
+
+    // The CSR "vector" implementation uses nested OpenMP constructs.
+    // Tell the OpenMP implementation we want to use nested parallel regions.
+    // NOTE: this doesn't necessarily mean that our "inner loops" will
+    // be parallelized, since some OpenMP implementations that say they
+    // support nesting will only use one thread for the inner loop.
+    omp_set_nested_target( TARGET_MIC, micdev, 1 );
+
+    // tests implemented in a way comparable to the Spmv benchmark
+    // implementations for the other supported programming models
+    std::cout << "CSR Test\n";
+    csrTest<floatType>( resultDB,
+                            op,
+                            h_val,
+                            h_cols,
+                            h_rowDelimiters,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,
+                            refOut,
+                            false );
+
+    std::cout << "CSR Test -- Padded Data\n";
+    csrTest<floatType>( resultDB,
+                            op,
+                            h_valPad,
+                            h_colsPad,
+                            h_rowDelimitersPad,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItemsPadded,
+                            refOut,
+                            true );
+
+    // tests implemented in a MIC-specific way
+    // This code does *not* assume that the data is already on the device.
+    cout << target_str[target] << " Test\n";
     for (int k = 0; k < passes; k++)
     {
         double iTransferTime, oTransferTime, totalKernelTime;
@@ -453,6 +739,7 @@ void RunTest( ResultDatabase &resultDB, OptionParser &op, enum spmv_target
             (avgTime + iTransferTime + oTransferTime));
     }
 
+    // clean up
     pmsFreeHostBuffer(h_val);
     pmsFreeHostBuffer(h_cols);
     pmsFreeHostBuffer(h_rowDelimiters);
