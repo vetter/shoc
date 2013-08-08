@@ -81,7 +81,8 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Function: spmvCpu
 //
 // Purpose: 
-//   Runs sparse matrix vector multiplication on the CPU 
+//   Compute Ma = b on a single core of the CPU.
+//   M is assumed to be square.
 //
 // Arguements: 
 //   val: array holding the non-zero values for the matrix
@@ -101,8 +102,13 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //   out indirectly through a pointer
 // ****************************************************************************
 template <typename floatType>
-void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters, 
-         const floatType *vec, int dim, floatType *out) 
+void
+spmvCpu(const floatType* val,
+        const int* cols,
+        const int* rowDelimiters, 
+        const floatType* vec,
+        int dim,
+        floatType* out) 
 {
 
     for (int i=0; i<dim; i++) 
@@ -127,9 +133,14 @@ void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters,
 // *******************************************************************
 
 template <typename floatType>
-__declspec(target(mic)) void spmvMic(const floatType *val, const int *cols,
-        const int *rowDelimiters, const floatType *vec, int dim, 
-        floatType *out) 
+__declspec(target(mic))
+void
+spmvMic(const floatType* val,
+        const int* cols,
+        const int* rowDelimiters,
+        const floatType* vec,
+        int dim, 
+        floatType* out) 
 {
     #pragma omp parallel for
     #pragma ivdep
@@ -381,7 +392,7 @@ csrTest( ResultDatabase& resultDB,
             //
             // Record the average performance of for one iteration.
             vectorKernelTime = (vectorKernelTime / (double)nIters) * 1.e-3;
-            std::string testName = prefix+"CSR-Scalar"+suffix;
+            std::string testName = prefix+"CSR-Vector"+suffix;
             double totalTransfer = iTransferTime + oTransferTime;
 
             resultDB.AddResult( testName,
@@ -465,6 +476,204 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
     return passed;
 }
 
+
+
+
+// ****************************************************************************
+// Function: RunTest
+//
+// Purpose:
+//   Computes Ma = b, where M is a sparse matrix, and a and b are vectors.
+//   M is assumed to be square.
+//   Templated to support both single and double-precision floating point
+//   values, and can compute on CPU or MIC, with MKL or "by hand."
+//
+// Arguments:
+//   resultDB: stores results from the benchmark
+//   micdev: the MIC device id to use for the benchmark
+//   h_val: non-zero values from M
+//   h_cols: column indices for non-zero values
+//   h_rowDelimiters: indices within h_val where each row starts
+//   h_vec: the vector a
+//   h_out: the vector b (output)
+//   nItems: number non zero elements in h_val.
+//   numRows: number of rows/colums in M; number of items in a and b.
+//   refOut: the reference output (the result that device should compute)
+//   target: approach to use to do the multiplication (on MIC, with MKL, etc.)
+//
+// Returns:  nothing
+//
+// Modifications:
+//
+// ****************************************************************************
+template<class floatType>
+void
+RunTestMIC( ResultDatabase& resultDB,
+            OptionParser& op,
+            floatType* h_val,
+            int* h_cols,
+            int* h_rowDelimiters,
+            floatType* h_vec,
+            floatType* h_out,
+            int numRows,
+            int nItems,
+            floatType* refOut,
+            enum spmv_target target )
+{
+    int nPasses = op.getOptionInt( "passes" );
+    int iters = op.getOptionInt( "iterations" );
+    int micdev = op.getOptionInt( "device" );
+
+    cout << target_str[target] << " Test\n";
+    double iTransferTime, oTransferTime, totalKernelTime;
+    int txToDevTimerHandle;
+    int txFromDevTimerHandle;
+    int kernelTimerHandle;
+
+    for( int pass = 0; pass < nPasses; pass++ )
+    {
+        switch (target) {
+        case use_mic:
+            // Warm up MIC device
+            #pragma offload target(mic:micdev) in(pass)
+            { }
+            #pragma offload target(mic:micdev) \
+                        in(h_cols:length(nItems)             free_if(0)) \
+                        in(h_rowDelimiters:length(numRows+1) free_if(0)) \
+                        in(h_vec:length(numRows)             free_if(0)) \
+                        in(h_val:length(nItems)              free_if(0)) \
+                        in(h_out:length(numRows)             free_if(0))
+            { }
+
+
+            txToDevTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) \
+                in(h_cols:length(nItems)              alloc_if(0) free_if(0)) \
+                in(h_rowDelimiters:length(numRows+1)  alloc_if(0) free_if(0)) \
+                in(h_vec:length(numRows)              alloc_if(0) free_if(0)) \
+                in(h_val:length(nItems)               alloc_if(0) free_if(0)) \
+                in(h_out:length(numRows)              alloc_if(0) free_if(0))
+                { }
+            iTransferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
+
+            kernelTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) in(numRows, iters) \
+            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
+            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
+            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
+            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
+            nocopy(h_out:length(numRows)             alloc_if(0) free_if(0))
+            for (int i=0; i<iters; i++) 
+            {
+                spmvMic(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
+            }
+            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
+
+            txFromDevTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) \
+              nocopy(h_cols:length(nItems)             alloc_if(0) free_if(1)) \
+              nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(1)) \
+              nocopy(h_vec:length(numRows)             alloc_if(0) free_if(1)) \
+              nocopy(h_val:length(nItems)              alloc_if(0) free_if(1)) \
+              out(h_out:length(numRows)                alloc_if(0) free_if(1)) 
+            { }
+            oTransferTime = Timer::Stop(txFromDevTimerHandle, "tx from dev");
+            break;
+
+        case use_cpu:
+            kernelTimerHandle = Timer::Start();
+            for (int i=0; i<iters; i++) 
+            {
+                spmvCpu(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
+            }
+            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
+            iTransferTime = oTransferTime = 0;
+        break;
+
+        case use_mkl:
+            kernelTimerHandle = Timer::Start();
+            for (int i=0; i<iters; i++) 
+            {
+                    spmvMkl(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
+            }
+            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
+            iTransferTime = oTransferTime = 0;
+        break;
+
+        case use_mkl_mic:
+            // Warm up MIC device
+            #pragma offload target(mic:micdev) in(pass)
+            { }
+
+            #pragma offload target(mic:micdev) \
+                in(h_cols:length(nItems)             free_if(0)) \
+                in(h_rowDelimiters:length(numRows+1) free_if(0)) \
+                in(h_vec:length(numRows)             free_if(0)) \
+                in(h_val:length(nItems)              free_if(0)) \
+                in(h_out:length(numRows)             free_if(0))
+            { }
+
+            txToDevTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) \
+            in(h_cols:length(nItems)              alloc_if(0)  free_if(0)) \
+            in(h_rowDelimiters:length(numRows+1)  alloc_if(0)  free_if(0)) \
+            in(h_vec:length(numRows)              alloc_if(0)  free_if(0)) \
+            in(h_val:length(nItems)               alloc_if(0)  free_if(0)) \
+            in(h_out:length(numRows)              alloc_if(0)  free_if(0))
+            { }
+            iTransferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
+
+            kernelTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) \
+            in(numRows, iters) \
+            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
+            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
+            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
+            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
+            nocopy(h_out:length(numRows)             alloc_if(0) free_if(0))
+            for (int i=0; i<iters; i++) 
+            {
+                    spmvMkl(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
+            }
+            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
+
+            txFromDevTimerHandle = Timer::Start();
+            #pragma offload target(mic:micdev) \
+            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
+            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
+            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
+            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
+            out(h_out:length(numRows)                alloc_if(0) free_if(0))
+            { }
+            oTransferTime = Timer::Stop(txFromDevTimerHandle, "to from dev");
+
+        #pragma offload target(mic:micdev) \
+        nocopy(h_cols:length(nItems)             alloc_if(0) free_if(1)) \
+            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(1)) \
+        nocopy(h_vec:length(numRows)             alloc_if(0) free_if(1)) \
+            nocopy(h_val:length(nItems)              alloc_if(0) free_if(1)) \
+            nocopy(h_out:length(numRows)                alloc_if(0) free_if(1))
+            { }
+            break;
+        }
+
+        verifyResults(refOut, h_out, numRows, pass);
+
+        // Store results in the DB
+        char atts[TEMP_BUFFER_SIZE];
+        char benchName[TEMP_BUFFER_SIZE];
+        double avgTime = totalKernelTime / (double)iters;
+        sprintf(atts, "%d_elements_%d_rows", nItems, numRows);
+        double gflop = 2 * (double) nItems / 1e9;
+        bool dpTest = (sizeof(floatType) == sizeof(double));
+        sprintf(benchName, "%s-%s", target_str[target], dpTest ? "DP":"SP");
+        resultDB.AddResult(benchName, atts, "Gflop/s", gflop/avgTime);
+        sprintf(benchName, "%s_PCIe", benchName);
+        resultDB.AddResult(benchName, atts, "Gflop/s", gflop / 
+            (avgTime + iTransferTime + oTransferTime));
+    }
+}
+
 // ****************************************************************************
 // Function: RunTest
 //
@@ -486,9 +695,11 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
 // Modifications:
 //
 // ****************************************************************************
-template <typename floatType> 
-void RunTest( ResultDatabase &resultDB, OptionParser &op, enum spmv_target 
-        target, int nRows=0) 
+template<typename floatType> 
+void
+RunTest( ResultDatabase &resultDB,
+            OptionParser &op, 
+            int nRows=0) 
 {
     // Host data structures
     // array of values in the sparse matrix
@@ -589,155 +800,52 @@ void RunTest( ResultDatabase &resultDB, OptionParser &op, enum spmv_target
                             true );
 
     // tests implemented in a MIC-specific way
-    // This code does *not* assume that the data is already on the device.
-    cout << target_str[target] << " Test\n";
-    for (int k = 0; k < passes; k++)
-    {
-        double iTransferTime, oTransferTime, totalKernelTime;
-        int txToDevTimerHandle;
-        int txFromDevTimerHandle;
-        int kernelTimerHandle;
-
-        switch (target) {
-        case use_mic:
-            // Warm up MIC device
-            #pragma offload target(mic:micdev) in(k)
-            { }
-            #pragma offload target(mic:micdev) \
-                        in(h_cols:length(nItems)             free_if(0)) \
-                        in(h_rowDelimiters:length(numRows+1) free_if(0)) \
-                        in(h_vec:length(numRows)             free_if(0)) \
-                        in(h_val:length(nItems)              free_if(0)) \
-                        in(h_out:length(numRows)             free_if(0))
-            { }
-
-
-            txToDevTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) \
-                in(h_cols:length(nItems)              alloc_if(0) free_if(0)) \
-                in(h_rowDelimiters:length(numRows+1)  alloc_if(0) free_if(0)) \
-                in(h_vec:length(numRows)              alloc_if(0) free_if(0)) \
-                in(h_val:length(nItems)               alloc_if(0) free_if(0)) \
-                in(h_out:length(numRows)              alloc_if(0) free_if(0))
-                { }
-            iTransferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
-
-            kernelTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) in(numRows, iters) \
-            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
-            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
-            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
-            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
-            nocopy(h_out:length(numRows)             alloc_if(0) free_if(0))
-            for (int i=0; i<iters; i++) 
-            {
-                spmvMic(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
-            }
-            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
-
-            txFromDevTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) \
-              nocopy(h_cols:length(nItems)             alloc_if(0) free_if(1)) \
-              nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(1)) \
-              nocopy(h_vec:length(numRows)             alloc_if(0) free_if(1)) \
-              nocopy(h_val:length(nItems)              alloc_if(0) free_if(1)) \
-              out(h_out:length(numRows)                alloc_if(0) free_if(1)) 
-            { }
-            oTransferTime = Timer::Stop(txFromDevTimerHandle, "tx from dev");
-            break;
-
-        case use_cpu:
-            kernelTimerHandle = Timer::Start();
-            for (int i=0; i<iters; i++) 
-            {
-                spmvCpu(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
-            }
-            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
-            iTransferTime = oTransferTime = 0;
-        break;
-
-        case use_mkl:
-            kernelTimerHandle = Timer::Start();
-            for (int i=0; i<iters; i++) 
-            {
-                    spmvMkl(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
-            }
-            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
-            iTransferTime = oTransferTime = 0;
-        break;
-
-        case use_mkl_mic:
-            // Warm up MIC device
-            #pragma offload target(mic:micdev) in(k)
-            { }
-
-            #pragma offload target(mic:micdev) \
-                in(h_cols:length(nItems)             free_if(0)) \
-                in(h_rowDelimiters:length(numRows+1) free_if(0)) \
-                in(h_vec:length(numRows)             free_if(0)) \
-                in(h_val:length(nItems)              free_if(0)) \
-                in(h_out:length(numRows)             free_if(0))
-            { }
-
-            txToDevTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) \
-            in(h_cols:length(nItems)              alloc_if(0)  free_if(0)) \
-            in(h_rowDelimiters:length(numRows+1)  alloc_if(0)  free_if(0)) \
-            in(h_vec:length(numRows)              alloc_if(0)  free_if(0)) \
-            in(h_val:length(nItems)               alloc_if(0)  free_if(0)) \
-            in(h_out:length(numRows)              alloc_if(0)  free_if(0))
-            { }
-            iTransferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
-
-            kernelTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) \
-            in(numRows, iters) \
-            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
-            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
-            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
-            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
-            nocopy(h_out:length(numRows)             alloc_if(0) free_if(0))
-            for (int i=0; i<iters; i++) 
-            {
-                    spmvMkl(h_val, h_cols, h_rowDelimiters, h_vec, numRows, h_out);
-            }
-            totalKernelTime = Timer::Stop(kernelTimerHandle, "spmv");
-
-            txFromDevTimerHandle = Timer::Start();
-            #pragma offload target(mic:micdev) \
-            nocopy(h_cols:length(nItems)             alloc_if(0) free_if(0)) \
-            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(0)) \
-            nocopy(h_vec:length(numRows)             alloc_if(0) free_if(0)) \
-            nocopy(h_val:length(nItems)              alloc_if(0) free_if(0)) \
-            out(h_out:length(numRows)                alloc_if(0) free_if(0))
-            { }
-            oTransferTime = Timer::Stop(txFromDevTimerHandle, "to from dev");
-
-	    #pragma offload target(mic:micdev) \
-	    nocopy(h_cols:length(nItems)             alloc_if(0) free_if(1)) \
-            nocopy(h_rowDelimiters:length(numRows+1) alloc_if(0) free_if(1)) \
-	    nocopy(h_vec:length(numRows)             alloc_if(0) free_if(1)) \
-       	    nocopy(h_val:length(nItems)              alloc_if(0) free_if(1)) \
-            nocopy(h_out:length(numRows)                alloc_if(0) free_if(1))
-            { }
-            break;
-        }
-
-        verifyResults(refOut, h_out, numRows, k);
-
-        // Store results in the DB
-        char atts[TEMP_BUFFER_SIZE];
-        char benchName[TEMP_BUFFER_SIZE];
-        double avgTime = totalKernelTime / (double)iters;
-        sprintf(atts, "%d_elements_%d_rows", nItems, numRows);
-        double gflop = 2 * (double) nItems / 1e9;
-        bool dpTest = (sizeof(floatType) == sizeof(double));
-        sprintf(benchName, "%s-%s", target_str[target], dpTest ? "DP":"SP");
-        resultDB.AddResult(benchName, atts, "Gflop/s", gflop/avgTime);
-        sprintf(benchName, "%s_PCIe", benchName);
-        resultDB.AddResult(benchName, atts, "Gflop/s", gflop / 
-            (avgTime + iTransferTime + oTransferTime));
-    }
+    // the 'use_mic' should give similar performance to
+    // csrTest with unpadded data.
+    RunTestMIC<floatType>( resultDB,
+                            op,
+                            h_val,
+                            h_cols,
+                            h_rowDelimiters,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,
+                            refOut,
+                            use_mic );
+    RunTestMIC<floatType>( resultDB,
+                            op,
+                            h_val,
+                            h_cols,
+                            h_rowDelimiters,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,
+                            refOut,
+                            use_mkl_mic );
+    RunTestMIC<floatType>( resultDB,
+                            op,
+                            h_val,
+                            h_cols,
+                            h_rowDelimiters,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,
+                            refOut,
+                            use_cpu );
+    RunTestMIC<floatType>( resultDB,
+                            op,
+                            h_val,
+                            h_cols,
+                            h_rowDelimiters,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,
+                            refOut,
+                            use_mkl );
 
     // clean up
     pmsFreeHostBuffer(h_val);
@@ -775,11 +883,9 @@ RunBenchmark( OptionParser &op, ResultDatabase &resultDB)
     int sizeClass = op.getOptionInt("size") - 1; 
 
     cout << "Single precision tests:\n"; 
-
-    RunTest<float> (resultDB, op, use_mkl, probSizes[sizeClass]);
-    RunTest<float> (resultDB, op, use_mkl_mic, probSizes[sizeClass]);
+    RunTest<float> (resultDB, op, probSizes[sizeClass]);
 
     cout << "Double precision tests:\n"; 
-    RunTest<double> (resultDB, op, use_mkl, probSizes[sizeClass]);
-    RunTest<double> (resultDB, op, use_mkl_mic, probSizes[sizeClass]);
+    RunTest<double> (resultDB, op, probSizes[sizeClass]);
 }
+
