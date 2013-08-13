@@ -75,6 +75,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
                  "which stores the matrix in Matrix Market format"); 
     op.addOption("maxval", OPT_FLOAT, "10", "Maximum value for random "
                  "matrices");
+    op.addOption("seed", OPT_INT, "24115438", "Seed for PRNG");
 }
 
 // ****************************************************************************
@@ -719,6 +720,11 @@ RunTest( ResultDatabase &resultDB,
     __declspec(target(mic)) static int nItems;
     __declspec(target(mic)) static int nItemsPadded;
     __declspec(target(mic)) static int numRows;
+
+    // Seed the random number generator used to initialize the 
+    // values in matrix A and vector v (we are computing u = Av).
+    unsigned int rngSeed = (unsigned int)op.getOptionInt("seed");
+    InitRNG( rngSeed );
 
     // Obtain a square, sparse matrix A in CSR format.
     // We can read the matrix from a MatrixMarket input file,

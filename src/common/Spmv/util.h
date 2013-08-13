@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "PMSMemMgmt.h"
@@ -51,6 +52,42 @@ template <typename floatType>
 void convertToPadded(floatType *A, int *cols, int dim, int *rowDelimiters, 
                      floatType **newA_ptr, int **newcols_ptr, int *newIndices, 
                      int *newSize); 
+
+
+// Random Numbers.
+// Based on the man pages for random(3), rand(3), and drand48(3), 
+// random() is preferable if one is to use a RNG from the Linux
+// standard library.
+// For most of our benchmarks, the quality of the RNG doesn't matter.
+//
+// A benchmark should call InitRNG with a seed (possibly taken from 
+// a command-line argument) before calling GetRandomNumber.
+//
+inline 
+void 
+InitRNG( unsigned int s )
+{
+    srandom( s );
+}
+
+//
+// Get a "random" value in [0, RAND_MAX]
+//
+inline
+long int 
+GetRandomNumber( void )
+{
+    return random();
+}
+
+
+template<class floatType>
+inline
+floatType
+GetRandom01( void )
+{
+    return ((floatType)random()) / RAND_MAX;
+}
 
 
 // ****************************************************************************
@@ -175,8 +212,7 @@ void readMatrix(const char *filename, floatType **val_ptr, int **cols_ptr,
         {
             sscanf(line.c_str(), "%d %d", &coords[index].x, &coords[index].y); 
             // assign a random value 
-            coords[index].val = ((floatType) MAX_RANDOM_VAL * 
-                                 (rand() / (RAND_MAX + 1.0)));
+            coords[index].val = GetRandom01<floatType>() * MAX_RANDOM_VAL;
         }
         else 
         {
@@ -253,7 +289,7 @@ void initRandomVector(floatType *A, const int n, const float maxi)
 {
     for (int j = 0; j < n; j++) 
     {
-        A[j] = ((floatType) maxi * (rand() / (RAND_MAX + 1.0f)));
+        A[j] = GetRandom01<floatType>() * maxi;
     }
 }
 
@@ -285,9 +321,6 @@ void initRandomMatrix(int *cols, int *rowDelimiters, const int n, const int dim)
     // spot in the matrix
     double prob = (double)n / ((double)dim * (double)dim);
 
-    // Seed random number generator
-    srand48(8675309L);
-
     // Randomly decide whether entry i,j gets a value, but ensure n values
     // are assigned
     bool fillRemaining = false;
@@ -301,7 +334,7 @@ void initRandomMatrix(int *cols, int *rowDelimiters, const int n, const int dim)
             if (numEntriesLeft <= needToAssign) {
                 fillRemaining = true;
             }
-            if ((nnzAssigned < n && drand48() <= prob) || fillRemaining)
+            if ((nnzAssigned < n && (GetRandom01<double>() <= prob)) || fillRemaining)
             {
                 // Assign (i,j) a value
                 cols[nnzAssigned] = j;
