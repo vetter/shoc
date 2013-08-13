@@ -720,34 +720,66 @@ RunTest( ResultDatabase &resultDB,
     __declspec(target(mic)) static int nItemsPadded;
     __declspec(target(mic)) static int numRows;
 
-    // This benchmark either reads in a matrix market input file or
-    // generates a random matrix
-    string inFileName = op.getOptionString("mm_filename");
-    if (inFileName == "random")
+    // Obtain a square, sparse matrix A in CSR format.
+    // We can read the matrix from a MatrixMarket input file,
+    // or generate a random matrix.
+    std::string inFileName = op.getOptionString( "mm_filename" );
+    if( inFileName != "random" )
     {
-        // If we're not opening a file, the dimension of the matrix
-        // has been passed in as an argument
+        int numCols = -1;
+
+        // We have been asked to read the matrix A from a file.
+        readMatrix( inFileName.c_str(),
+                    &h_val,
+                    &h_cols,
+                    &h_rowDelimiters,
+                    &nItems,
+                    &numRows,
+                    &numCols );
+        if( numRows != numCols )
+        {
+            // We read a matrix that was not square, but we can only
+            // work with square matrices.
+            std::cerr << "This benchmark can only work with square matrices,\nbut file "
+                << inFileName << " contains a non-square matrix "
+                << "(nRows=" << numRows << ", nCols=" << numCols << ")."
+                << std::endl;
+            exit( 1 );
+        }
+        nRows = numRows;
+    }
+    else
+    {
+        // We are not using a matrix from a file.
+        // Use the number of rows provided as an argument to this function,
+        // and construct a square matrix A in CSR form with random values.
         numRows = nRows; 
-        nItems = numRows * numRows / 100; // 1% of entries will be non-zero
+
+        
+        // determine the number of non-zeros in the matrix
+        // Our target is 1% of the entries (with a minimum of 1) will be
+        // non-zero.
+        nItems = numRows * numRows / 100;
+        if( nItems == 0 )
+        {
+            nItems = 1;
+        }
+
         float maxval = op.getOptionFloat("maxval"); 
         h_val = pmsAllocHostBuffer<floatType>(nItems);
         h_cols = pmsAllocHostBuffer<int>(nItems);
         h_rowDelimiters = pmsAllocHostBuffer<int>(nRows+1); 
-        fill(h_val, nItems, maxval); 
+        initRandomVector(h_val, nItems, maxval); 
         initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows); 
     }
-    else 
-    {   char filename[FIELD_LENGTH];
-        strcpy(filename, inFileName.c_str());
-        readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
-                &nItems, &numRows);
-    }
+
+
 
     // Set up remaining host data
     h_vec = pmsAllocHostBuffer<floatType>(numRows);
     refOut = pmsAllocHostBuffer<floatType>(numRows);
     h_rowDelimitersPad = pmsAllocHostBuffer<int>(numRows+1);
-    fill(h_vec, numRows, op.getOptionFloat("maxval")); 
+    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval")); 
 
     // Set up the padded data structures
     int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);
@@ -759,7 +791,6 @@ RunTest( ResultDatabase &resultDB,
     spmvCpu(h_val, h_cols, h_rowDelimiters, h_vec, numRows, refOut);
 
     int micdev = op.getOptionInt("device"); 
-
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");
 

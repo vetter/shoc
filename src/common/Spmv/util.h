@@ -36,10 +36,10 @@ struct Coordinate {
 inline int intcmp(const void *v1, const void *v2);
 inline int coordcmp(const void *v1, const void *v2);
 template <typename floatType>
-void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr, 
-                int **rowDelimiters_ptr, int *n, int *size);
+void readMatrix(const char *filename, floatType **val_ptr, int **cols_ptr, 
+                int **rowDelimiters_ptr, int *n, int *nRows, int* nCols);
 template <typename floatType>
-void fill(floatType *A, const int n, const float maxi);
+void initRandomVector(floatType *A, const int n, const float maxi);
 void initRandomMatrix(int *cols, int *rowDelimiters, const int n, const int dim);
 template <typename floatType>
 void printSparse(floatType *A, int n, int dim, int *cols, int *rowDelimiters);
@@ -74,8 +74,11 @@ void convertToPadded(floatType *A, int *cols, int dim, int *rowDelimiters,
 //   n: input - pointer to uninitialized int
 //      output - pointer to an int holding the number of non-zero
 //               elements in the matrix
-//   size: input - pointer to uninitialized int
+//   nRows: input - pointer to uninitialized int
 //         output - pointer to an int holding the number of rows in
+//                  the matrix 
+//   nCols: input - pointer to uninitialized int
+//         output - pointer to an int holding the number of columns in
 //                  the matrix 
 //
 // Programmer: Lukasz Wesolowski
@@ -84,10 +87,16 @@ void convertToPadded(floatType *A, int *cols, int dim, int *rowDelimiters,
 //           allocates and returns *val_ptr, *cols_ptr, and
 //           *rowDelimiters_ptr indirectly 
 //           returns n and size indirectly through pointers
+//
+// Modified: August 13, 2013, Philip C. Roth 
+//          Altered signature to return both number of rows and columns,
+//          since function can read matrix where nRows != nColumns.
+//          Caller must enforce any size requirements they need (e.g.,
+//          that the matrix is square).
 // ****************************************************************************
 template <typename floatType>
-void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr, 
-                int **rowDelimiters_ptr, int *n, int *size) 
+void readMatrix(const char *filename, floatType **val_ptr, int **cols_ptr, 
+                int **rowDelimiters_ptr, int *n, int *nRows, int* nCols) 
 {
     std::string line;
     char id[FIELD_LENGTH];
@@ -106,7 +115,7 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
     int symmetric = 0; 
     int pattern = 0; 
 
-    int nRows, nCols, nElements;  
+    int nElements;  
 
     struct Coordinate *coords;
 
@@ -150,7 +159,7 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
     } 
 
     // read the matrix size and number of non-zero elements
-    sscanf(line.c_str(), "%d %d %d", &nRows, &nCols, &nElements); 
+    sscanf(line.c_str(), "%d %d %d", nRows, nCols, &nElements); 
 
     int valSize = nElements * sizeof(struct Coordinate);
     if (symmetric) 
@@ -197,17 +206,16 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
 
     // create CSR data structures
     *n = nElements; 
-    *size = nRows; 
     *val_ptr = pmsAllocHostBuffer<floatType>( nElements );
     *cols_ptr = pmsAllocHostBuffer<int>( nElements );
-    *rowDelimiters_ptr = pmsAllocHostBuffer<int>( nRows + 1 );
+    *rowDelimiters_ptr = pmsAllocHostBuffer<int>( *nRows + 1 );
     
     floatType *val = *val_ptr; 
     int *cols = *cols_ptr; 
     int *rowDelimiters = *rowDelimiters_ptr; 
 
     rowDelimiters[0] = 0; 
-    rowDelimiters[nRows] = nElements; 
+    rowDelimiters[*nRows] = nElements; 
     int r=0; 
     for (int i=0; i<nElements; i++) 
     {
@@ -219,13 +227,11 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
         cols[i] = coords[i].y;    
     }
 
-    r = 0; 
-
     delete[] coords;
 }
 
 // ****************************************************************************
-// Function: fill
+// Function: initRandomVector
 //
 // Purpose:
 //   Simple routine to initialize input array
@@ -239,9 +245,11 @@ void readMatrix(char *filename, floatType **val_ptr, int **cols_ptr,
 // Creation: June 21, 2010
 // Returns:  nothing
 //
+// Modified: August 13, 2013, Philip C. Roth
+//          Changed name to something more descriptive.
 // ****************************************************************************
 template <typename floatType>
-void fill(floatType *A, const int n, const float maxi)
+void initRandomVector(floatType *A, const int n, const float maxi)
 {
     for (int j = 0; j < n; j++) 
     {
