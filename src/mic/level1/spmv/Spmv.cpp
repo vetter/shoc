@@ -33,6 +33,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
+#include <cassert>
 #include <sstream>
 #include <math.h>
 #include <stdlib.h>
@@ -157,6 +158,55 @@ spmvMic(const floatType* val,
     }
 
 }
+
+
+// *******************************************************************
+//
+// Compute u = Av on the MIC accelerator, where A is square,
+// sparse, and expressed in ELLPACK-R format.
+// ELLPACK-R is described in Vazquez, Ortega, Fernandez, Garzon,
+// "Improving the performance of the sparse matrix vector product with 
+// GPUs," 10th International IEEE Conference on Computer and Information
+// Technology (CIT 2010).
+//
+// Two major differences between ELLPACK-R and CSR is that the array vals
+// of non-zeros is in column-major order, and is padded so that it is
+// of size nRows x maxRowLength, where maxRowLength is the maximum
+// of the number of non-zeros per row from the original matrix A.
+// *******************************************************************
+template<typename floatType>
+__declspec(target(mic))
+void
+spmvMicELLPACKR( const floatType* vals,     // non-zeros from A (ELLPACK-R fmt)
+                    const int* rowLengths,  // number of non-zeros in each A row
+                    const int* colIndices,  // column index of each non-zero
+                    const floatType* vec,   // vector v to be multiplied with A
+                    int dim,                // number of rows (and columns) in A
+                    floatType* result )     // vector u, result of Av
+{
+    #pragma omp parallel for
+    #pragma ivdep
+    for( unsigned int r = 0; r < dim; r++ )
+    {
+        floatType rowDotProduct = 0.0;
+        int currRowLength = rowLengths[r];
+
+        // for each non-zero value in the row
+        for( unsigned int c = 0; c < currRowLength; c++ )
+        {
+            // add its contribution to the row's dot product
+            floatType currAValue = vals[r + c*dim];
+            unsigned int currColIdx = colIndices[r + c*dim];
+            rowDotProduct += currAValue * vec[currColIdx];
+        }
+
+        result[r] = rowDotProduct;
+    }
+}
+
+                    
+
+
 
 // *******************************************************************
 // Function: spmvMkl
@@ -424,6 +474,116 @@ csrTest( ResultDatabase& resultDB,
         nocopy( h_out:length(numRows) alloc_if(0) free_if(1) )
 }
 
+
+//----------------------------------------------------------------------------
+// Measure performance of sparse matrix vector multiply (u = Av).
+// with matrix A stored in ELLPACK-R form.
+// See header comment to the spmvMicELLPACKR function for more
+// information about ELLPACKR.
+//----------------------------------------------------------------------------
+template<typename floatType>
+void
+ellpackrTest( ResultDatabase& resultDB,
+            OptionParser& op,
+            floatType* h_vals,
+            int* h_colIndices,
+            int* h_rowLengths,
+            int maxRowLength,
+            floatType* h_vec,
+            floatType* h_out,
+            int numRows,
+            int numNonZeros,
+            floatType* refOut )
+{
+    int nPasses = op.getOptionInt( "passes" );
+    int nIters = op.getOptionInt( "iterations" );
+    int micdev = op.getOptionInt( "device" );
+
+    // Results description
+    std::ostringstream attstr;
+    attstr << numNonZeros << "_elements_" << numRows << "_rows";
+    double gflop = 2 * (double)numNonZeros / 1.0e9;
+    std::string suffix = (sizeof(floatType) == sizeof(float)) ? "-SP" : "-DP";
+
+    // transfer data to device
+    int txToDevTimerHandle = Timer::Start();
+    #pragma offload_transfer \
+        target(mic:micdev) \
+        in( h_vals:length(numRows*maxRowLength) alloc_if(1) free_if(0) ) \
+        in( h_colIndices:length(numRows*maxRowLength) alloc_if(1) free_if(0) ) \
+        in( h_rowLengths:length(numRows) alloc_if(1) free_if(0) ) \
+        in( h_vec:length(numRows) alloc_if(1) free_if(0) ) \
+        nocopy( h_out:length(numRows) alloc_if(1) free_if(0) )
+    double iTransferTime = Timer::Stop( txToDevTimerHandle, "tx to dev" );
+
+    // Do as many passes as desired
+    for( int p = 0; p < nPasses; p++ )
+    {
+        // run the SpMV kernel using the matrix in ELLPACK-R form
+        int kernelTimerHandle = Timer::Start();
+        #pragma offload \
+            target(mic:micdev) \
+            nocopy( h_vals:length(numRows*maxRowLength) alloc_if(0) free_if(0) ) \
+            nocopy( h_colIndices:length(numRows*maxRowLength) alloc_if(0) free_if(0) ) \
+            nocopy( h_rowLengths:length(numRows) alloc_if(0) free_if(0) ) \
+            nocopy( h_vec:length(numRows) alloc_if(0) free_if(0) ) \
+            nocopy( h_out:length(numRows) alloc_if(0) free_if(0) )
+        for( int i = 0; i < nIters; i++ )
+        {
+            spmvMicELLPACKR( h_vals,
+                                h_rowLengths,
+                                h_colIndices,
+                                h_vec,
+                                numRows,
+                                h_out );
+        }
+        double scalarKernelTime = Timer::Stop( kernelTimerHandle, "kernel timer" );
+
+        // Transfer data back to the host.
+        int txFromDevTimerHandle = Timer::Start();
+        #pragma offload_transfer \
+            target(mic:micdev) \
+            out( h_out:length(numRows) alloc_if(0) free_if(0) )
+        double oTransferTime = Timer::Stop( txFromDevTimerHandle, "tx from dev" );
+        
+        // Compare the device result to the reference result.
+        if( verifyResults( refOut, h_out, numRows, p ) )
+        {
+            // Results match - the device computed a result equivalent to
+            // the host.
+            //
+            // Record the average performance of for one iteration.
+            scalarKernelTime = (scalarKernelTime / (double)nIters) * 1.e-3;
+            std::string testName = "ELLPACKR"+suffix;
+            double totalTransfer = iTransferTime + oTransferTime;
+
+            resultDB.AddResult( testName,
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop/(scalarKernelTime) );
+            resultDB.AddResult( testName+"_PCIe",
+                                attstr.str().c_str(),
+                                "Gflop/s",
+                                gflop / (scalarKernelTime + totalTransfer) );
+        }
+        else
+        {
+            // Results do not match.
+            // Don't report performance, and don't continue to run tests.
+            return;
+        }
+    }
+
+    // release the data from the device
+    #pragma offload_transfer \
+        target(mic:micdev) \
+        nocopy( h_vals:length(numRows*maxRowLength) alloc_if(0) free_if(1) ) \
+        nocopy( h_colIndices:length(numRows*maxRowLength) alloc_if(0) free_if(1) ) \
+        nocopy( h_rowLengths:length(numRows) alloc_if(0) free_if(1) ) \
+        nocopy( h_vec:length(numRows) alloc_if(0) free_if(1) ) \
+        nocopy( h_out:length(numRows) alloc_if(0) free_if(1) )
+}
+
 // ****************************************************************************
 // Function: verifyResults
 // 
@@ -481,7 +641,7 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
 
 
 // ****************************************************************************
-// Function: RunTest
+// Function: RunTestMICMKL
 //
 // Purpose:
 //   Computes Ma = b, where M is a sparse matrix, and a and b are vectors.
@@ -509,7 +669,7 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
 // ****************************************************************************
 template<class floatType>
 void
-RunTestMIC( ResultDatabase& resultDB,
+RunTestMICMKL( ResultDatabase& resultDB,
             OptionParser& op,
             floatType* h_val,
             int* h_cols,
@@ -779,6 +939,43 @@ RunTest( ResultDatabase &resultDB,
         initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows); 
     }
 
+    // Build the matrix A in ELLPACK-R format.
+    // See header comment at spmvMicELLPACKR function for more
+    // information about ELLPACK-R format.
+    //
+    // First, we build the ELLPACK-R format's array of row lengths,
+    // keeping track of the maximum row length as we do so.
+    int* h_rowLengths = new int[numRows];
+    int maxRowLength = 0;
+    for( int r = 0; r < numRows; r++ )
+    {
+        h_rowLengths[r] = h_rowDelimiters[r+1] - h_rowDelimiters[r];
+        if( h_rowLengths[r] > maxRowLength )
+        {
+            maxRowLength = h_rowLengths[r];
+        }
+    }
+    assert( maxRowLength > 0 );
+
+    // Next, construct the ELLPACK-R array of non-zeros.
+    // This array is column-major and padded so that each row
+    // has maxRowLength values.
+    floatType* h_vals_ellpackr = new floatType[numRows * maxRowLength];
+    int* h_col_indices_ellpackr = new int[numRows * maxRowLength];
+    convertToColMajor( h_val,               // input: matrix in CSR format
+                        h_cols,             // ""
+                        numRows,            // ""
+                        h_rowDelimiters,    // ""
+                        h_vals_ellpackr,    // output: matrix in ELLPACK-R format
+                        h_col_indices_ellpackr, // ""
+                        h_rowLengths,       // ELLPACK-R row length array (already computed)
+                        maxRowLength,       // max value from ELLPACK-R row length array
+                        0 );                // CSR format is not padded
+    // We now have the matrix A in ELLPACK-R format
+    // h_vals_ellpackr is the numRows x maxRowLength array of non-zeros
+    // h_col_indices_ellpackr is the numRows x maxRowLength array of column 
+    //    indices associated with the items in h_vals_ellpackr
+    // h_rowLengths is the array holding the number of non-zeros in each row
 
 
     // Set up remaining host data
@@ -836,10 +1033,26 @@ RunTest( ResultDatabase &resultDB,
                             refOut,
                             true );
 
-    // tests implemented in a MIC-specific way
-    // the 'use_mic' should give similar performance to
+    std::cout << "ELLPACK-R Test\n";
+    ellpackrTest<floatType>( resultDB,
+                            op,
+                            h_vals_ellpackr,
+                            h_col_indices_ellpackr,
+                            h_rowLengths,
+                            maxRowLength,
+                            h_vec,
+                            h_out,
+                            numRows,
+                            nItems,     // number of non-zeros
+                            refOut );
+
+
+    // Tests implemented to use MKL.  Not directly comparable
+    // to implementations for other programming models, but
+    // interesting to compare against those other implementations.
+    // The 'use_mic' should give similar performance to
     // csrTest with unpadded data.
-    RunTestMIC<floatType>( resultDB,
+    RunTestMICMKL<floatType>( resultDB,
                             op,
                             h_val,
                             h_cols,
@@ -850,7 +1063,7 @@ RunTest( ResultDatabase &resultDB,
                             nItems,
                             refOut,
                             use_mic );
-    RunTestMIC<floatType>( resultDB,
+    RunTestMICMKL<floatType>( resultDB,
                             op,
                             h_val,
                             h_cols,
@@ -861,7 +1074,7 @@ RunTest( ResultDatabase &resultDB,
                             nItems,
                             refOut,
                             use_mkl_mic );
-    RunTestMIC<floatType>( resultDB,
+    RunTestMICMKL<floatType>( resultDB,
                             op,
                             h_val,
                             h_cols,
@@ -872,7 +1085,7 @@ RunTest( ResultDatabase &resultDB,
                             nItems,
                             refOut,
                             use_cpu );
-    RunTestMIC<floatType>( resultDB,
+    RunTestMICMKL<floatType>( resultDB,
                             op,
                             h_val,
                             h_cols,
