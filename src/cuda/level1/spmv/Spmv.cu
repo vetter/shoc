@@ -86,6 +86,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
                  "which stores the matrix in Matrix Market format"); 
     op.addOption("maxval", OPT_FLOAT, "10", "Maximum value for random "
                  "matrices");
+    op.addOption("seed", OPT_INT, "24115438", "Seed for PRNG");
 }
 
 // ****************************************************************************
@@ -483,8 +484,14 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
     // nItems = number of non zero elems
     int nItems, nItemsPadded, numRows;
 
-    // This benchmark either reads in a matrix market input file or
-    // generates a random matrix
+    // Seed the random number generator used to initialize the 
+    // values in matrix A and vector v (we are computing u = Av).
+    unsigned int rngSeed = (unsigned int)op.getOptionInt("seed");
+    InitRNG( rngSeed );
+
+    // Obtain a square, sparse matrix A in CSR format.
+    // We can read the matrix from a MatrixMarket input file,
+    // or generate a random matrix.
     string inFileName = op.getOptionString("mm_filename");
     if (inFileName == "random")
     {
@@ -494,22 +501,35 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
         CUDA_SAFE_CALL(cudaMallocHost(&h_val, nItems * sizeof(floatType))); 
         CUDA_SAFE_CALL(cudaMallocHost(&h_cols, nItems * sizeof(int))); 
         CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimiters, (numRows + 1) * sizeof(int))); 
-        fill(h_val, nItems, maxval); 
+        initRandomVector(h_val, nItems, maxval); 
         initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows);
     }
     else 
     {
+        int numCols;
+
         char filename[FIELD_LENGTH];
         strcpy(filename, inFileName.c_str());
         readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
-                &nItems, &numRows);
+                &nItems, &numRows, &numCols);
+
+        if( numRows != numCols )
+        {
+            // We read a matrix that was not square, but we can only
+            // work with square matrices.
+            std::cerr << "This benchmark can only work with square matrices,\nbut file "
+                << inFileName << " contains a non-square matrix "
+                << "(nRows=" << numRows << ", nCols=" << numCols << ")."
+                << std::endl;
+            exit( 1 );
+        }
     }
 
     // Set up remaining host data
     CUDA_SAFE_CALL(cudaMallocHost(&h_vec, numRows * sizeof(floatType))); 
     refOut = new floatType[numRows];
     CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimitersPad, (numRows + 1) * sizeof(int))); 
-    fill(h_vec, numRows, op.getOptionFloat("maxval"));
+    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval"));
 
     // Set up the padded data structures
     int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);

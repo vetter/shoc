@@ -34,6 +34,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
                  "which stores the matrix in Matrix Market format"); 
     op.addOption("maxval", OPT_FLOAT, "10", "Maximum value for random "
                  "matrices");
+    op.addOption("seed", OPT_INT, "24115438", "Seed for PRNG");
 }
 
 // ****************************************************************************
@@ -807,8 +808,14 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
     int nItemsPadded;
     int numRows;           // number of rows in the matrix
 
-    // This benchmark either reads in a matrix market input file or
-    // generates a random matrix
+    // Seed the random number generator used to initialize the 
+    // values in matrix A and vector v (we are computing u = Av).
+    unsigned int rngSeed = (unsigned int)op.getOptionInt("seed");
+    InitRNG( rngSeed );
+
+    // Obtain a square, sparse matrix A in CSR format.
+    // We can read the matrix from a MatrixMarket input file,
+    // or generate a random matrix.
     string inFileName = op.getOptionString("mm_filename");
     if (inFileName == "random")
     {
@@ -820,14 +827,26 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
         h_val = new floatType[nItems]; 
         h_cols = new int[nItems]; 
         h_rowDelimiters = new int[nRows+1]; 
-        fill(h_val, nItems, maxval); 
+        initRandomVector(h_val, nItems, maxval); 
         initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows); 
     }
     else 
-    {   char filename[FIELD_LENGTH];
+    {
+        int numCols;
+        char filename[FIELD_LENGTH];
         strcpy(filename, inFileName.c_str());
         readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
-                &nItems, &numRows);
+                &nItems, &numRows, &numCols);
+
+        // we require a square matrix
+        if( numRows != numCols )
+        {
+            std::cerr << "This benchmark can only work with square matrices,\nbut file "
+                << inFileName << " contains a non-square matrix "
+                << "(nRows=" << numRows << ", nCols=" << numCols << ")."
+                << std::endl;
+            exit(1);
+        }
     }
     
     // Final Image Check -- Make sure the image format is supported.
@@ -855,7 +874,7 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
     h_vec = new floatType[numRows];
     refOut = new floatType[numRows]; 
     h_rowDelimitersPad = new int[numRows+1];
-    fill(h_vec, numRows, op.getOptionFloat("maxval")); 
+    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval")); 
 
     // Set up the padded data structures
     int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);

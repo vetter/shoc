@@ -249,7 +249,6 @@ spmvMicVector(const floatType* mtxVals,
                 floatType* res,
                 int micdev ) 
 {
-//    int maxThreads = omp_get_max_threads_target( TARGET_MIC, micdev );
     int maxThreads = omp_get_max_threads();
     int redThreads = 4; // TODO change to not be hardcoded
     int outerThreads = maxThreads / redThreads;
@@ -263,23 +262,24 @@ spmvMicVector(const floatType* mtxVals,
         redThreads = 1;
     }
 
+#if READY
     if( omp_get_thread_num() == 0 )
     {
         printf( "vector kernel using %d outer threads, %d inner threads\n",
             outerThreads, redThreads );
     }
+#endif // READY
 
     // set the OpenMP runtime to *not* use dynamic thread provisioning
     int dynSaved = omp_get_dynamic();
     omp_set_dynamic(0);
 
     #pragma omp parallel num_threads(outerThreads)
+    #pragma ivdep
     for( int i = 0; i < nNonZeros; i++ )
     {
         floatType rowRes = 0; 
-        #pragma omp parallel for \
-            num_threads(redThreads) \
-            reduction(+:rowRes)
+        #pragma omp parallel for reduction(+:rowRes) num_threads(redThreads)
         // #pragma ivdep
         for( int j = rowDelimiters[i]; j < rowDelimiters[i+1]; j++ )
         {
@@ -333,6 +333,7 @@ csrTest( ResultDatabase& resultDB,
     int nPasses = op.getOptionInt( "passes" );
     int nIters = op.getOptionInt( "iterations" );
     int micdev = op.getOptionInt( "device" );
+    bool ok = true; // indicates whether we've seen a test error and should stop
 
     // Results description
     std::ostringstream attstr;
@@ -400,16 +401,17 @@ csrTest( ResultDatabase& resultDB,
         else
         {
             // Results do not match.
-            // Don't report performance, and don't continue to run tests.
-            return;
+            // Don't report performance, and don't continue to run tests
+            // at this precision.
+            break;
         }
     }
+
     #pragma offload \
         target(mic:micdev) \
         nocopy( h_out:length(numRows) alloc_if(0) free_if(0) )
     zero<floatType>( h_out, numRows );
 
-#if READY
     std::cout << "CSR Vector Kernel\n";
     for( int p = 0; p < nPasses; p++ )
     {
@@ -458,11 +460,11 @@ csrTest( ResultDatabase& resultDB,
         else
         {
             // Results do not match.
-            // Don't report performance, and don't continue to run tests.
-            return;
+            // Don't report performance, and don't continue to run tests
+            // at this precision.
+            break;
         }
     }
-#endif // READY
 
     // release the data from the device
     #pragma offload_transfer \
@@ -498,6 +500,8 @@ ellpackrTest( ResultDatabase& resultDB,
     int nPasses = op.getOptionInt( "passes" );
     int nIters = op.getOptionInt( "iterations" );
     int micdev = op.getOptionInt( "device" );
+
+    fprintf( stderr, "Max row length=%d\n", maxRowLength );
 
     // Results description
     std::ostringstream attstr;
@@ -1004,6 +1008,7 @@ RunTest( ResultDatabase &resultDB,
     // be parallelized, since some OpenMP implementations that say they
     // support nesting will only use one thread for the inner loop.
     omp_set_nested_target( TARGET_MIC, micdev, 1 );
+    // omp_set_dynamic_target( TARGET_MIC, micdev, 1 );
 
     // tests implemented in a way comparable to the Spmv benchmark
     // implementations for the other supported programming models
