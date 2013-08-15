@@ -18,7 +18,7 @@ pmsAllocHostBuffer( size_t nItems )
 {
     T* ret = NULL;
     size_t nBytes = nItems * sizeof(T);
-    CUDA_SAFE_CALL(cudaMallocHost(&ret, nBytes));
+    CUDA_SAFE_CALL(cudaMallocHost((void**)&ret, nBytes));
     return ret;
 }
 
