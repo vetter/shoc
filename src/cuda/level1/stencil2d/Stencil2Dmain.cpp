@@ -31,6 +31,7 @@
 #include "CommonCUDAStencilFactory.cpp"
 #include "HostStencil.cpp"
 #include "CUDAStencil.cpp"
+#include "CUDAPMSMemMgr.h"
 
 #if defined(PARALLEL)
 #include "ParallelResultDatabase.h"
@@ -352,6 +353,10 @@ RunBenchmark( ResultDatabase& resultDB, OptionParser& opts )
     cudaDeviceProp deviceProps;
     cudaGetDeviceProperties( &deviceProps, device );
 
+    // Configure to allocate performance-critical memory in
+    // a programming model-specific way.
+    Matrix2D<float>::SetAllocator( new CUDAPMSMemMgr<float> );
+
 #if defined(PARALLEL)
     if( cwrank == 0 )
     {
@@ -366,6 +371,10 @@ RunBenchmark( ResultDatabase& resultDB, OptionParser& opts )
     if( ((deviceProps.major == 1) && (deviceProps.minor >= 3)) ||
         (deviceProps.major >= 2) )
     {
+        // Configure to allocate performance-critical memory in
+        // a programming model-specific way.
+        Matrix2D<double>::SetAllocator( new CUDAPMSMemMgr<double> );
+
 #if defined(PARALLEL)
         if( cwrank == 0 )
         {
