@@ -1,14 +1,15 @@
 #ifndef MATRIX2D_H
 #define MATRIX2D_H
 
-#include "PMSMemMgmt.h"
-
 #include <iostream>
 #ifdef _WIN32
 #define restrict __restrict
 #else
 #include "config.h"
 #endif
+
+#include "PMSMemMgr.h"
+
 
 // ****************************************************************************
 // Class:  Matrix2D
@@ -29,6 +30,8 @@ public:
     typedef T* const restrict* const restrict ConstDataPtr;
 
 private:
+    static PMSMemMgr<T>* pmsmm;
+
     size_t nRows;
     size_t nColumns;
     size_t pad;
@@ -49,7 +52,7 @@ private:
     {
         nPaddedColumns =  FindNumPaddedColumns( nColumns, pad );
 
-        flatData = pmsAllocHostBuffer<T>( nRows * nPaddedColumns );
+        flatData = pmsmm->AllocHostBuffer( nRows * nPaddedColumns );
         data = new T*[nRows];
 
         for( size_t i = 0; i < nRows; i++ )
@@ -67,6 +70,10 @@ public:
         flatData( NULL ),
         data( NULL )
     {
+        if( pmsmm == NULL )
+        {
+            pmsmm = new DefaultPMSMemMgr<T>;
+        }
         Init();
     }
 
@@ -75,9 +82,12 @@ public:
         delete[] data;
         data = NULL;
 
-        pmsFreeHostBuffer<T>( flatData );
+        pmsmm->ReleaseHostBuffer( flatData );
         flatData = NULL;
     }
+
+
+    static void SetAllocator( PMSMemMgr<T>* _mgr )   { pmsmm = _mgr; }
 
 
     void Reset( size_t _nRows, size_t _nColumns )
@@ -85,7 +95,7 @@ public:
         if( (_nRows != nRows) || (_nColumns != nColumns) )
         {
             delete[] data;
-            pmsFreeHostBuffer<T>( flatData );
+            pmsmm->ReleaseHostBuffer( flatData );
 
             nRows = _nRows;
             nColumns = _nColumns;
