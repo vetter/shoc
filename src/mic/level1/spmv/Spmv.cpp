@@ -234,8 +234,27 @@ __declspec(target(mic)) void spmvMkl(double *val, int *cols, int *rowDelimiters,
 
 //----------------------------------------------------------------------------
 // Perform sparse matrix-vector multiplication on MIC.
-// Inner loop is executed in parallel, in contrast to spmvMic where inner loop
-// is executed sequentially by each thread.
+//
+// To try to make this comparable to implementations for CUDA and OpenCL
+// on GPUs, we use nested parallelism where both the outer and inner
+// loops are parallelized using OpenMP directives.
+// The outer loop is a conventional 'omp parallel' loop,
+// and the inner loop is indicated to be a reduction loop.
+//
+// Unfortunately, on a system with Xeon Phi 5110P devices, Spmv performance 
+// using nested parallelism is significantly worse than just parallelizing
+// the outer loop.  Performance tends to be better with a smaller number
+// of outer loop threads, and a small number of inner loop threads,
+// (and even better with 1 inner loop thread, i.e., not doing the
+// reduction in parallel).  Disabling the outer loop parallelism entirely
+// and using dynamic thread count management by the run time (i.e.,
+// removing the omp_set_dynamic() calls) yields even better performance,
+// but still nowhere close to that when just parallelizing the outer loop.
+//
+// Perhaps our current approach for specifying nested parallelism isn't
+// correct, or there is simply too much overhead in creating the 
+// inner loop threads compared to the amount of work to be done within
+// each row.
 //----------------------------------------------------------------------------
 
 template <typename floatType>
@@ -250,8 +269,9 @@ spmvMicVector(const floatType* mtxVals,
                 int micdev ) 
 {
     int maxThreads = omp_get_max_threads();
-    int redThreads = 4; // TODO change to not be hardcoded
-    int outerThreads = maxThreads / redThreads;
+    int redThreads = 2; // TODO change these to not be hardcoded
+    int outerThreads = 2;
+    // int outerThreads = maxThreads / redThreads;
 
     if( (outerThreads == 0) || (redThreads > maxThreads) )
     {
@@ -261,14 +281,6 @@ spmvMicVector(const floatType* mtxVals,
         outerThreads = maxThreads;
         redThreads = 1;
     }
-
-#if READY
-    if( omp_get_thread_num() == 0 )
-    {
-        printf( "vector kernel using %d outer threads, %d inner threads\n",
-            outerThreads, redThreads );
-    }
-#endif // READY
 
     // set the OpenMP runtime to *not* use dynamic thread provisioning
     int dynSaved = omp_get_dynamic();
@@ -280,7 +292,8 @@ spmvMicVector(const floatType* mtxVals,
     {
         floatType rowRes = 0; 
         #pragma omp parallel for reduction(+:rowRes) num_threads(redThreads)
-        // #pragma ivdep
+        // #pragma omp parallel for reduction(+:rowRes) 
+        #pragma ivdep
         for( int j = rowDelimiters[i]; j < rowDelimiters[i+1]; j++ )
         {
             int col = cols[j]; 
@@ -500,8 +513,6 @@ ellpackrTest( ResultDatabase& resultDB,
     int nPasses = op.getOptionInt( "passes" );
     int nIters = op.getOptionInt( "iterations" );
     int micdev = op.getOptionInt( "device" );
-
-    fprintf( stderr, "Max row length=%d\n", maxRowLength );
 
     // Results description
     std::ostringstream attstr;
@@ -1008,7 +1019,6 @@ RunTest( ResultDatabase &resultDB,
     // be parallelized, since some OpenMP implementations that say they
     // support nesting will only use one thread for the inner loop.
     omp_set_nested_target( TARGET_MIC, micdev, 1 );
-    // omp_set_dynamic_target( TARGET_MIC, micdev, 1 );
 
     // tests implemented in a way comparable to the Spmv benchmark
     // implementations for the other supported programming models
