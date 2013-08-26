@@ -17,12 +17,12 @@ OpenCLStencilFactory<T>::BuildStencil( const OptionParser& options )
     T wDiagonal;
     size_t lRows;
     size_t lCols;
-    ExtractOptions( options,
-                    wCenter,
-                    wCardinal,
-                    wDiagonal,
-                    lRows,
-                    lCols );
+    this->ExtractOptions( options,
+                          wCenter,
+                          wCardinal,
+                          wDiagonal,
+                          lRows,
+                          lCols );
 
     // build the stencil object
     return new OpenCLStencil<T>( wCenter, 

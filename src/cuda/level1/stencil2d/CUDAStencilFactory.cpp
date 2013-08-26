@@ -16,13 +16,13 @@ CUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     size_t lRows;
     size_t lCols;
     std::vector<long long int> devs;
-    ExtractOptions( options,
-                    wCenter,
-                    wCardinal,
-                    wDiagonal,
-                    lRows,
-                    lCols,
-                    devs );
+    this->ExtractOptions( options,
+                          wCenter,
+                          wCardinal,
+                          wDiagonal,
+                          lRows,
+                          lCols,
+                          devs );
 
     // determine whcih device to use
     // We would really prefer this to be done in main() but
