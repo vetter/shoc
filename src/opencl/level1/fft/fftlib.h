@@ -19,6 +19,7 @@ struct cplxdbl {
 };
 
 void init(OptionParser& op, bool dp);
+void deinit();
 void forward(void* work, int n_ffts);
 void inverse(void* work, int n_ffts);
 int check(void* work, void* check, int half_n_ffts, int half_n_cmplx);

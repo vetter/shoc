@@ -7,6 +7,9 @@
 #include "support.h"
 #include "fftlib.h"
 
+#include <map>
+static map<void*, cl_mem> memobjmap;
+
 cl_device_id fftDev;
 cl_context fftCtx;
 cl_command_queue fftQueue;
@@ -113,6 +116,19 @@ init(OptionParser& op, bool _do_dp)
 }
 
 
+void deinit() {
+    for (map<void*, cl_mem>::iterator it = memobjmap.begin(); it != memobjmap.end(); ++it) {
+        clEnqueueUnmapMemObject(fftQueue, it->second, it->first, 0, NULL, NULL);
+        clReleaseMemObject(it->second);
+    }
+
+    clReleaseKernel(fftKrnl);
+    clReleaseKernel(ifftKrnl);
+    clReleaseKernel(chkKrnl);
+    clReleaseProgram(fftProg);
+}
+
+
 void 
 forward(void* workp, int n_ffts)
 {
@@ -171,8 +187,6 @@ check(void* workp, void* checkp, int half_n_ffts, int half_n_cmplx)
     return result;
 }
 
-#include <map>
-static map<void*, cl_mem> memobjmap;
 
 void
 allocHostBuffer(void** bufp, unsigned long bytes)
@@ -201,8 +215,11 @@ freeHostBuffer(void* buf)
 #if 1 // pinned memory?
     cl_int err;
     cl_mem memobj = memobjmap[buf];
+    err = clEnqueueUnmapMemObject(fftQueue, memobj, buf, 0, NULL, NULL);
+    CL_CHECK_ERROR(err);
     err = clReleaseMemObject(memobj);
     CL_CHECK_ERROR(err);
+    memobjmap.erase(buf);
 #else
     free(buf);
 #endif
