@@ -276,6 +276,7 @@ void runTest(const string& name,
     freeDeviceBuffer(chk);
     freeHostBuffer(source);
     freeHostBuffer(result);
+    deinit();
 }
 
 
