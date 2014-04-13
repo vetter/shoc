@@ -23,3 +23,11 @@
     NVCXXFLAGS="-m64" \
     --with-opencl --with-cuda
 
+# Example simple config for Mavericks (10.9.2) and CUDA 6.0rc, where
+# driving with g++ can be problematic.
+#sh ./configure \
+#    CXX="nvcc" \
+#    CPP="nvcc" \
+#    --without-mpi \
+#    --without-opencl --with-cuda
+
