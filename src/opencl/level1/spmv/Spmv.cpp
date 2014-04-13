@@ -117,7 +117,7 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
 
     if (pass != -1)
     {
-        cout << "Pass "<<pass<<": ";
+        cout << "Test ";
     }
     if (passed)
     {
@@ -125,7 +125,7 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
     }
     else
     {
-        cout << "---FAILED---" << endl;
+        cout << "Failed" << endl;
     }
     return passed;
 }

@@ -476,11 +476,11 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         std::cout<<"Test ";
         if(unmatched_verts==0)
         {
-            std::cout<<" Passed\n";
+            std::cout<<"Passed\n";
         }
         else
         {
-            std::cout<<" Failed\n";
+            std::cout<<"Failed\n";
             return;
         }
     }
