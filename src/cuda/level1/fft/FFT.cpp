@@ -217,9 +217,16 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         resultDB.AddResult(name+"-INV_PCIe", sizeStr, "GFLOPS", gflopsPCIe);
         resultDB.AddResult(name+"-INV_Parity", sizeStr, "N", transfer_time / t);
 
+        // On the first iteration, time the copy the back to the host
+        if (k == 0) {
+          pcie_TH = Timer::Start();
+          copyFromDevice(work, source, used_bytes);
+          transfer_time += Timer::Stop(pcie_TH, "PCIe Transfer Time");
+        }
+
         // time check kernel
         int failed = check(work, chk, half_n_ffts, half_n_cmplx);
-        cout << "pass " << k << ((failed) ? ": failed\n" : ": passed\n");
+        cout << "Test " << ((failed) ? "Failed\n" : "Passed\n");
     }
 
     freeDeviceBuffer(work);

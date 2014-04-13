@@ -26,7 +26,7 @@ inline dim3 grid2D(const int nblocks)
     return dim3(nblocks/slices, slices);
 }
 
-void printCUFFTError(cufftResult res)
+void printCUFFTError(const cufftResult res)
 {
     if (res != CUFFT_SUCCESS)
     {
@@ -63,7 +63,8 @@ void printCUFFTError(cufftResult res)
 #endif
 
 template <class T2> __global__ void
-chk512_device(T2* work, int half_n_cmplx, char* fail)
+chk512_device(const T2* __restrict__ work, const int half_n_cmplx,
+    char* __restrict__ fail)
 {
     int i, tid = threadIdx.x;
     T2 a[8], b[8];
@@ -91,7 +92,7 @@ chk512_device(T2* work, int half_n_cmplx, char* fail)
 
 
 template <class T2> __global__ void
-norm512_device( T2* work)
+norm512_device(T2* __restrict__ work)
 {
     int i, tid = threadIdx.x;
 
@@ -106,7 +107,7 @@ norm512_device( T2* work)
 
 
 void
-init(OptionParser& op, bool _do_dp, int n_ffts)
+init(OptionParser& op, const bool _do_dp, const int n_ffts)
 {
     do_dp = _do_dp;
     if (fftDevice == -1)
@@ -147,7 +148,7 @@ init(OptionParser& op, bool _do_dp, int n_ffts)
 
 
 void
-forward(void* work, int n_ffts)
+forward(void* work, const int n_ffts)
 {
 #ifdef USE_CUFFT
     cufftResult res;
@@ -180,7 +181,7 @@ forward(void* work, int n_ffts)
 
 
 void
-inverse(void* work, int n_ffts)
+inverse(void* work, const int n_ffts)
 {
 #ifdef USE_CUFFT
     cufftResult res;
@@ -224,7 +225,7 @@ inverse(void* work, int n_ffts)
 
 
 int
-check(void* work, void* check, int half_n_ffts, int half_n_cmplx)
+check(void* work, void* check, const int half_n_ffts, const int half_n_cmplx)
 {
     char result;
 
@@ -274,15 +275,16 @@ freeDeviceBuffer(void* buffer)
 }
 
 void
-copyToDevice(void* to_device, void* from_host, unsigned long bytes)
+copyToDevice(void* to_device, const void* from_host,
+    const unsigned long bytes)
 {
     cudaMemcpy(to_device, from_host, bytes, cudaMemcpyHostToDevice);
     CHECK_CUDA_ERROR();
 }
 
-
 void
-copyFromDevice(void* to_host, void* from_device, unsigned long bytes)
+copyFromDevice(void* to_host, const void* from_device,
+    const unsigned long bytes)
 {
     cudaMemcpy(to_host, from_device, bytes, cudaMemcpyDeviceToHost);
     CHECK_CUDA_ERROR();
