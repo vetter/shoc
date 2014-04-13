@@ -1,6 +1,6 @@
 
 //
-// workaround for CUDA 2.3a + gcc 4.2.1 problem 
+// workaround for CUDA 2.3a + gcc 4.2.1 problem
 // (undefined __sync_fetch_and_add) on Snow Leopard
 //
 // #if defined(__APPLE__)
@@ -20,9 +20,9 @@ using std::cin;
 
 //
 // We are using the "trick" illustrated by the NVIDIA simpleTemplates example
-// for accessing dynamically-allocated shared memory from a templatized 
+// for accessing dynamically-allocated shared memory from a templatized
 // function.  The strategy uses a templatized struct with specialized
-// accessor functions that declare the actual symbol with the type in 
+// accessor functions that declare the actual symbol with the type in
 // their type name (to avoid naming conflicts).
 //
 template<typename T>
@@ -197,12 +197,12 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // Note: this is confusing.  C/C++ code on the host and CUDA C on
     // the device use row-major ordering where the first dimension is
     // the row and the second is the column.  In a dim3, the constituent
-    // items are named .x, .y, and .z.  Normally, x is considered 
-    // horizontal (which would correspond to column position), y is 
+    // items are named .x, .y, and .z.  Normally, x is considered
+    // horizontal (which would correspond to column position), y is
     // vertical (which would correspond to row position).  We use
     //   .x == row (first dimension)
     //   .y == column (second dimension)
-    // 
+    //
     // Since each GPU thread is responsible for a strip of data
     // from the original, our index space is scaled smaller in
     // one dimension relative to the actual data
@@ -225,7 +225,7 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     cudaMemcpy( currData, mtx.GetFlatData(), matDataSize, cudaMemcpyHostToDevice );
 
     // copy the halo from the initial buffer into the second buffer
-    // Note: when doing local iterations, these values do not change 
+    // Note: when doing local iterations, these values do not change
     // but they can change in the MPI version after an inter-process
     // halo exchange.
     //
@@ -271,15 +271,15 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     iter );
 
         // do the stencil operation
-        StencilKernel<<<dimGrid, dimBlock, localDataSize>>>( currData, 
-            newData, 
+        StencilKernel<<<dimGrid, dimBlock, localDataSize>>>( currData,
+            newData,
             mtx.GetPad(),
             lRows,
-            this->wCenter, 
-            this->wCardinal, 
+            this->wCenter,
+            this->wCardinal,
             this->wDiagonal );
 
-        CHECK_CUDA_ERROR(); 
+        CHECK_CUDA_ERROR();
 
         // swap our notion of which buffer holds the "real" data
         if( currData == da )
@@ -311,7 +311,7 @@ CUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 // them in a function) will not work if nvcc is using more recent version of
 // g++ underneath.  Instead, just declare the function specialization outside
 // of any function with a 'template' keyword like so:
-// 
+//
 // template void Func( int, int, int, float*, int );
 // template void Func( int, int, int, double*, int );
 //

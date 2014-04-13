@@ -97,10 +97,10 @@ int GPUSetup(OptionParser &op, int mympirank, int mynoderank)
         std::ostringstream estr;
         estr << "Warning: not enough devices specified with --device flag for task "
             << mympirank
-            << " ( node rank " << mynoderank 
+            << " ( node rank " << mynoderank
             << ") to claim its own device; forcing to use first device ";
         std::cerr << estr.str() << std::endl;
-        deviceIdx = 0;        
+        deviceIdx = 0;
     }
     int device = op.getOptionVecInt("device")[deviceIdx];
     bool verbose = op.getOptionBool("verbose");
@@ -120,7 +120,7 @@ int GPUSetup(OptionParser &op, int mympirank, int mynoderank)
     EnumerateDevicesAndChoose(device,verbose, pstr.str().c_str());
     return 0;
 }
-    
+
 
 // ****************************************************************************
 // Function: GPUCleanup

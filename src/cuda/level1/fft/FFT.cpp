@@ -56,7 +56,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //    9/21/12 - KS: Fixed some style issues, fixed bug in cufft plan creation
 //
 // ****************************************************************************
-template <class T2> void runTest(const string& name, ResultDatabase &resultDB, 
+template <class T2> void runTest(const string& name, ResultDatabase &resultDB,
         OptionParser& op);
 template <class T2> void dump(OptionParser& op);
 
@@ -69,20 +69,20 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     cudaGetDeviceProperties(&deviceProp, fftDevice);
     bool has_dp = (deviceProp.major == 1 && deviceProp.minor >= 3) ||
         (deviceProp.major >= 2);
-    
+
     cout << "Running single precision test" << endl;
     runTest<float2>("SP-FFT", resultDB, op);
     if (has_dp) {
         cout << "Running double precision test" << endl;
         runTest<double2>("DP-FFT", resultDB, op);
-    } 
-    else 
+    }
+    else
     {
         cout << "Skipping double precision test" << endl;
         char atts[32] = "DP_Not_Supported";
         // resultDB requires neg entry for every possible result
         int passes = op.getOptionInt("passes");
-        for (int k=0; k<passes; k++) 
+        for (int k=0; k<passes; k++)
         {
             resultDB.AddResult("DP-FFT" , atts, "GB/s", FLT_MAX);
             resultDB.AddResult("DP-FFT_PCIe" , atts, "GB/s", FLT_MAX);
@@ -90,7 +90,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             resultDB.AddResult("DP-FFT-INV" , atts, "GB/s", FLT_MAX);
             resultDB.AddResult("DP-FFT-INV_PCIe" , atts, "GB/s", FLT_MAX);
             resultDB.AddResult("DP-FFT-INV_Parity" , atts, "GB/s", FLT_MAX);
-        }    
+        }
     }
 }
 
@@ -128,18 +128,18 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     T2* source, * result;
     unsigned long bytes = 0;
 
-    if (op.getOptionInt("MB") == 0) 
+    if (op.getOptionInt("MB") == 0)
     {
         int probSizes[4] = { 1, 8, 96, 256 };
         int sizeIndex = op.getOptionInt("size")-1;
-        if (sizeIndex < 0 || sizeIndex >= 4) 
+        if (sizeIndex < 0 || sizeIndex >= 4)
         {
             cerr << "Invalid size index specified\n";
             exit(-1);
         }
         bytes = probSizes[sizeIndex];
-    } 
-    else 
+    }
+    else
     {
         bytes = op.getOptionInt("MB");
     }
@@ -157,15 +157,15 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     int half_n_cmplx = half_n_ffts * 512;
     unsigned long used_bytes = half_n_cmplx * 2 * sizeof(T2);
     double N = half_n_cmplx*2;
-    
+
     init(op, do_dp, n_ffts);
-    
+
     // allocate host and device memory
     allocHostBuffer((void**)&source, used_bytes);
     allocHostBuffer((void**)&result, used_bytes);
 
     // init host memory...
-    for (i = 0; i < half_n_cmplx; i++) 
+    for (i = 0; i < half_n_cmplx; i++)
     {
         source[i].x = (rand()/(float)RAND_MAX)*2-1;
         source[i].y = (rand()/(float)RAND_MAX)*2-1;
@@ -192,7 +192,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
     ss << "N=" << (long)N;
     sizeStr = strdup(ss.str().c_str());
 
-    for (int k=0; k<passes; k++) 
+    for (int k=0; k<passes; k++)
     {
         // time fft kernel
         int TH = Timer::Start();
@@ -221,7 +221,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         int failed = check(work, chk, half_n_ffts, half_n_cmplx);
         cout << "pass " << k << ((failed) ? ": failed\n" : ": passed\n");
     }
-    
+
     freeDeviceBuffer(work);
     freeDeviceBuffer(chk);
     freeHostBuffer(source);

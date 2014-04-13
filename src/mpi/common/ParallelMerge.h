@@ -12,7 +12,7 @@ using namespace std;
 // Class: ParallelTreeMerge
 //
 // Purpose:
-//   Implements a generic tree-type reduction of an array of 
+//   Implements a generic tree-type reduction of an array of
 //   elements of type T, in log(N) steps where N is the number of
 //   processes participating in the reduction.
 //
@@ -41,20 +41,20 @@ template <typename T>
 class ParallelTreeMerge
 {
 protected:
-    // getMergeData must be implmented by any class that extends 
+    // getMergeData must be implmented by any class that extends
     // ParallelTreeMerge. getMergeData is invoked before each reduction
     // step for processes that must send data during that step.
     virtual const T* getMergeData (int *size, int _key = 0) = 0;
-    
-    // processMergeData must be implmented by any class that extends 
+
+    // processMergeData must be implmented by any class that extends
     // ParallelTreeMerge. processMergeData is invoked after each reduction
     // step for processes that received data during that step.
     virtual void processMergeData (const T *_data, int size, int _key = 0) = 0;
-    
+
 public:
-    
+
     // do a tree type reduction over nprocs, using communicator comm.
-    // myrank is my rank. 
+    // myrank is my rank.
     // key is a parameter that will be passed to the callback functions
     // so a sub-class can call the doMerge method for multiple arrays
     // and differentiate between them inside the callbacks based on key.
@@ -68,12 +68,12 @@ public:
         T value;
         MPI_Status status;
         MPI_Datatype t = GetMPIType (value);
-       
+
         do
         {
             otherrank = myrank ^ stepShift;
             receiver = (myrank < otherrank);
-            
+
             if (otherrank < nprocs)   // I have a partner in this step
             {
                 if (! receiver)   // sender
@@ -89,12 +89,12 @@ public:
                     MPI_Recv (&mesgSize, 1, MPI_INT, otherrank, MERGE_COUNT_TAG, comm, &status);
                     T *recvData = new T[mesgSize];
                     if (recvData == 0) {
-                        cerr << "Task " << myrank 
-                             << " cannot allocate buffer for receiving data during merge step " 
+                        cerr << "Task " << myrank
+                             << " cannot allocate buffer for receiving data during merge step "
                              << step << "." << endl;
                         exit (-3);
                     }
-                    
+
                     // receive data from the other rank
                     MPI_Recv (recvData, mesgSize, t, otherrank, MERGE_DATA_TAG, comm, &status);
                     int recvLen = mesgSize;
@@ -102,7 +102,7 @@ public:
                     processMergeData (recvData, recvLen, key);
                 }
             }
-            
+
             step += 1;
             stepShift <<= 1;
         } while (stepShift<nprocs && receiver);

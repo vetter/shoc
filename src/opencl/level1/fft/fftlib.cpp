@@ -21,13 +21,13 @@ static cl_kernel fftKrnl, ifftKrnl, chkKrnl;
 static cl_program fftProg;
 static bool do_dp;
 
-void 
+void
 init(OptionParser& op, bool _do_dp)
 {
     cl_int err;
 
     do_dp = _do_dp;
-    
+
     if (!fftCtx) {
         // first get the device
         int device, platform = op.getOptionInt("platform");
@@ -50,11 +50,11 @@ init(OptionParser& op, bool _do_dp)
                                         &err);
         CL_CHECK_ERROR(err);
     }
-    
+
     // create the program...
     fftProg = clCreateProgramWithSource(fftCtx, 1, &cl_source_fft, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // ...and build it
     string args = " -cl-mad-enable ";
     if (op.getOptionBool("use-native")) {
@@ -73,15 +73,15 @@ init(OptionParser& op, bool _do_dp)
     {
         char* log = NULL;
         size_t bytesRequired = 0;
-        err = clGetProgramBuildInfo(fftProg, 
-                                    fftDev, 
+        err = clGetProgramBuildInfo(fftProg,
+                                    fftDev,
                                     CL_PROGRAM_BUILD_LOG,
                                     0,
                                     NULL,
                                     &bytesRequired );
         log = (char*)malloc( bytesRequired + 1 );
-        err = clGetProgramBuildInfo(fftProg, 
-                                    fftDev, 
+        err = clGetProgramBuildInfo(fftProg,
+                                    fftDev,
                                     CL_PROGRAM_BUILD_LOG,
                                     bytesRequired,
                                     log,
@@ -129,16 +129,16 @@ void deinit() {
 }
 
 
-void 
+void
 forward(void* workp, int n_ffts)
 {
     cl_int err;
     size_t localsz = 64;
     size_t globalsz = localsz * n_ffts;
-    
+
     clSetKernelArg(fftKrnl, 0, sizeof(cl_mem), workp);
-    err = clEnqueueNDRangeKernel(fftQueue, fftKrnl, 1, NULL, 
-                                 &globalsz, &localsz, 0, 
+    err = clEnqueueNDRangeKernel(fftQueue, fftKrnl, 1, NULL,
+                                 &globalsz, &localsz, 0,
                                  NULL, &fftEvent.CLEvent());
     CL_CHECK_ERROR(err);
     err = clWaitForEvents(1, &fftEvent.CLEvent());
@@ -146,7 +146,7 @@ forward(void* workp, int n_ffts)
 }
 
 
-void 
+void
 inverse(void* workp, int n_ffts)
 {
     cl_int err;
@@ -154,8 +154,8 @@ inverse(void* workp, int n_ffts)
     size_t globalsz = localsz * n_ffts;
 
     clSetKernelArg(ifftKrnl, 0, sizeof(cl_mem), workp);
-    err = clEnqueueNDRangeKernel(fftQueue, ifftKrnl, 1, NULL, 
-                                 &globalsz, &localsz, 0, 
+    err = clEnqueueNDRangeKernel(fftQueue, ifftKrnl, 1, NULL,
+                                 &globalsz, &localsz, 0,
                                  NULL, &ifftEvent.CLEvent());
     CL_CHECK_ERROR(err);
     err = clWaitForEvents(1, &ifftEvent.CLEvent());
@@ -163,7 +163,7 @@ inverse(void* workp, int n_ffts)
 }
 
 
-int 
+int
 check(void* workp, void* checkp, int half_n_ffts, int half_n_cmplx)
 {
     cl_int err;
@@ -174,13 +174,13 @@ check(void* workp, void* checkp, int half_n_ffts, int half_n_cmplx)
     clSetKernelArg(chkKrnl, 0, sizeof(cl_mem), workp);
     clSetKernelArg(chkKrnl, 1, sizeof(int), (void*)&half_n_cmplx);
     clSetKernelArg(chkKrnl, 2, sizeof(cl_mem), checkp);
-    
-    err = clEnqueueNDRangeKernel(fftQueue, chkKrnl, 1, NULL, 
-                                 &globalsz, &localsz, 0, 
+
+    err = clEnqueueNDRangeKernel(fftQueue, chkKrnl, 1, NULL,
+                                 &globalsz, &localsz, 0,
                                  NULL, &chkEvent.CLEvent());
     CL_CHECK_ERROR(err);
 
-    err = clEnqueueReadBuffer(fftQueue, *(cl_mem*)checkp, CL_TRUE, 0, sizeof(result), 
+    err = clEnqueueReadBuffer(fftQueue, *(cl_mem*)checkp, CL_TRUE, 0, sizeof(result),
                               &result, 1, &chkEvent.CLEvent(), NULL);
     CL_CHECK_ERROR(err);
 
@@ -232,7 +232,7 @@ allocDeviceBuffer(void** objp, unsigned long bytes)
     cl_int err;
 
     *(cl_mem**)objp = new cl_mem;
-    **(cl_mem**)objp = clCreateBuffer(fftCtx, CL_MEM_READ_WRITE, bytes, 
+    **(cl_mem**)objp = clCreateBuffer(fftCtx, CL_MEM_READ_WRITE, bytes,
                                       NULL, &err);
     CL_CHECK_ERROR(err);
 }
@@ -248,7 +248,7 @@ freeDeviceBuffer(void* buffer)
 void
 copyToDevice(void* to_device, void* from_host, unsigned long bytes)
 {
-    cl_int err = clEnqueueWriteBuffer(fftQueue, *(cl_mem*)to_device, CL_TRUE, 
+    cl_int err = clEnqueueWriteBuffer(fftQueue, *(cl_mem*)to_device, CL_TRUE,
                                       0, bytes, from_host, 0, NULL, NULL);
     CL_CHECK_ERROR(err);
 }
@@ -257,7 +257,7 @@ copyToDevice(void* to_device, void* from_host, unsigned long bytes)
 void
 copyFromDevice(void* to_host, void* from_device, unsigned long bytes)
 {
-    cl_int err = clEnqueueReadBuffer(fftQueue, *(cl_mem*)from_device, CL_TRUE, 
+    cl_int err = clEnqueueReadBuffer(fftQueue, *(cl_mem*)from_device, CL_TRUE,
                                      0, bytes, to_host, 0, NULL, NULL);
     CL_CHECK_ERROR(err);
 }

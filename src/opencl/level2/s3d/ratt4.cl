@@ -77,7 +77,7 @@ ratt4_kernel(__global const real* T, __global const real* RF, __global real* RB,
     real ALOGT = LOG(TEMP);
 #ifdef DOUBLE_PRECISION
     const real SMALL_INV = 1e+300;
-#else 
+#else
     const real SMALL_INV = 1e+20f;
 #endif
 

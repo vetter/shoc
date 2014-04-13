@@ -12,12 +12,12 @@
 #endif
 
 __kernel void
-reduce(__global const FPTYPE * in, 
-       __global FPTYPE * isums, 
+reduce(__global const FPTYPE * in,
+       __global FPTYPE * isums,
        const int n,
-       __local FPTYPE * lmem) 
+       __local FPTYPE * lmem)
 {
-    // First, calculate the bounds of the region of the array 
+    // First, calculate the bounds of the region of the array
     // that this block will sum.  We need these regions to match
     // perfectly with those in the bottom-level scan, so we index
     // as if vector types of length 4 were in use.  This prevents
@@ -26,13 +26,13 @@ reduce(__global const FPTYPE * in,
     int block_start = get_group_id(0) * region_size;
 
     // Give the last block any extra elements
-    int block_stop  = (get_group_id(0) == get_num_groups(0) - 1) ? 
+    int block_stop  = (get_group_id(0) == get_num_groups(0) - 1) ?
         n : block_start + region_size;
 
     // Calculate starting index for this thread/work item
     int tid = get_local_id(0);
     int i = block_start + tid;
-    
+
     FPTYPE sum = 0.0f;
 
     // Reduce multiple elements per thread
@@ -70,13 +70,13 @@ inline FPTYPE scanLocalMem(FPTYPE val, __local FPTYPE* lmem, int exclusive)
     // Set first half of local memory to zero to make room for scanning
     int idx = get_local_id(0);
     lmem[idx] = 0.0f;
-    
+
     // Set second half to block sums from global memory, but don't go out
     // of bounds
     idx += get_local_size(0);
     lmem[idx] = val;
     barrier(CLK_LOCAL_MEM_FENCE);
-    
+
     // Now, perform Kogge-Stone scan
     FPTYPE t;
     for (int i = 1; i < get_local_size(0); i *= 2)
@@ -88,11 +88,11 @@ inline FPTYPE scanLocalMem(FPTYPE val, __local FPTYPE* lmem, int exclusive)
 }
 
 __kernel void
-top_scan(__global FPTYPE * isums, 
+top_scan(__global FPTYPE * isums,
          const int n,
          __local FPTYPE * lmem)
 {
-    FPTYPE val = 0.0f;    
+    FPTYPE val = 0.0f;
     if (get_local_id(0) < n)
     {
         val = isums[get_local_id(0)];
@@ -106,7 +106,7 @@ top_scan(__global FPTYPE * isums,
     }
 }
 
-__kernel void 
+__kernel void
 bottom_scan(__global const FPTYPE * in,
             __global const FPTYPE * isums,
             __global FPTYPE * out,
@@ -120,11 +120,11 @@ bottom_scan(__global const FPTYPE * in,
     __global FPVECTYPE *in4  = (__global FPVECTYPE*) in;
     __global FPVECTYPE *out4 = (__global FPVECTYPE*) out;
     int n4 = n / 4; //vector type is 4 wide
-    
+
     int region_size = n4 / get_num_groups(0);
     int block_start = get_group_id(0) * region_size;
     // Give the last block any extra elements
-    int block_stop  = (get_group_id(0) == get_num_groups(0) - 1) ? 
+    int block_stop  = (get_group_id(0) == get_num_groups(0) - 1) ?
         n4 : block_start + region_size;
 
     // Calculate starting index for this thread/work item
@@ -142,7 +142,7 @@ bottom_scan(__global const FPTYPE * in,
         if (i < block_stop) // Make sure we don't read out of bounds
         {
             val_4 = in4[i];
-        } 
+        }
         else
         {
             val_4.x = 0.0f;
@@ -150,12 +150,12 @@ bottom_scan(__global const FPTYPE * in,
             val_4.z = 0.0f;
             val_4.w = 0.0f;
         }
-        
+
         // Serial scan in registers
         val_4.y += val_4.x;
         val_4.z += val_4.y;
         val_4.w += val_4.z;
-        
+
         // ExScan sums in shared memory
         FPTYPE res = scanLocalMem(val_4.w, lmem, 1);
 
@@ -169,12 +169,12 @@ bottom_scan(__global const FPTYPE * in,
         {
             out4[i] = val_4;
         }
-                
+
         // Next seed will be the last value
         // Last thread puts seed into smem.
         if (get_local_id(0) == get_local_size(0)-1) s_seed = val_4.w;
         barrier(CLK_LOCAL_MEM_FENCE);
-        
+
         // Broadcast seed to other threads
         seed = s_seed;
 

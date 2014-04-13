@@ -25,10 +25,10 @@ OpenCLStencilFactory<T>::BuildStencil( const OptionParser& options )
                           lCols );
 
     // build the stencil object
-    return new OpenCLStencil<T>( wCenter, 
-                                wCardinal, 
-                                wDiagonal, 
-                                lRows, 
+    return new OpenCLStencil<T>( wCenter,
+                                wCardinal,
+                                wDiagonal,
+                                lRows,
                                 lCols,
                                 this->dev,
                                 this->ctx,

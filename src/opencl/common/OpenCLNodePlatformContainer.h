@@ -30,7 +30,7 @@ namespace SHOC {
     {
     private:
         static const int MAGIC_KEY_OPENCL_NODE_CONTAINER;
-        
+
     public:
         // constructor collects information about all platforms on this node
         OpenCLNodePlatformContainer (bool do_initialize = true);
@@ -38,14 +38,14 @@ namespace SHOC {
         OpenCLNodePlatformContainer& operator= (const OpenCLNodePlatformContainer &ondc);
 
         ~OpenCLNodePlatformContainer () { }
-        
+
         void Print (ostream &os) const;
-        
+
         void initialize();
 
         virtual void writeObject (ostringstream &oss) const;
         virtual void readObject (istringstream &iss);
-        
+
         bool operator< (const OpenCLNodePlatformContainer &ndc) const;
         bool operator> (const OpenCLNodePlatformContainer &ndc) const;
         bool operator== (const OpenCLNodePlatformContainer &ndc) const;

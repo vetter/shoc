@@ -54,7 +54,7 @@ void addBenchmarkSpecOptions(OptionParser &op){
     op.addOption("Verbose", OPT_BOOL, "", "Print cluster cardinalities");
     op.addOption("TextureMem", OPT_BOOL, "0", "Use Texture memory for distance matrix");
     op.addOption("CompactStorage", OPT_BOOL, "0", "Use compact storage distance matrix regardless of problem size");
-            
+
 }
 
 // ****************************************************************************
@@ -101,7 +101,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op){
 // Arguments:
 //   The number of nodes requested by the user and the four
 //   variables that the function computes (passed by reference)
-// 
+//
 //
 // Returns:  nothing
 //
@@ -154,7 +154,7 @@ unsigned long int estimate_memory_for_full_storage(unsigned long int pnt_cnt, fl
     // Due to the point generation algorithm, a cluster can have up to N/30 elements in an arbitratiry small radius.
     if( max_degree < pnt_cnt/30 )
         max_degree = pnt_cnt/30;
-    
+
     total = 0;
     total += pnt_cnt*pnt_cnt*sizeof(float); // Sparse distance matrix
     total += pnt_cnt*max_degree*sizeof(int); // Indirection matrix
@@ -201,7 +201,7 @@ void findMemCharacteristics(unsigned long int *gmem, unsigned long int *text){
 // ****************************************************************************
 
 void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
-{    
+{
     unsigned long int point_count, max_avail_memory, max_texture_dimension, needed_mem;
     int def_size = -1, matrix_type = 0x0;
     float threshold;
@@ -291,7 +291,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
 void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int matrix_type){
     ofstream debug_out, seeds_out;
     void *Ai_mask, *cardnl, *ungrpd_pnts_indr, *clustered_pnts_mask, *result, *dist_to_clust;
-    void *indr_mtrx, *degrees; 
+    void *indr_mtrx, *degrees;
     int *indr_mtrx_host, *ungrpd_pnts_indr_host, *cardinalities, *output;
     bool save_clusters, be_verbose, can_use_texture, synthetic_data;
     cudaArray *distance_matrix_txt;
@@ -397,7 +397,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     comm_broadcast ( dist_source, dst_matrix_elems, COMM_TYPE_FLOAT, 0);
     comm_broadcast ( indr_mtrx_host, point_count*max_degree, COMM_TYPE_INT, 0);
-    
+
     assert( max_degree > 0 );
 
     init(op);
@@ -524,7 +524,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         QTC_device<<<grid, tpb>>>((float*)distance_matrix, (char *)Ai_mask, (char *)clustered_pnts_mask,
                                   (int *)indr_mtrx, (int *)cardnl, (int *)ungrpd_pnts_indr,
                                   (float *)dist_to_clust, (int *)degrees, point_count, max_point_count,
-                                  max_degree, threshold, cwrank, active_node_count, 
+                                  max_degree, threshold, cwrank, active_node_count,
                                   total_thread_block_count, matrix_type, can_use_texture);
         ///////// -----------------               Main kernel                ----------------- /////////
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -582,7 +582,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
                 debug_out.close();
             }
         }
- 
+
         int Tupdt = Timer::Start();
         update_clustered_pnts_mask<<<grid2D(1), tpb>>>((char *)clustered_pnts_mask, (char *)Ai_mask, max_point_count);
         cudaThreadSynchronize();
@@ -600,7 +600,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     }
     //
     ////////////////////////////////////////////////////////////////////////////////
-    
+
     if( cwrank == 0){
         cout << "Cluster count: " << iter << endl;
         cout.flush();

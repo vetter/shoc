@@ -34,7 +34,7 @@ MPIOpenCLStencil<T>::MPIOpenCLStencil( T _wCenter,
     eData( NULL ),
     wData( NULL )
 {
-    if( dumpData )      
+    if( dumpData )
     {
         std::ostringstream fnamestr;
         fnamestr << "ocl." << std::setw( 4 ) << std::setfill('0') << this->GetCommWorldRank();
@@ -51,7 +51,7 @@ MPIOpenCLStencil<T>::~MPIOpenCLStencil( void )
 
 
 template<class T>
-void 
+void
 MPIOpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
     if( this->ParticipatingInProgram() )
@@ -120,7 +120,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
 
         // read current data off device
         // OpenCL 1.0 does not have a strided read, so we need to get
-        // the non-contiguous halo sides into contiguous buffers 
+        // the non-contiguous halo sides into contiguous buffers
         // before reading into our host buffers
         cl::Buffer contigEBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
         cl::Buffer contigWBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
@@ -153,7 +153,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
 
         if( this->HaveEastNeighbor() )
         {
-            // east data is non-contigous - 
+            // east data is non-contigous -
             // make it contiguous on the device
             this->copyRectKernel.setArg( 0, contigEBuf ); // dest
             this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
@@ -186,7 +186,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
 
         if( this->HaveWestNeighbor() )
         {
-            // west data is non-contiguous - 
+            // west data is non-contiguous -
             // make it contiguous on the device,
             this->copyRectKernel.setArg( 0, contigWBuf );  // dest
             this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
@@ -233,8 +233,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // east side
-                    flatData[r*nPaddedCols + 
-                                (nCols - 2*haloWidth) + hc] = 
+                    flatData[r*nPaddedCols +
+                                (nCols - 2*haloWidth) + hc] =
                             eData[r*haloWidth + hc];
                 }
             }
@@ -246,8 +246,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // west side
-                    flatData[r*nPaddedCols + 
-                                haloWidth + hc] = 
+                    flatData[r*nPaddedCols +
+                                haloWidth + hc] =
                             wData[r*haloWidth + hc];
                 }
             }
@@ -295,7 +295,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // east side
-                    eData[r*haloWidth + hc] = 
+                    eData[r*haloWidth + hc] =
                         flatData[r*nPaddedCols + (nCols - haloWidth) + hc];
                 }
             }

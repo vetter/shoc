@@ -32,9 +32,9 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
     // determine our value type (as a string)
     std::string precision;
 #if READY
-    // use RTTI to determine type? 
+    // use RTTI to determine type?
 #else
-    // avoid using RTTI unless we have to - 
+    // avoid using RTTI unless we have to -
     // instead, use an ad hoc approach to determining whether
     // we are working with floats or doubles
     if( sizeof(T) == sizeof(float) )
@@ -67,7 +67,7 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
         std::make_pair(cl_source_stencil2d,strlen(cl_source_stencil2d)) );
     cl::Program prog( context, source );
     std::ostringstream buildOptions;
-    buildOptions << "-DLROWS=" << lRows 
+    buildOptions << "-DLROWS=" << lRows
                 << " -DLCOLS=" << lCols
                 << " -D" << precision;
     try
@@ -102,7 +102,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // assumes mtx has been padded with halo of width >= 1
     //
     // Since each GPU thread is responsible for a strip of data
-    // from the original, our index space is scaled smaller 
+    // from the original, our index space is scaled smaller
     // in one dimension relative to the actual data
     assert( ((mtx.GetNumRows() - 2) % lRows) == 0 );
 
@@ -128,7 +128,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // but they can change in the MPI version after an inter-process
     // halo exchange.
     //
-    // copy the sides with contiguous data, ensuring push of initial data 
+    // copy the sides with contiguous data, ensuring push of initial data
     // to device has completed
     size_t rowExtent = mtx.GetNumPaddedColumns() * sizeof(T);
     queue.enqueueCopyBuffer( *currData,
@@ -147,7 +147,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                 NULL );
 
     // copy the non-contiguous data
-    // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that 
+    // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that
     // seems like it would be useful here.  For OpenCL 1.0 compatibility,
     // we use a custom kernel that copies the non-contiguous data.
     waitEvents.clear();
@@ -198,22 +198,22 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     iter,
                                     queue );
 
-        // we would like to use event dependency list as specified 
-        // in the OpenCL spec and in the C++ binding API, 
+        // we would like to use event dependency list as specified
+        // in the OpenCL spec and in the C++ binding API,
         // allowing the OpenCL runtime to manage dependencies on these
-        // kernel invocations, but the C++ binding API 
+        // kernel invocations, but the C++ binding API
         // silently (!) ignores the events vector.
         //
         // Instead, we go back all the way to host code to wait
         // for one iteration to finish before enqueuing the next.
-        // We have one optimization for the final iteration - 
+        // We have one optimization for the final iteration -
         // in that case we enqueue the read buffer command and
         // make it dependent on the completion of the last iteration.
         //
         size_t localDataSize = (lRows + 2) * (lCols + 2) * sizeof(T);
 
         // We would like to use a C++ functor approach, but
-        // the KernelFunctor from the earlier OpenCL C++ bindings 
+        // the KernelFunctor from the earlier OpenCL C++ bindings
         // has disappeared and anecdotal evidence suggests that
         // the make_kernel approach in the OpenCL 1.2-related C++ bindings
         // might not be stable a stable API.
@@ -230,7 +230,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         queue.enqueueNDRangeKernel( kernel,
             cl::NullRange,
             cl::NDRange( (mtx.GetNumRows() - 2) / lRows, mtx.GetNumColumns() - 2 ),
-            cl::NDRange( 1, lCols ), 
+            cl::NDRange( 1, lCols ),
             NULL,
             &evt );
 
@@ -250,7 +250,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         // switch to put new data into other buffer
         if( currData == &dataBuf1 )
         {
-            currData = &dataBuf2;            
+            currData = &dataBuf2;
             newData = &dataBuf1;
         }
         else

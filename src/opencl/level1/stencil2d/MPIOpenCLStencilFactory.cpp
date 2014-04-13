@@ -36,10 +36,10 @@ MPIOpenCLStencilFactory<T>::BuildStencil( const OptionParser& options )
                                         mpiGridCols,
                                         nItersPerHaloExchange );
 
-    return new MPIOpenCLStencil<T>( wCenter, 
-                                wCardinal, 
-                                wDiagonal, 
-                                lRows, 
+    return new MPIOpenCLStencil<T>( wCenter,
+                                wCardinal,
+                                wDiagonal,
+                                lRows,
                                 lCols,
                                 mpiGridRows,
                                 mpiGridCols,
@@ -52,7 +52,7 @@ MPIOpenCLStencilFactory<T>::BuildStencil( const OptionParser& options )
 
 
 template<class T>
-void 
+void
 MPIOpenCLStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
 {
     // let base class check its options first
@@ -78,7 +78,7 @@ MPIOpenCLStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     unsigned int haloWidth = (unsigned int)opts.getOptionInt( "iters-per-exchange" );
 
     // verify that MPI halo width will result in a matrix being passed
-    // to the kernel that also has its global size as a multiple of 
+    // to the kernel that also has its global size as a multiple of
     // the local work size
     //
     // Because the MPI halo width is arbitrary, and the kernel halo width

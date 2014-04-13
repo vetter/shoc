@@ -6,10 +6,10 @@
 // return a "NoResult" flag.
 #if __CUDA_ARCH__ >= 120
 
-//Sungpack Hong, Sang Kyun Kim, Tayo Oguntebi, and Kunle Olukotun. 2011. 
-//Accelerating CUDA graph algorithms at maximum warp. 
-//In Proceedings of the 16th ACM symposium on Principles and practice of 
-//parallel programming (PPoPP '11). ACM, New York, NY, USA, 267-276. 
+//Sungpack Hong, Sang Kyun Kim, Tayo Oguntebi, and Kunle Olukotun. 2011.
+//Accelerating CUDA graph algorithms at maximum warp.
+//In Proceedings of the 16th ACM symposium on Principles and practice of
+//parallel programming (PPoPP '11). ACM, New York, NY, USA, 267-276.
 // ****************************************************************************
 // Function: BFS_kernel_warp
 //
@@ -17,13 +17,13 @@
 //   Perform BFS on the given graph
 //
 // Arguments:
-//   levels: array that stores the level of vertices 
+//   levels: array that stores the level of vertices
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
+//   edgeArrayAux: array that gives the edge list of a vertex
 //   W_SZ: the warp size to use to process vertices
 //   CHUNK_SZ: the number of vertices each warp processes
-//   numVertices: number of vertices in the given graph 
-//   curr: the current BFS level 
+//   numVertices: number of vertices in the given graph
+//   curr: the current BFS level
 //   flag: set when more vertices remain to be traversed
 //
 // Returns:  nothing
@@ -46,12 +46,12 @@ __global__ void BFS_kernel_warp(
 {
     int tid = threadIdx.x + blockDim.x * blockIdx.x;
     int W_OFF = tid % W_SZ;
-    int W_ID = tid / W_SZ; 
+    int W_ID = tid / W_SZ;
     int NUM_WARPS = blockDim.x * gridDim.x/W_SZ;
     int v1= W_ID * CHUNK_SZ;
     int chk_sz=CHUNK_SZ+1;
-    
-    if((v1+CHUNK_SZ)>=numVertices) 
+
+    if((v1+CHUNK_SZ)>=numVertices)
     {
         chk_sz =  numVertices-v1+1;
         if(chk_sz<0)
@@ -71,7 +71,7 @@ __global__ void BFS_kernel_warp(
                {
                     levels[v] = curr + 1;
                     *flag = 1;
-               } 
+               }
             }
         }
     }
@@ -83,14 +83,14 @@ volatile __device__ int g_mutex=0;
 //Store the last used value of g_mutex2
 volatile __device__ int g_mutex2=0;
 
-//S. Xiao and W. Feng, .Inter-block GPU communication 
-//via fast barrier synchronization, Technical Report TR-09-19, 
+//S. Xiao and W. Feng, .Inter-block GPU communication
+//via fast barrier synchronization, Technical Report TR-09-19,
 //Dept. of Computer Science, Virginia Tech
 // ****************************************************************************
 // Function: __gpu_sync
 //
 // Purpose:
-//   Implements global barrier synchronization across thread blocks. Thread 
+//   Implements global barrier synchronization across thread blocks. Thread
 //   blocks must be limited to number of multiprocessors available
 //
 // Arguments:
@@ -112,9 +112,9 @@ __device__ void __gpu_sync(int blocks_to_synch)
 
 
     // only thread 0 is used for synchronization
-    if (tid_in_block == 0) 
+    if (tid_in_block == 0)
     {
-        atomicAdd((int *)&g_mutex, 1);              
+        atomicAdd((int *)&g_mutex, 1);
         //only when all blocks add 1 to g_mutex will
         //g_mutex equal to blocks_to_synch
         while(g_mutex < blocks_to_synch);
@@ -175,7 +175,7 @@ __global__ void Reset_kernel_parameters(unsigned int *frontier_length)
 // ****************************************************************************
 __global__ void Frontier_copy(
         unsigned int *frontier,
-        unsigned int *frontier2, 
+        unsigned int *frontier2,
         unsigned int *frontier_length)
 {
     unsigned int tid=threadIdx.x + blockDim.x * blockIdx.x;
@@ -196,7 +196,7 @@ __global__ void Frontier_copy(
 
 //An Effective GPU Implementation of Breadth-First Search, Lijuan Luo,
 //Martin Wong,Wen-mei Hwu ,
-//Department of Electrical and Computer Engineering, 
+//Department of Electrical and Computer Engineering,
 //University of Illinois at Urbana-Champaign
 
 // ****************************************************************************
@@ -207,14 +207,14 @@ __global__ void Frontier_copy(
 //   thread block (i.e max number of threads per block)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
-//   frontier_len: length of the given frontier array 
-//   cost: array that stores the cost to visit each vertex 
+//   frontier: array that stores the vertices to visit in the current level
+//   frontier_len: length of the given frontier array
+//   cost: array that stores the cost to visit each vertex
 //   visited: mask that tells if a vertex is currently in frontier
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
 //   max_local_mem: max size of the shared memory queue
 //
@@ -240,11 +240,11 @@ __global__ void BFS_kernel_one_block_spill(
 {
 
     extern volatile __shared__ unsigned int s_mem[];
-    
+
     //block queues
     unsigned int *b_q=(unsigned int *)&s_mem[0];
     unsigned int *b_q2=(unsigned int *)&s_mem[max_local_mem];
-    
+
     volatile __shared__ unsigned int b_offset[1];
     volatile __shared__ unsigned int b_q_length[1];
     //get the threadId
@@ -332,7 +332,7 @@ __global__ void BFS_kernel_one_block_spill(
             {
                 frontier_length[0] = b_q_length[0];
             }
-            return; 
+            return;
         }
         f_len=b_q_length[0];
         __syncthreads();
@@ -343,20 +343,20 @@ __global__ void BFS_kernel_one_block_spill(
 // Function: BFS_kernel_SM_block
 //
 // Purpose:
-//   Perform BFS on the given graph when the frontier length is greater than 
-//   one thread block but less than number of Streaming Multiprocessor(SM) 
+//   Perform BFS on the given graph when the frontier length is greater than
+//   one thread block but less than number of Streaming Multiprocessor(SM)
 //   thread blocks (i.e max threads per block * SM blocks)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
-//   frontier2: array that stores the vertices to visit in the next level 
-//   frontier_len: length of the given frontier array 
-//   cost: array that stores the cost to visit each vertex 
+//   frontier: array that stores the vertices to visit in the current level
+//   frontier2: array that stores the vertices to visit in the next level
+//   frontier_len: length of the given frontier array
+//   cost: array that stores the cost to visit each vertex
 //   visited: mask that tells if a vertex is currently in frontier
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
 //   max_local_mem: max size of the shared memory queue
 //
@@ -406,12 +406,12 @@ __global__ void BFS_kernel_SM_block_spill(
         if(tid<f_len)
         {
             //get the nodes to traverse from block queue
-            unsigned int node_to_process;  
+            unsigned int node_to_process;
 
             if(loop_index==0)
                node_to_process=frontier[tid];
             else
-               node_to_process=frontier2[tid]; 
+               node_to_process=frontier2[tid];
 
             //remove from frontier
             visited[node_to_process]=0;
@@ -449,7 +449,7 @@ __global__ void BFS_kernel_SM_block_spill(
                                 frontier2[off]=nid;
                             else
                                 frontier[off]=nid;
-                        } 
+                        }
                     }
                 }
                 offset++;
@@ -485,7 +485,7 @@ __global__ void BFS_kernel_SM_block_spill(
             else
                 frontier[lid+b_offset[0]]=b_q[lid];
         }
- 
+
         l_mutex+=gridDim.x;
         __gpu_sync(l_mutex);
 
@@ -495,7 +495,7 @@ __global__ void BFS_kernel_SM_block_spill(
         {
 
             //TODO:Call the 1-block bfs right here
-            break;                                                  
+            break;
         }
         loop_index=(loop_index+1)%2;
         //store the current frontier size
@@ -519,20 +519,20 @@ __global__ void BFS_kernel_SM_block_spill(
 // Function: BFS_kernel_multi_block
 //
 // Purpose:
-//   Perform BFS on the given graph when the frontier length is greater than 
-//   than number of Streaming Multiprocessor(SM) thread blocks 
+//   Perform BFS on the given graph when the frontier length is greater than
+//   than number of Streaming Multiprocessor(SM) thread blocks
 //   (i.e max threads per block * SM blocks)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
-//   frontier2: array that stores the vertices to visit in the next level 
-//   frontier_len: length of the given frontier array 
-//   cost: array that stores the cost to visit each vertex 
-//   visited: mask that tells if a vertex has been visited 
+//   frontier: array that stores the vertices to visit in the current level
+//   frontier2: array that stores the vertices to visit in the next level
+//   frontier_len: length of the given frontier array
+//   cost: array that stores the cost to visit each vertex
+//   visited: mask that tells if a vertex has been visited
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
 //   max_local_mem: max size of the shared memory queue
 //
@@ -578,7 +578,7 @@ __global__ void BFS_kernel_multi_block_spill(
     if(tid<frontier_len)
     {
         //get the nodes to traverse from block queue
-        unsigned int node_to_process=frontier[tid];  
+        unsigned int node_to_process=frontier[tid];
         visited[node_to_process]=0;
         //get the offsets of the vertex in the edge list
         unsigned int offset=edgeArray[node_to_process];
@@ -612,7 +612,7 @@ __global__ void BFS_kernel_multi_block_spill(
                         int off=atomicAdd((unsigned int *)frontier_length,
                                 1);
                         frontier2[off]=nid;
-                    } 
+                    }
                 }
             }
             offset++;
@@ -631,7 +631,7 @@ __global__ void BFS_kernel_multi_block_spill(
         b_offset[0]=atomicAdd((unsigned int *)frontier_length,b_q_length[0]);
     }
     __syncthreads();
-    
+
     //copy block queue to frontier
     if(lid < b_q_length[0])
         frontier2[lid+b_offset[0]]=b_q[lid];
@@ -701,7 +701,7 @@ __global__ void Reset_kernel_parameters(unsigned int *frontier_length) { ; }
 
 __global__ void Frontier_copy(
 	unsigned int *frontier,
-	unsigned int *frontier2, 
+	unsigned int *frontier2,
 	unsigned int *frontier_length) { ; }
 
 __global__ void BFS_kernel_one_block_spill(

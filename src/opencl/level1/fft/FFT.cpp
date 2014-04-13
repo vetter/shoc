@@ -30,8 +30,8 @@ using namespace std;
 // Returns:  nothing
 //
 // ****************************************************************************
-void 
-addBenchmarkSpecOptions(OptionParser &op) 
+void
+addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("MB", OPT_INT, "0", "data size (in megabytes)");
     op.addOption("use-native", OPT_BOOL, "false", "call native (HW) versions of sin/cos");
@@ -60,13 +60,13 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // ****************************************************************************
 
-template <class T2> void runTest(const string& name, cl_device_id id, 
+template <class T2> void runTest(const string& name, cl_device_id id,
                                  cl_context ctx, cl_command_queue queue,
                                  ResultDatabase &resultDB, OptionParser& op);
 template <class T2> void dump(OptionParser& op);
 
 static void
-fillResultDB(const string& name, const string& reason, OptionParser &op, 
+fillResultDB(const string& name, const string& reason, OptionParser &op,
              ResultDatabase& resultDB)
 {
     // resultDB requires neg entry for every possible result
@@ -101,7 +101,7 @@ RunBenchmark(cl::Device& devcpp,
         fillResultDB("DP-FFT", "MaxWorkGroupSize<64", op, resultDB);
         return;
     }
-    
+
     bool has_dp = checkExtension(dev, "cl_khr_fp64") ||
         checkExtension(dev, "cl_amd_fp64");
 
@@ -160,8 +160,8 @@ template <> inline bool dp<cplxflt>(void) { return false; }
 template <> inline bool dp<cplxdbl>(void) { return true; }
 
 template <class T2>
-void runTest(const string& name, 
-             cl_device_id id, 
+void runTest(const string& name,
+             cl_device_id id,
              cl_context ctx,
              cl_command_queue queue,
              ResultDatabase &resultDB,
@@ -194,7 +194,7 @@ void runTest(const string& name,
 
     bool do_dp = dp<T2>();
     init(op, do_dp);
-    
+
 #if 0
     bytes = findAvailBytes(fftDev);
     fprintf(stderr, "findAvailBytes()=%lu\n", bytes);
@@ -243,7 +243,7 @@ void runTest(const string& name,
     stringstream ss;
     ss << "N=" << (long)N;
     sizeStr = strdup(ss.str().c_str());
-    
+
     for (int k=0; k<passes; k++) {
         // time fft kernel
         forward(work, n_ffts);
@@ -271,7 +271,7 @@ void runTest(const string& name,
         int failed = check(work, chk, half_n_ffts, half_n_cmplx);
         cout << "pass " << k << ((failed) ? ": failed\n" : ": passed\n");
     }
-    
+
     freeDeviceBuffer(work);
     freeDeviceBuffer(chk);
     freeHostBuffer(source);
@@ -284,7 +284,7 @@ void runTest(const string& name,
 // Function: dump
 //
 // Purpose:
-//   Dump result array to stdout after FFT and IFFT.  For correctness 
+//   Dump result array to stdout after FFT and IFFT.  For correctness
 //   checking.
 //
 // Arguments:
@@ -298,9 +298,9 @@ void runTest(const string& name,
 // Modifications:
 //
 // ****************************************************************************
-template <class T2> 
+template <class T2>
 void dump(OptionParser& op)
-{	
+{
     int i;
     void* work;
     T2* source, * result;
@@ -330,7 +330,7 @@ void dump(OptionParser& op)
     int half_n_cmplx = half_n_ffts * 512;
     unsigned long used_bytes = half_n_cmplx * 2 * sizeof(T2);
     double N = half_n_cmplx*2;
-    
+
     fprintf(stderr, "used_bytes=%lu, N=%g\n", used_bytes, N);
 
     // allocate host and device memory
@@ -354,18 +354,18 @@ void dump(OptionParser& op)
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", source[i].x, source[i].y);
     }
-    
+
     forward(work, n_ffts);
     copyFromDevice(result, work, used_bytes);
-        
+
     fprintf(stdout, "FORWARD:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);
     }
-    
+
     inverse(work, n_ffts);
     copyFromDevice(result, work, used_bytes);
-        
+
     fprintf(stdout, "\nINVERSE:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);

@@ -16,9 +16,9 @@ using namespace std;
 // Enables easy modification of the main benchmark parameters.
 struct _benchmark_type {
    const char* name;             // name of the kernel
-   const char* indexVar;         // name of the private scalar used as 
+   const char* indexVar;         // name of the private scalar used as
                                  // an accumulator
-   const char* indexVarInit;     // initialization formula for the index 
+   const char* indexVarInit;     // initialization formula for the index
                                  // variable
    const char* opFormula;        // arithmetic formula for the accumulator
    int numStreams;               // number of parallel streams
@@ -26,9 +26,9 @@ struct _benchmark_type {
    int numRepeats;               // number of loop iterations (>= 1)
    int flopCount;                // number of floating point operations in one
                                  // formula
-   int halfBufSizeMin;           // specify the buffer sizes for which to 
-                                 // perform the test 
-   int halfBufSizeMax;           // we specify the minimum, the maximum and 
+   int halfBufSizeMin;           // specify the buffer sizes for which to
+                                 // perform the test
+   int halfBufSizeMax;           // we specify the minimum, the maximum and
                                  // the geometric stride
    int halfBufSizeStride;        // values are in thousands of elements
 } aTests[] = {
@@ -72,21 +72,21 @@ struct _benchmark_type {
 // Modifications:
 //
 // ****************************************************************************
-void addBenchmarkSpecOptions(OptionParser &op) 
+void addBenchmarkSpecOptions(OptionParser &op)
 {
     ; // this benchmark has no specific options
 }
 
 // OpenCL compiler options -- default is to enable
 // all optimizations
-static const char* opts = "-cl-mad-enable -cl-no-signed-zeros " 
+static const char* opts = "-cl-mad-enable -cl-no-signed-zeros "
                           "-cl-unsafe-math-optimizations -cl-finite-math-only";
 
 // Forward Declarations
 // generate simple precision and double precision versions of the benchmarks
 template <class T> void
 RunTest(cl_device_id id, cl_context ctx, cl_command_queue queue, ResultDatabase &resultDB,
-        int npasses, int verbose, int quiet, float repeatF, size_t localSize, ProgressBar &pb, 
+        int npasses, int verbose, int quiet, float repeatF, size_t localSize, ProgressBar &pb,
         const char* typeName, const char* precision, const char* pragmaText);
 // Generate OpenCL kernel code based on benchmark type struct
 void generateKernel (ostringstream &oss, struct _benchmark_type &test, const char* tName, const char* header);
@@ -100,10 +100,10 @@ double getUFlopCount(int useMADDMUL, bool doublePrecision, int nRepeats, int nUn
 // Function: RunBenchmark
 //
 // Purpose:
-//   Executes a series of arithmetic benchmarks for OpenCL devices. 
+//   Executes a series of arithmetic benchmarks for OpenCL devices.
 //   OpenCL kernels are auto-generated based on the values in the
 //   _benchmark_type structures.
-//   The benchmark tests throughput for add, multiply, multiply-add and 
+//   The benchmark tests throughput for add, multiply, multiply-add and
 //   multiply+multiply-add series of operations, for 1, 2, 4 and 8
 //   independent streams..
 //
@@ -146,17 +146,17 @@ void RunBenchmark(cl::Device& devcpp,
 
     // Seed the random number generator
     srand48(8650341L);
-    
-    // To prevent this benchmark from taking too long to run, we 
+
+    // To prevent this benchmark from taking too long to run, we
     // calibrate how many repetitions of each test to execute. To do this we
     // run one pass through a multiply-add benchmark and then adjust
     // the repeat factor based on runtime. Use MulMAdd4 for this.
     int aIdx = 0;
     float repeatF = 1.0f;
     // Find the index of the MAdd4 benchmark
-    while ((aTests!=0) && (aTests[aIdx].name!=0) && 
+    while ((aTests!=0) && (aTests[aIdx].name!=0) &&
         strcmp(aTests[aIdx].name,"MAdd4"))
-    {   
+    {
        aIdx += 1;
     }
     if (aTests && aTests[aIdx].name)  // we found a benchmark with that name
@@ -169,15 +169,15 @@ void RunBenchmark(cl::Device& devcpp,
        ostringstream oss;
        generateKernel (oss, temp, "float", "");
        std::string kernelCode(oss.str());
-       
+
        // Allocate host memory
        int halfNumFloatsMax = temp.halfBufSizeMax*1024/4;
        int numFloatsMax = 2*halfNumFloatsMax;
        hostMem = new float[numFloatsMax];
        hostMem2 = new float[numFloatsMax];
-       
+
        // Allocate device memory
-       mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+       mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                                  sizeof(float)*numFloatsMax, NULL, &err);
        CL_CHECK_ERROR(err);
 
@@ -185,48 +185,48 @@ void RunBenchmark(cl::Device& devcpp,
                                numFloatsMax*sizeof(float), hostMem,
                                0, NULL, NULL);
        CL_CHECK_ERROR(err);
-       
+
        // Create the kernel program
        const char* progSource[] = {kernelCode.c_str()};
-       cl_program prog = clCreateProgramWithSource(ctx, 1, progSource, 
+       cl_program prog = clCreateProgramWithSource(ctx, 1, progSource,
                                                    NULL, &err);
        CL_CHECK_ERROR(err);
-       
+
        // Compile the kernel
        err = clBuildProgram(prog, 0, NULL, opts, NULL, NULL);
        // Compile the kernel
        CL_CHECK_ERROR(err);
-       
-       // Extract out madd kernel 
+
+       // Extract out madd kernel
        cl_kernel kernel_madd = clCreateKernel(prog, temp.name, &err);
        CL_CHECK_ERROR(err);
-       
+
        // Set kernel arguments
        err = clSetKernelArg (kernel_madd, 0, sizeof(cl_mem), (void*)&mem1);
        CL_CHECK_ERROR (err);
-       err = clSetKernelArg (kernel_madd, 1, sizeof(cl_int), 
+       err = clSetKernelArg (kernel_madd, 1, sizeof(cl_int),
                              (void*)&temp.numRepeats);
        CL_CHECK_ERROR (err);
-       
+
        // Determine the maximum work group size for this kernel
        maxGroupSize = getMaxWorkGroupSize(id);
        // use min(maxWorkGroupSize, 256)
        localWorkSize = maxGroupSize<128?maxGroupSize:128;
-       
+
        // Initialize host data, with the first half the same as the second
-       for (int j=0; j<halfNumFloatsMax; ++j) 
+       for (int j=0; j<halfNumFloatsMax; ++j)
        {
            hostMem[j] = hostMem[numFloatsMax-j-1] = (float)(drand48()*5.0);
        }
        // Set global work size
        size_t globalWorkSize = numFloatsMax;
-       
+
        Event evCopyMem("CopyMem");
        err = clEnqueueWriteBuffer (queue, mem1, true, 0,
                                    numFloatsMax*sizeof(float), hostMem,
                                    0, NULL, &evCopyMem.CLEvent());
        CL_CHECK_ERROR (err);
-       // Wait for transfer to finish      
+       // Wait for transfer to finish
        err = clWaitForEvents (1, &evCopyMem.CLEvent());
        CL_CHECK_ERROR (err);
 
@@ -235,16 +235,16 @@ void RunBenchmark(cl::Device& devcpp,
                                  &globalWorkSize, &localWorkSize,
                                  0, NULL, &evKernel.CLEvent());
        CL_CHECK_ERROR (err);
-       // Wait for kernel to finish      
+       // Wait for kernel to finish
        err = clWaitForEvents (1, &evKernel.CLEvent());
        CL_CHECK_ERROR (err);
-             
+
        evKernel.FillTimingInfo();
        // Calculate repeat factor based on kernel runtime
        double tt = double(evKernel.SubmitEndRuntime());
        repeatF = 1.1e07 / tt;
        cout << "Adjust repeat factor = " << repeatF << endl;
-       
+
        // Clean up
        err = clReleaseKernel (kernel_madd);
        CL_CHECK_ERROR(err);
@@ -256,13 +256,13 @@ void RunBenchmark(cl::Device& devcpp,
        delete[] hostMem;
        delete[] hostMem2;
     }
-    
+
     // Compute total number of kernel runs
     int totalRuns = 0;
     aIdx = 0;
     while ((aTests!=0) && (aTests[aIdx].name!=0))
     {
-        for (int halfNumFloats=aTests[aIdx].halfBufSizeMin*1024 ; 
+        for (int halfNumFloats=aTests[aIdx].halfBufSizeMin*1024 ;
              halfNumFloats<=aTests[aIdx].halfBufSizeMax*1024 ;
              halfNumFloats*=aTests[aIdx].halfBufSizeStride)
         {
@@ -271,8 +271,8 @@ void RunBenchmark(cl::Device& devcpp,
         aIdx += 1;
     }
     // Account for custom kernels
-    totalRuns += 2 * npasses; 
-    
+    totalRuns += 2 * npasses;
+
     // check for double precision support
     int hasDoubleFp = 0;
     string doublePragma = "";
@@ -284,7 +284,7 @@ void RunBenchmark(cl::Device& devcpp,
         hasDoubleFp = 1;
         doublePragma = "#pragma OPENCL EXTENSION cl_amd_fp64: enable";
     }
-    
+
     // Double the number of passes if double precision support found
     if (hasDoubleFp) {
         cout << "DP Supported" << endl;
@@ -307,14 +307,14 @@ void RunBenchmark(cl::Device& devcpp,
         aIdx = 0;
         const char atts[] = "DP_Not_Supported";
         while ((aTests!=0) && (aTests[aIdx].name!=0))
-        {   
-            for (int pas=0 ; pas<npasses ; ++pas) 
+        {
+            for (int pas=0 ; pas<npasses ; ++pas)
             {
                 resultDB.AddResult(string(aTests[aIdx].name)+"-DP" , atts, "GFLOPS", FLT_MAX);
             }
             aIdx += 1;
         }
-        for (int pas=0 ; pas<npasses ; ++pas) 
+        for (int pas=0 ; pas<npasses ; ++pas)
         {
             resultDB.AddResult("MulMAddU-DP", atts, "GFLOPS", FLT_MAX);
             resultDB.AddResult("MAddU-DP", atts, "GFLOPS", FLT_MAX);
@@ -343,7 +343,7 @@ RunTest(cl_device_id id,
     cl_mem mem1;
     char sizeStr[128];
     T *hostMem, *hostMem2;
-    
+
     int aIdx = 0;
     while ((aTests!=0) && (aTests[aIdx].name!=0))
     {
@@ -354,16 +354,16 @@ RunTest(cl_device_id id,
        int tentativeRepeats = (int)round(repeatF*temp.numRepeats);
        if (tentativeRepeats < 2) {
           tentativeRepeats = 2;
-          double realRepeatF = ((double)tentativeRepeats) 
+          double realRepeatF = ((double)tentativeRepeats)
             / temp.numRepeats;
           if (realRepeatF>8.0*repeatF)  // do not cut the number of unrolls
                                         // by more than a factor of 8
              realRepeatF = 8.0*repeatF;
-          temp.numUnrolls = 
+          temp.numUnrolls =
                   (int)round(repeatF*temp.numUnrolls/realRepeatF);
        }
        temp.numRepeats = tentativeRepeats;
-       
+
        // Generate kernel source code
        generateKernel(oss, temp, typeName, pragmaText);
        std::string kernelCode(oss.str());
@@ -371,7 +371,7 @@ RunTest(cl_device_id id,
        // If in verbose mode, print the kernel
        if (verbose)
        {
-           cout << "Code for kernel " << temp.name 
+           cout << "Code for kernel " << temp.name
                 << ":\n" + kernelCode << endl;
        }
 
@@ -380,12 +380,12 @@ RunTest(cl_device_id id,
        int numFloatsMax = 2*halfNumFloatsMax;
        hostMem = new T[numFloatsMax];
        hostMem2 = new T[numFloatsMax];
-       
+
        // Allocate device memory
-       mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+       mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                                  sizeof(T)*numFloatsMax, NULL, &err);
        CL_CHECK_ERROR(err);
-       
+
        // Issue a copy to force device allocation
        err = clEnqueueWriteBuffer(queue, mem1, true, 0,
                                numFloatsMax*sizeof(T), hostMem,
@@ -394,14 +394,14 @@ RunTest(cl_device_id id,
 
        // Create kernel program object
        const char* progSource[] = {kernelCode.c_str()};
-       cl_program prog = clCreateProgramWithSource(ctx, 1, progSource, 
+       cl_program prog = clCreateProgramWithSource(ctx, 1, progSource,
            NULL, &err);
        CL_CHECK_ERROR(err);
-       
+
        // Compile the program
        err = clBuildProgram(prog, 1, &id, opts, NULL, NULL);
        CL_CHECK_ERROR(err);
-       
+
        if (err != 0)
        {
            char log[5000];
@@ -409,7 +409,7 @@ RunTest(cl_device_id id,
            err =  clGetProgramBuildInfo(prog, id, CL_PROGRAM_BUILD_LOG,
                     5000*sizeof(char), log, &retsize);
            CL_CHECK_ERROR(err);
-           
+
            cout << "Build error." << endl;
            cout << "Retsize: " << retsize << endl;
            cout << "Log: " << log << endl;
@@ -423,14 +423,14 @@ RunTest(cl_device_id id,
        if (dumpPtx && !strcmp(dumpPtx, "1")) {  // must dump the PTX
           dumpPTXCode(ctx, prog, temp.name);
        }
-       
+
        // Extract out kernel
        cl_kernel kernel_madd = clCreateKernel(prog, temp.name, &err);
        CL_CHECK_ERROR(err);
-       
+
        err = clSetKernelArg (kernel_madd, 0, sizeof(cl_mem), (void*)&mem1);
        CL_CHECK_ERROR (err);
-       err = clSetKernelArg (kernel_madd, 1, sizeof(cl_int), 
+       err = clSetKernelArg (kernel_madd, 1, sizeof(cl_int),
            (void*)&temp.numRepeats);
        CL_CHECK_ERROR (err);
 
@@ -438,8 +438,8 @@ RunTest(cl_device_id id,
        {
           cout << "Running kernel " << temp.name << endl;
        }
-       
-       for (int halfNumFloats=temp.halfBufSizeMin*1024 ; 
+
+       for (int halfNumFloats=temp.halfBufSizeMin*1024 ;
             halfNumFloats<=temp.halfBufSizeMax*1024 ;
             halfNumFloats*=temp.halfBufSizeStride)
        {
@@ -452,7 +452,7 @@ RunTest(cl_device_id id,
 
           size_t globalWorkSize = numFloats;
 
-          for (int pas=0 ; pas<npasses ; ++pas) 
+          for (int pas=0 ; pas<npasses ; ++pas)
           {
              err = clEnqueueWriteBuffer (queue, mem1, true, 0,
                                    numFloats*sizeof(T), hostMem,
@@ -460,20 +460,20 @@ RunTest(cl_device_id id,
              CL_CHECK_ERROR(err);
 
              Event evKernel(temp.name);
-             
+
              err = clEnqueueNDRangeKernel(queue, kernel_madd, 1, NULL,
                                  &globalWorkSize, &localWorkSize,
                                  0, NULL, &evKernel.CLEvent());
              CL_CHECK_ERROR(err);
-             
+
              err = clWaitForEvents(1, &evKernel.CLEvent());
              CL_CHECK_ERROR(err);
-             
+
              evKernel.FillTimingInfo();
-             double flopCount = (double)numFloats * 
+             double flopCount = (double)numFloats *
                                 temp.flopCount *
-                                temp.numRepeats * 
-                                temp.numUnrolls * 
+                                temp.numRepeats *
+                                temp.numUnrolls *
                                 temp.numStreams;
 
              double gflop = flopCount / (double)(evKernel.SubmitEndRuntime());
@@ -492,7 +492,7 @@ RunTest(cl_device_id id,
                                  numFloats*sizeof(T), hostMem2,
                                  0, NULL, NULL);
              CL_CHECK_ERROR(err);
-               
+
              // Check the result -- At a minimum the first half of memory
              // should match the second half exactly
              for (int j=0 ; j<halfNumFloats ; ++j)
@@ -506,7 +506,7 @@ RunTest(cl_device_id id,
                    break;
                 }
              }
-             
+
              // update progress bar
              pb.addItersDone();
              if (!verbose && !quiet)
@@ -522,21 +522,21 @@ RunTest(cl_device_id id,
        CL_CHECK_ERROR(err);
 
        aIdx += 1;
-       
+
        delete[] hostMem;
        delete[] hostMem2;
     }
- 
+
     // Now, test hand-tuned custom kernels
-    
+
     // 2D - width and height of input
     const int w = 2048, h = 2048;
     const int bytes = w * h * sizeof(T);
-    
+
     // Allocate some device memory
     mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Get a couple non-zero random numbers
     float val1 = 0, val2 = 0;
     while (val1==0 || val2==0)
@@ -558,27 +558,27 @@ RunTest(cl_device_id id,
               realRepeatF = 8.0*repeatF;
            nUnrolls = (int)round(repeatF*100/realRepeatF);
         }
-        
+
         // Double precision not currently supported
-        string kSource = generateUKernel(kCounter, false, tentativeRepeats, nUnrolls, 
+        string kSource = generateUKernel(kCounter, false, tentativeRepeats, nUnrolls,
                        typeName, pragmaText);
-        
+
         const char* progSource[] = {kSource.c_str()};
         cl_program prog = clCreateProgramWithSource(ctx,
                                  1, progSource, NULL, &err);
         CL_CHECK_ERROR(err);
-    
+
         // Compile kernel
         err = clBuildProgram(prog, 1, &id, opts, NULL, NULL);
         CL_CHECK_ERROR(err);
-        
-        // Extract out kernel 
+
+        // Extract out kernel
         cl_kernel kernel_madd = clCreateKernel(prog, "peak", &err);
-        
+
         // Calculate kernel launch parameters
         //size_t localWorkSize = maxGroupSize<128?maxGroupSize:128;
         size_t globalWorkSize = w * h;
-        
+
         // Set the arguments
         err = clSetKernelArg(kernel_madd, 0, sizeof(cl_mem), (void*)&mem1);
         CL_CHECK_ERROR(err);
@@ -591,24 +591,24 @@ RunTest(cl_device_id id,
         {
             // Event object for timing
             Event evKernel_madd("madd");
-            
+
             err = clEnqueueNDRangeKernel(queue, kernel_madd, 1, NULL,
                       &globalWorkSize, &localWorkSize,
                       0, NULL, &evKernel_madd.CLEvent());
             CL_CHECK_ERROR(err);
-    
+
             // Wait for the kernel to finish
             err = clWaitForEvents(1, &evKernel_madd.CLEvent());
-            CL_CHECK_ERROR(err);  
+            CL_CHECK_ERROR(err);
             evKernel_madd.FillTimingInfo();
-            
+
             // Calculate result and add to DB
             char atts[1024];
             double nflopsPerItem = getUFlopCount(kCounter, false, tentativeRepeats, nUnrolls);
             sprintf(atts, "Size:%d", w*h);
             double gflops = (double) (nflopsPerItem*w*h) /
                             (double) evKernel_madd.SubmitEndRuntime();
-            
+
             if (kCounter) {
                 resultDB.AddResult(string("MulMAddU")+precision, atts, "GFLOPS", gflops);
             } else {
@@ -674,12 +674,12 @@ generateKernel (ostringstream &oss, struct _benchmark_type &test, const char* tN
        if (i==4) startIdx[i] = 0;
        else startIdx[i] = startIdx[i+1] + numVecs[i+1];
        nVectors += numVecs[i];
-       
-       for (int vv=startIdx[i] ; vv<startIdx[i]+numVecs[i] ; ++vv) 
+
+       for (int vv=startIdx[i] ; vv<startIdx[i]+numVecs[i] ; ++vv)
        {
-          oss << "  " << tName; 
+          oss << "  " << tName;
           if (i>0) oss << (1<<i);
-          oss << " " << test.indexVar << vv << " = " 
+          oss << " " << test.indexVar << vv << " = "
               << test.indexVar << " + ";
           if (i>0) oss << "(" << tName << (1<<i) << ")(";
           oss << iniVal;
@@ -694,7 +694,7 @@ generateKernel (ostringstream &oss, struct _benchmark_type &test, const char* tN
     }
     if (test.numRepeats > 1)
         oss << "  for (int j=0 ; j<nIters ; ++j) {\n";
-    
+
     // write the body of the loop
     char buf[32];
     for (int uu=0 ; uu<test.numUnrolls ; ++uu) {
@@ -713,7 +713,7 @@ generateKernel (ostringstream &oss, struct _benchmark_type &test, const char* tN
 
     if (test.numRepeats > 1)
         oss << "  }\n";
-    
+
     // now sum up all the vectors; I do not actually care about the numerical result,
     // only to mark the values as live for the compiler. So sum up the vectors even if
     // some of them will end up being expanded. Then some the terms of the first vector;
@@ -777,14 +777,14 @@ double getUFlopCount(int useMADDMUL, bool doublePrecision, int nRepeats, int nUn
 //
 // Purpose:
 //   Generate a custom unrolled OpenCL kernel to measure max FLOPS
-//  
+//
 //
 // Arguments:
 //   useMADDMUL: 0 for MADD only, 1 for MADD+MUL
 //   doublePrecision: true if double precision, false for single
 //
-// Returns: the kernel code 
-// 
+// Returns: the kernel code
+//
 // Programmer: Gabriel Marin
 // Creation: June 26, 2009
 //
@@ -792,15 +792,15 @@ double getUFlopCount(int useMADDMUL, bool doublePrecision, int nRepeats, int nUn
 //
 // ****************************************************************************
 
-string 
+string
 generateUKernel(int useMADDMUL, bool doublePrecision, int nRepeats, int nUnrolls,
              const char* tName, const char* header)
 {
-    string ops; 
+    string ops;
     char bufrep[16];
-    
+
     sprintf(bufrep, "%d", nRepeats);
-      
+
     if (useMADDMUL) {
         ops = "s0 = s4*s4 + s4; \
                s6 = s0*s5;      \
@@ -851,8 +851,8 @@ generateUKernel(int useMADDMUL, bool doublePrecision, int nRepeats, int nUnrolls
                s28 = s2*s1 + s24;                      \
                s29 = s3*s2 + s25;                      \
                s30 = s4*s3 + s26;                      \
-               s31 = s5*s4 + s27;";    
-    }  
+               s31 = s5*s4 + s27;";
+    }
     string op100 = " ";
     for (int k=0; k<nUnrolls;k++) op100 += ops;
     string kSource = string(header) + "\n"
@@ -885,7 +885,7 @@ generateUKernel(int useMADDMUL, bool doublePrecision, int nRepeats, int nUnrolls
     "                s24+s25+s26+s27+s28+s29+s30+s31);                      "
     " target[index] = result;                                               "
     " } ";
-    
+
     return kSource;
 }
 

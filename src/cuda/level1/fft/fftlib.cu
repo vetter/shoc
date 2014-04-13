@@ -19,7 +19,7 @@ cufftHandle plan;
 inline dim3 grid2D(const int nblocks)
 {
     int slices = 1;
-    while (nblocks/slices > 65535) 
+    while (nblocks/slices > 65535)
     {
         slices *= 2;
     }
@@ -28,7 +28,7 @@ inline dim3 grid2D(const int nblocks)
 
 void printCUFFTError(cufftResult res)
 {
-    if (res != CUFFT_SUCCESS) 
+    if (res != CUFFT_SUCCESS)
     {
         cout << "CUFFT Error: ";
         if (res == CUFFT_INVALID_PLAN)
@@ -43,11 +43,11 @@ void printCUFFTError(cufftResult res)
         {
             cout << "Internal Error .\n";
         }
-        else if (res == CUFFT_EXEC_FAILED) 
+        else if (res == CUFFT_EXEC_FAILED)
         {
             cout << "FFT Exec failed.\n";
         }
-        else if (res == CUFFT_SETUP_FAILED) 
+        else if (res == CUFFT_SETUP_FAILED)
         {
             cout << "Setup failed.\n";
         }
@@ -62,60 +62,60 @@ void printCUFFTError(cufftResult res)
 #include "codelets.h"
 #endif
 
-template <class T2> __global__ void 
+template <class T2> __global__ void
 chk512_device(T2* work, int half_n_cmplx, char* fail)
-{	
+{
     int i, tid = threadIdx.x;
     T2 a[8], b[8];
 
     work += (blockIdx.y * gridDim.x + blockIdx.x) * 512 + tid;
-	
-    for (i = 0; i < 8; i++) 
+
+    for (i = 0; i < 8; i++)
     {
         a[i] = work[i*64];
     }
-    
-    for (i = 0; i < 8; i++) 
+
+    for (i = 0; i < 8; i++)
     {
         b[i] = work[half_n_cmplx+i*64];
     }
-    
-    for (i = 0; i < 8; i++) 
+
+    for (i = 0; i < 8; i++)
     {
-        if (a[i].x != b[i].x || a[i].y != b[i].y) 
+        if (a[i].x != b[i].x || a[i].y != b[i].y)
         {
             *fail = 1;
         }
     }
-}	
+}
 
 
-template <class T2> __global__ void 
+template <class T2> __global__ void
 norm512_device( T2* work)
-{	
+{
     int i, tid = threadIdx.x;
 
     work += (blockIdx.y * gridDim.x + blockIdx.x) * 512 + tid;
-	
-    for (i = 0; i < 8; i++) 
+
+    for (i = 0; i < 8; i++)
     {
         work[i*64].x /= 512;
         work[i*64].y /= 512;
     }
-}	
+}
 
 
 void
 init(OptionParser& op, bool _do_dp, int n_ffts)
 {
     do_dp = _do_dp;
-    if (fftDevice == -1) 
+    if (fftDevice == -1)
     {
-        if (op.getOptionVecInt("device").size() > 0) 
+        if (op.getOptionVecInt("device").size() > 0)
         {
             fftDevice = op.getOptionVecInt("device")[0];
         }
-        else 
+        else
         {
             fftDevice = 0;
         }
@@ -125,24 +125,24 @@ init(OptionParser& op, bool _do_dp, int n_ffts)
 #ifdef USE_CUFFT
     cufftResult res;
     cerr << "init: initing plan, n_ffts=" << n_ffts << endl;
-    if (do_dp) 
+    if (do_dp)
     {
         res = cufftPlan1d(&plan, 512, CUFFT_Z2Z, n_ffts);
     }
-    else 
+    else
     {
         res = cufftPlan1d(&plan, 512, CUFFT_C2C, n_ffts);
     }
-    if (res != CUFFT_SUCCESS) 
+    if (res != CUFFT_SUCCESS)
     {
         cout << "CUFFT Error in plan.\n";
-    } 
-    else 
+    }
+    else
     {
         cerr <<  "success...\n";
     }
 #endif
- 
+
 }
 
 
@@ -151,25 +151,25 @@ forward(void* work, int n_ffts)
 {
 #ifdef USE_CUFFT
     cufftResult res;
-    if (do_dp) 
+    if (do_dp)
     {
-        res = cufftExecZ2Z(plan, (cufftDoubleComplex*)work, 
+        res = cufftExecZ2Z(plan, (cufftDoubleComplex*)work,
             (cufftDoubleComplex*)work, CUFFT_FORWARD);
     }
-    else 
+    else
     {
-        res = cufftExecC2C(plan, (cufftComplex*)work, 
+        res = cufftExecC2C(plan, (cufftComplex*)work,
             (cufftComplex*)work, CUFFT_FORWARD);
     }
     printCUFFTError(res);
     cudaThreadSynchronize();
     CHECK_CUDA_ERROR();
 #else
-    if (do_dp) 
+    if (do_dp)
     {
         FFT512_device<double2, double><<<grid2D(n_ffts), 64>>>((double2*)work);
     }
-    else 
+    else
     {
         FFT512_device<float2, float><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
@@ -184,35 +184,35 @@ inverse(void* work, int n_ffts)
 {
 #ifdef USE_CUFFT
     cufftResult res;
-    if (do_dp) 
+    if (do_dp)
     {
-        res = cufftExecZ2Z(plan, (cufftDoubleComplex*)work, 
+        res = cufftExecZ2Z(plan, (cufftDoubleComplex*)work,
             (cufftDoubleComplex*)work, CUFFT_INVERSE);
     }
-    else 
+    else
     {
-        res = cufftExecC2C(plan, (cufftComplex*)work, 
+        res = cufftExecC2C(plan, (cufftComplex*)work,
             (cufftComplex*)work, CUFFT_INVERSE);
     }
     printCUFFTError(res);
 
     // normalize data...
-    if (do_dp) 
+    if (do_dp)
     {
         norm512_device<double2><<<grid2D(n_ffts), 64>>>((double2*)work);
     }
-    else 
+    else
     {
         norm512_device<float2><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
     cudaThreadSynchronize();
     CHECK_CUDA_ERROR();
 #else
-    if (do_dp) 
+    if (do_dp)
     {
         IFFT512_device<double2, double><<<grid2D(n_ffts), 64>>>((double2*)work);
     }
-    else 
+    else
     {
         IFFT512_device<float2, float><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
@@ -228,12 +228,12 @@ check(void* work, void* check, int half_n_ffts, int half_n_cmplx)
 {
     char result;
 
-    if (do_dp) 
+    if (do_dp)
     {
         chk512_device<double2><<<grid2D(half_n_ffts), 64>>>(
             (double2*)work, half_n_cmplx, (char*)check);
     }
-    else 
+    else
     {
         chk512_device<float2><<<grid2D(half_n_ffts), 64>>>(
             (float2*)work, half_n_cmplx, (char*)check);

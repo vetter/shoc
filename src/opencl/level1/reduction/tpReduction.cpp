@@ -37,14 +37,14 @@ inline void globalReduction(T* local_result, T* global_result);
 template <>
 inline void globalReduction(float* local_result, float* global_result)
 {
-   MPI_Allreduce(local_result, global_result, 1, MPI_FLOAT, 
+   MPI_Allreduce(local_result, global_result, 1, MPI_FLOAT,
            MPI_SUM, MPI_COMM_WORLD);
 }
 
 template <>
 inline void globalReduction(double* local_result, double* global_result)
 {
-   MPI_Allreduce(local_result, global_result, 1, MPI_DOUBLE, 
+   MPI_Allreduce(local_result, global_result, 1, MPI_DOUBLE,
            MPI_SUM, MPI_COMM_WORLD);
 }
 
@@ -121,14 +121,14 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // Modifications:
 //   Jeremy Meredith, Thu Sep 24 17:30:18 EDT 2009
-//   Use implicit include of source file instead of 
+//   Use implicit include of source file instead of
 //   runtime loading.
 //
 // ****************************************************************************
 extern const char *cl_source_reduction;
 
 void
-RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp, 
+RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp,
         cl::CommandQueue& queuecpp,
         ResultDatabase &resultDB, OptionParser &op)
 {
@@ -177,12 +177,12 @@ RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp,
         // doesn't support DP, submit FLT_MAX (this is handled as no result by
         // ResultDB.
         int passes = op.getOptionInt("passes");
-        for (int k = 0; k < passes; k++) 
+        for (int k = 0; k < passes; k++)
         {
             resultDB.AddResult("AllReduce-DP-Kernel" , atts, "GB/s", FLT_MAX);
-            resultDB.AddResult("AllReduce-DP-Kernel+PCIe" , atts, "GB/s", 
+            resultDB.AddResult("AllReduce-DP-Kernel+PCIe" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult("AllReduce-DP-MPI_Allreduce" , atts, "GB/s", 
+            resultDB.AddResult("AllReduce-DP-MPI_Allreduce" , atts, "GB/s",
                 FLT_MAX);
             resultDB.AddResult("AllReduce-DP-Overall" , atts, "GB/s", FLT_MAX);
         }
@@ -237,7 +237,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     size_t localWorkSize = 256;
     bool nolocal = false;
-    if (getMaxWorkGroupSize(ctx, reduce) == 1) 
+    if (getMaxWorkGroupSize(ctx, reduce) == 1)
     {
         nolocal = true;
         localWorkSize = 1;
@@ -346,19 +346,19 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     for (int k = 0; k < passes; k++)
     {
         // Synch processes at the start of each test.
-        MPI_Barrier(MPI_COMM_WORLD); 
-        
+        MPI_Barrier(MPI_COMM_WORLD);
+
         double totalReduceTime = 0.0;
         Event evKernel("reduce kernel");
         for (int m = 0; m < iters; m++)
         {
-            if (nolocal) 
+            if (nolocal)
             {
                 err = clEnqueueNDRangeKernel(queue, cpureduce, 1, NULL,
                         &globalWorkSize, &localWorkSize, 0,
                         NULL, &evKernel.CLEvent());
             }
-            else 
+            else
             {
                 err = clEnqueueNDRangeKernel(queue, reduce, 1, NULL,
                         &globalWorkSize, &localWorkSize, 0,
@@ -377,15 +377,15 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         evTransfer.FillTimingInfo();
         double totalTransfer = (inputTransfer + evTransfer.StartEndRuntime()) /
                 1.e9;
-        
+
         T local_result = 0.0f, global_result = 0.0f;
-        
+
         // Start a wallclock timer for MPI
         int TH_global = Timer::Start();
-        
+
         // Perform reduction of block sums and MPI allreduce call
         for (int m = 0; m < iters; m++)
-        {        
+        {
             local_result = 0.0f;
 
             for (int i=0; i<num_blocks; i++)
@@ -405,17 +405,17 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
         if (diff > threshold)
         {
-            cout << "Error in local reduction detected in rank " 
+            cout << "Error in local reduction detected in rank "
                  << mpi_rank << "\n";
             cout << "Diff: " << diff << endl;
         }
-        
+
         if (global_result != (mpi_size * local_result))
         {
             cout << "Test Failed, error in global all reduce detected in rank "
                  << mpi_rank << endl;
-        } 
-        else 
+        }
+        else
         {
             if (mpi_rank == 0)
             {
@@ -428,13 +428,13 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         double local_gbytes = (double)(size*sizeof(T))/(1000.*1000.*1000.);
         double global_gbytes = local_gbytes * mpi_size;
         totalReduceTime /= iters; // use average time over the iterations
-        resultDB.AddResult(testName+"-Kernel", atts, "GB/s", 
+        resultDB.AddResult(testName+"-Kernel", atts, "GB/s",
             global_gbytes / totalReduceTime);
         resultDB.AddResult(testName+"-Kernel+PCIe", atts, "GB/s",
             global_gbytes / (totalReduceTime + totalTransfer));
         resultDB.AddResult(testName+"-MPI_Allreduce",  atts, "GB/s",
             (sizeof(T)*mpi_size*1.e-9) / (mpi_time));
-        resultDB.AddResult(testName+"-Overall", atts, "GB/s", 
+        resultDB.AddResult(testName+"-Overall", atts, "GB/s",
             global_gbytes / (totalReduceTime + totalTransfer + mpi_time));
         }
 

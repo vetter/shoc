@@ -8,7 +8,7 @@
 
 
 template<class T>
-void 
+void
 CommonOpenCLStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
 {
     // let base class check its options first
@@ -46,7 +46,7 @@ CommonOpenCLStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     {
         throw InvalidArgValue( "overall columns must be even multiple of lsize columns" );
     }
-        
+
     // TODO ensure local dims are smaller than OpenCL implementation limits
 }
 
@@ -62,7 +62,7 @@ CommonOpenCLStencilFactory<T>::ExtractOptions( const OptionParser& options,
 {
     // let base class extract its options
     StencilFactory<T>::ExtractOptions( options, wCenter, wCardinal, wDiagonal );
-    
+
     // extract our options
     std::vector<long long> ldims = options.getOptionVecInt( "lsize" );
     assert( ldims.size() == 2 );

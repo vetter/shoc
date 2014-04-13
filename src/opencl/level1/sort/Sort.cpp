@@ -135,8 +135,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     int err = 0;
 
     // Program Setup
-    cl_program prog = clCreateProgramWithSource(ctx, 
-                                                1, 
+    cl_program prog = clCreateProgramWithSource(ctx,
+                                                1,
                                                 &cl_source_sort,
                                                 NULL,
                                                 &err);
@@ -172,7 +172,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     cl_kernel top_scan = clCreateKernel(prog, "top_scan", &err);
     CL_CHECK_ERROR(err);
-    
+
     cl_kernel bottom_scan = clCreateKernel(prog, "bottom_scan", &err);
     CL_CHECK_ERROR(err);
 
@@ -209,7 +209,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     T* h_idata = (T*)clEnqueueMapBuffer(queue, h_i, true,
             CL_MAP_READ|CL_MAP_WRITE, 0, bytes, 0, NULL, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate pinned host memory for output data (h_odata)
     cl_mem h_o = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
             bytes, NULL, &err);
@@ -233,20 +233,20 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     // Allocate device memory for input array
     cl_mem d_idata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate device memory for output array
     cl_mem d_odata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
 
     // Number of local work items per group
     const size_t local_wsize  = 256;
-    
+
     // Number of global work items
     const size_t global_wsize = 16384; // i.e. 64 work groups
     const size_t num_work_groups = global_wsize / local_wsize;
 
     // Allocate device memory for local work group intermediate sums
-    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
             num_work_groups * num_digits * sizeof(T), NULL, &err);
     CL_CHECK_ERROR(err);
 
@@ -259,7 +259,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(reduce, 3, local_wsize * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-                        
+
     // Set the kernel arguments for the top-level scan
     err = clSetKernelArg(top_scan, 0, sizeof(cl_mem), (void*)&d_isums);
     CL_CHECK_ERROR(err);
@@ -279,7 +279,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(bottom_scan, 4, local_wsize * 2 * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-    
+
     // Copy data to GPU
     cout << "Copying input data to device." << endl;
     Event evTransfer("PCIe transfer");
@@ -302,7 +302,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         for (int shift = 0; shift < sizeof(T)*8; shift += radix_width)
         {
             // Like scan, we use a reduce-then-scan approach
-            
+
             // But before proceeding, update the shift appropriately
             // for each kernel. This is how many bits to shift to the
             // right used in binning.
@@ -311,36 +311,36 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
             err = clSetKernelArg(bottom_scan, 5, sizeof(cl_int), (void*)&shift);
             CL_CHECK_ERROR(err);
-            
+
             // Also, the sort is not in place, so swap the input and output
             // buffers on each pass.
             bool even = ((shift / radix_width) % 2 == 0) ? true : false;
-            
+
             if (even)
             {
                 // Set the kernel arguments for the reduction kernel
-                err = clSetKernelArg(reduce, 0, sizeof(cl_mem), 
+                err = clSetKernelArg(reduce, 0, sizeof(cl_mem),
                         (void*)&d_idata);
                 CL_CHECK_ERROR(err);
                 // Set the kernel arguments for the bottom-level scan
-                err = clSetKernelArg(bottom_scan, 0, sizeof(cl_mem), 
+                err = clSetKernelArg(bottom_scan, 0, sizeof(cl_mem),
                         (void*)&d_idata);
                 CL_CHECK_ERROR(err);
-                err = clSetKernelArg(bottom_scan, 2, sizeof(cl_mem), 
+                err = clSetKernelArg(bottom_scan, 2, sizeof(cl_mem),
                         (void*)&d_odata);
                 CL_CHECK_ERROR(err);
-            } 
+            }
             else // i.e. odd pass
             {
                 // Set the kernel arguments for the reduction kernel
-                err = clSetKernelArg(reduce, 0, sizeof(cl_mem), 
+                err = clSetKernelArg(reduce, 0, sizeof(cl_mem),
                         (void*)&d_odata);
                 CL_CHECK_ERROR(err);
                 // Set the kernel arguments for the bottom-level scan
-                err = clSetKernelArg(bottom_scan, 0, sizeof(cl_mem), 
+                err = clSetKernelArg(bottom_scan, 0, sizeof(cl_mem),
                         (void*)&d_odata);
                 CL_CHECK_ERROR(err);
-                err = clSetKernelArg(bottom_scan, 2, sizeof(cl_mem), 
+                err = clSetKernelArg(bottom_scan, 2, sizeof(cl_mem),
                         (void*)&d_idata);
                 CL_CHECK_ERROR(err);
             }
@@ -349,13 +349,13 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
             // input array, and computes occurrences of each digit.
             err = clEnqueueNDRangeKernel(queue, reduce, 1, NULL,
                         &global_wsize, &local_wsize, 0, NULL, NULL);
-            
+
             // Next, a top-level exclusive scan is performed on the
             // per block histograms.  This is done by a single
             // work group (note global size here is the same as local).
             err = clEnqueueNDRangeKernel(queue, top_scan, 1, NULL,
                         &local_wsize, &local_wsize, 0, NULL, NULL);
-          
+
             // Finally, a bottom-level scan is performed by each block
             // that is seeded with the scanned histograms which rebins,
             // locally scans, then scatters keys to global memory
@@ -380,7 +380,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         {
             return;
         }
-        
+
         char atts[1024];
         double avgTime = total_sort;
         double gbs = (double) (size * sizeof(T)) / (1000. * 1000. * 1000.);
@@ -409,7 +409,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clReleaseMemObject(h_o);
     CL_CHECK_ERROR(err);
-    
+
     // Clean up program and kernel objects
     err = clReleaseProgram(prog);
     CL_CHECK_ERROR(err);

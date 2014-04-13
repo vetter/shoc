@@ -53,7 +53,7 @@ int GPUCleanup(OptionParser &op);
 //    report all trial values, and for parallel, skip the per-process vals.
 //
 //    Jeremy Meredith, Fri Dec  3 16:30:31 EST 2010
-//    Use the "passes" argument instead of hardcoding to 4 passes, and 
+//    Use the "passes" argument instead of hardcoding to 4 passes, and
 //    increase the default to 10.  Changed the way collection of
 //    the summary results worked to extract only the desired results.
 //    Added reporting of GPU download latency.
@@ -78,7 +78,7 @@ void MPITest(OptionParser &op, ResultDatabase &resultDB, int numtasks, int myran
 
 int main(int argc, char *argv[])
 {
-    int numdev=0, totalnumdev=0, numtasks, mympirank, dest, source, rc, 
+    int numdev=0, totalnumdev=0, numtasks, mympirank, dest, source, rc,
         mypair=0, count, tag=2, mynoderank,myclusterrank,nodenprocs;
     int *grp1, *grp2;
     int mygrprank,grpnumtasks;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     MPI_Comm bmcomm,nlrcomm;
     ResultDatabase resultDB,resultDBWU,resultDB1;
     OptionParser op;
-    ParallelResultDatabase pardb, pardb1; 
+    ParallelResultDatabase pardb, pardb1;
     bool amGPUTask = false;
     volatile unsigned long long *mpidone;
     int i,shmid;
@@ -96,14 +96,14 @@ int main(int argc, char *argv[])
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
     MPI_Comm_rank(MPI_COMM_WORLD, &mympirank);
-    MPI_Comm_group(MPI_COMM_WORLD, &orig_group); 
+    MPI_Comm_group(MPI_COMM_WORLD, &orig_group);
 
 
     //Add shared options to the parser
     op.addOption("device", OPT_VECINT, "0", "specify device(s) to run on",
 		    'd');
     op.addOption("verbose", OPT_BOOL, "", "enable verbose output", 'v');
-    op.addOption("quiet", OPT_BOOL, "", 
+    op.addOption("quiet", OPT_BOOL, "",
 		    "write minimum necessary to standard output", 'q');
     op.addOption("passes", OPT_INT, "10", "specify number of passes", 'z');
     op.addOption("size", OPT_VECINT, "1", "specify problem size", 's');
@@ -114,17 +114,17 @@ int main(int argc, char *argv[])
        'i');
     op.addOption("fullInfoDevices", OPT_BOOL, "", "show full info for available devices");
     op.addOption("MPIminmsg", OPT_INT, "0", "specify minimum MPI message size");
-    op.addOption("MPImaxmsg", OPT_INT, "16384", 
+    op.addOption("MPImaxmsg", OPT_INT, "16384",
                     "specify maximum MPI message size");
-    op.addOption("MPIiter", OPT_INT, "1000", 
+    op.addOption("MPIiter", OPT_INT, "1000",
                     "specify number of MPI benchmark iterations for each size");
     op.addOption("platform", OPT_INT, "0", "specify platform for device selection", 'y');
-            
+
     if (!op.parse(argc, argv))
     {
         if (mympirank == 0)
             op.usage();
-        MPI_Finalize(); 
+        MPI_Finalize();
         return 0;
     }
 
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
     MPI_Bcast(&shmid, 1, MPI_INT, 0, NI.getSMPComm());
 
     mpidone = ((volatile unsigned long long*) shmat(shmid, 0, 0));
-    if (mynoderank == 0) 
+    if (mynoderank == 0)
         shmctl(shmid, IPC_RMID, 0);
     *mpidone = 0;
 
@@ -155,8 +155,8 @@ int main(int argc, char *argv[])
     if ( numnodes%2!=0 )
     {
         if(mympirank==0)
-            printf("\nThis test needs an even number of nodes\n"); 
-        MPI_Finalize();	
+            printf("\nThis test needs an even number of nodes\n");
+        MPI_Finalize();
 	exit(0);
     }
     int nodealr = NI.nodeALR();
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
     if ( devsPerNode >= nodenprocs ) devsPerNode = nodenprocs/2;
 
     numdev = (mynoderank == 0) ? devsPerNode : 0;
-    MPI_Allreduce(&numdev, &totalnumdev, 1, MPI_INT, MPI_SUM, 
+    MPI_Allreduce(&numdev, &totalnumdev, 1, MPI_INT, MPI_SUM,
                     MPI_COMM_WORLD);
     numdev = devsPerNode;
 
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 	tmp[1]=nodenprocs-numdev;
         if (mympirank ==0)
             MPI_Send(tmp, 2*sizeof(int), MPI_CHAR, 1, 112, nlrcomm);
-        else 
+        else
         {
             MPI_Status reqstat;
 	    MPI_Recv(beginoffset, 2*sizeof(int), MPI_CHAR, myclusterrank-1,
@@ -232,9 +232,9 @@ int main(int argc, char *argv[])
         grpnumtasks=numtasks-totalnumdev;
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, grp1, totalnumdev, MPI_INT, MPI_SUM, 
+    MPI_Allreduce(MPI_IN_PLACE, grp1, totalnumdev, MPI_INT, MPI_SUM,
                     MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, grp2, (numtasks-totalnumdev), MPI_INT, 
+    MPI_Allreduce(MPI_IN_PLACE, grp2, (numtasks-totalnumdev), MPI_INT,
                             MPI_SUM, MPI_COMM_WORLD);
 
     if ( amGPUTask )
@@ -242,22 +242,22 @@ int main(int argc, char *argv[])
         // I am to do GPU work, so will be part of GPU communicator
         MPI_Group_incl(orig_group, totalnumdev, grp1, &bmgrp);
     }
-    else 
+    else
     {
-        // I am to do MPI communication work, so will be part of MPI 
+        // I am to do MPI communication work, so will be part of MPI
         // messaging traffic communicator
-        MPI_Group_incl(orig_group, (numtasks-totalnumdev), grp2, 
+        MPI_Group_incl(orig_group, (numtasks-totalnumdev), grp2,
                         &bmgrp);
     }
 
     MPI_Comm_create(MPI_COMM_WORLD, bmgrp, &bmcomm);
     MPI_Comm_rank(bmcomm, &mygrprank);
-    NodeInfo *GRPNI = new NodeInfo(bmcomm);        
+    NodeInfo *GRPNI = new NodeInfo(bmcomm);
     int mygrpnoderank=GRPNI->nodeRank();
     int grpnodealr = GRPNI->nodeALR();
     int grpnodenprocs = GRPNI->nodeNprocs();
     MPI_Comm grpnlrcomm = GRPNI->getNLRComm();
-    //note that clusterrank and number of nodes don't change for this child 
+    //note that clusterrank and number of nodes don't change for this child
     //group/comm
 
 
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
             mypair = pairlist[mypair];
         }
         for (i=0;i<numnodes;i++) pairlist[i]=0;
-        if ( mygrpnoderank==0 ) 
+        if ( mygrpnoderank==0 )
             pairlist[myclusterrank]=mypair;
         MPI_Allreduce(MPI_IN_PLACE,pairlist,numnodes,MPI_INT,MPI_SUM,
                       bmcomm);
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        for ( i=0;i<npasses;i++ ) 
+        for ( i=0;i<npasses;i++ )
         {
             MPITest(op, resultDB1, grpnumtasks, mygrprank, mypair, bmcomm);
         }
@@ -362,13 +362,13 @@ int main(int argc, char *argv[])
         for (i=0; i<prelatency.size(); i++)
         {
             cout<<msgsize<<"\t";
-            msgsize = (msgsize ? msgsize * 2 : msgsize + 1); 
+            msgsize = (msgsize ? msgsize * 2 : msgsize + 1);
         }
 
         cout << endl <<"BASELATENCY\t";
         for (i=0; i<prelatency.size(); i++)
             cout<<setiosflags(ios::fixed) << setprecision(2)<<prelatency[i].GetMean() << "\t";
-            
+
         cout << endl <<"CONTLATENCY\t";
         for (i=0; i<postlatency.size(); i++)
             cout<<setiosflags(ios::fixed) << setprecision(2)<<postlatency[i].GetMean() << "\t";
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if ( amGPUTask && mympirank==0) 
+    if ( amGPUTask && mympirank==0)
     {
         vector<ResultDatabase::Result> prespeed  = pardb.GetResultsForTest("DownloadSpeed(mean)");
         vector<ResultDatabase::Result> postspeed = pardb1.GetResultsForTest("DownloadSpeed(mean)");
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
          cout<<endl;
     }
 
-    if ( amGPUTask && mympirank==0) 
+    if ( amGPUTask && mympirank==0)
     {
         vector<ResultDatabase::Result> pregpulat  = pardb.GetResultsForTest("DownloadLatencyEstimate(mean)");
         vector<ResultDatabase::Result> postgpulat = pardb1.GetResultsForTest("DownloadLatencyEstimate(mean)");

@@ -110,7 +110,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         std::vector<long long> lDims = opts.getOptionVecInt( "lsize" );
         assert( lDims.size() == 2 );
         std::ostringstream experimentDescriptionStr;
-        experimentDescriptionStr 
+        experimentDescriptionStr
             << nIters << ':'
             << arrayDims[0] << 'x' << arrayDims[1] << ':'
             << lDims[0] << 'x' << lDims[1];
@@ -142,7 +142,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
-        Matrix2D<T> expected( arrayDims[0] + 2*haloWidth, 
+        Matrix2D<T> expected( arrayDims[0] + 2*haloWidth,
                             arrayDims[1] + 2*haloWidth );
         Initialize<T> init( seed, haloWidth, haloVal );
 
@@ -201,13 +201,13 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 
 
         // compute the result on the CUDA device
-        Matrix2D<T> data( arrayDims[0] + 2*haloWidth, 
+        Matrix2D<T> data( arrayDims[0] + 2*haloWidth,
                             arrayDims[1] + 2*haloWidth );
         Stencil<T>* testStencil = testStencilFactory->BuildStencil( opts );
 
         // Compute the number of floating point operations we will perform.
         //
-        // Note: in the truly-parallel case, we count flops for redundant 
+        // Note: in the truly-parallel case, we count flops for redundant
         // work due to the need for a halo.
         // But we do not add to the count for the local 1-wide halo since
         // we aren't computing new values for those items.
@@ -227,13 +227,13 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         npts *= numParticipating;
 #endif // defined(PARALLEL)
 
-        // In our 9-point stencil, there are 11 floating point operations 
+        // In our 9-point stencil, there are 11 floating point operations
         // per point (3 multiplies and 11 adds):
         //
         // newval = weight_center * centerval +
-        //      weight_cardinal * (northval + southval + eastval + westval) + 
+        //      weight_cardinal * (northval + southval + eastval + westval) +
         //      weight_diagnoal * (neval + nwval + seval + swval)
-        // 
+        //
         // we do this stencil operation 'nIters' times
         unsigned long nflops = npts * 11 * nIters;
 
@@ -245,7 +245,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
-        
+
         for( unsigned int pass = 0; pass < nWarmupPasses; pass++ )
         {
             init(data);
@@ -265,7 +265,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         if( cwrank == 0 )
         {
 #endif // defined(PARALLEL)
-        std::cout << "\nPerforming stencil operation on chosen device, " 
+        std::cout << "\nPerforming stencil operation on chosen device, "
             << nPasses << " passes.\n"
             << "Depending on chosen device, this may take a while."
             << std::endl;
@@ -274,7 +274,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 #endif // defined(PARALLEL)
 
 #if !defined(PARALLEL)
-        std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output." 
+        std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output."
             << std::endl;
 #endif // !defined(PARALLEL)
 
@@ -300,8 +300,8 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
                                     gflops );
             if( beVerbose )
             {
-                std::cout << "observed result, pass " << pass << ":\n" 
-                    << data 
+                std::cout << "observed result, pass " << pass << ":\n"
+                    << data
                     << std::endl;
             }
 
@@ -309,7 +309,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
 #if defined(PARALLEL)
             StencilValidater<T>* validater = new MPIStencilValidater<T>;
 #else
-            StencilValidater<T>* validater = new SerialStencilValidater<T>;            
+            StencilValidater<T>* validater = new SerialStencilValidater<T>;
 #endif // defined(PARALLEL)
             validater->ValidateResult( expected,
                             data,
@@ -320,7 +320,7 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
     catch( ... )
     {
         // clean up - abnormal termination
-        // wish we didn't have to do this, but C++ exceptions do not 
+        // wish we didn't have to do this, but C++ exceptions do not
         // support a try-catch-finally approach
         delete stdStencil;
         delete stdStencilFactory;

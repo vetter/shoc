@@ -42,9 +42,9 @@ private:
 
     static size_t FindNumPaddedColumns( size_t nColumns, size_t pad )
     {
-        return nColumns + 
+        return nColumns +
                  ((nColumns % pad == 0) ?
-                    0 : 
+                    0 :
                     (pad - (nColumns % pad)));
     }
 
@@ -112,7 +112,7 @@ public:
     {
         return data;
     }
-    
+
     FlatDataPtr GetFlatData( void )
     {
         return flatData;

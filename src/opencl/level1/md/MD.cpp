@@ -442,7 +442,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         long int numPairs = nAtom * maxNeighbors;
         long int nbytes = (3 * sizeof(T) * (1+numPairs)) + // position data
                           (3 * sizeof(T) * nAtom) + // force for each atom
-                          (sizeof(int) * numPairs); // neighbor list 
+                          (sizeof(int) * numPairs); // neighbor list
         double gbytes = (double)nbytes / (1000. * 1000. * 1000.);
         double seconds = total_time / 1.e9;
         resultDB.AddResult(testName+"-Bandwidth", atts, "GB/s", gbytes /

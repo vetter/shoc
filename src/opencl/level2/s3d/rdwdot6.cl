@@ -73,7 +73,7 @@ __kernel void
 rdwdot6_kernel (__global const real* RKF, __global const real* RKR,
 		__global real* WDOT, const real rateconv, __global const real* molwt)
 {
- 
+
     WDOT(11) = (-ROP2(29) -ROP2(30) -ROP2(31) -ROP2(32)
             -ROP2(33) +ROP2(34) -ROP2(39) +ROP2(40)
             +ROP2(42) +ROP2(43) +ROP2(45) +ROP2(46)
