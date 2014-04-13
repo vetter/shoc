@@ -31,3 +31,15 @@
 #    --without-mpi \
 #    --without-opencl --with-cuda
 
+# Another issue on Mavericks (10.9.2) arises when compiling opencl with
+# clang.  An alternative is to use gcc-4.8 (tested with the default config
+# in homebrew) and the following:
+#sh ./configure \
+#  CXXFLAGS="-m64" \
+#  CFLAGS="-m64" \
+#  NVCXXFLAGS="-m64" \
+#  CPP="g++-4.8" \
+#  CXX="g++-4.8" \
+#  --with-opencl --without-cuda --without-mpi
+
+
