@@ -55,6 +55,7 @@ reduce(__global const FPTYPE * in,
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
+    barrier(CLK_LOCAL_MEM_FENCE);
     // Write result for this block to global memory
     if (tid == 0)
     {
@@ -88,16 +89,9 @@ inline FPTYPE scanLocalMem(FPTYPE val, __local FPTYPE* lmem, int exclusive)
 }
 
 __kernel void
-top_scan(__global FPTYPE * isums,
-         const int n,
-         __local FPTYPE * lmem)
+top_scan(__global FPTYPE * isums, const int n, __local FPTYPE * lmem)
 {
-    FPTYPE val = 0.0f;
-    if (get_local_id(0) < n)
-    {
-        val = isums[get_local_id(0)];
-    }
-
+    FPTYPE val = get_local_id(0) < n ? isums[get_local_id(0)] : 0.0f;
     val = scanLocalMem(val, lmem, 1);
 
     if (get_local_id(0) < n)
@@ -114,6 +108,7 @@ bottom_scan(__global const FPTYPE * in,
             __local FPTYPE * lmem)
 {
     __local FPTYPE s_seed;
+    s_seed = 0;
 
     // Prepare for reading 4-element vectors
     // Assume n is divisible by 4
@@ -129,22 +124,18 @@ bottom_scan(__global const FPTYPE * in,
 
     // Calculate starting index for this thread/work item
     int i = block_start + get_local_id(0);
-    int window = block_start;
+    unsigned int window = block_start;
 
     // Seed the bottom scan with the results from the top scan (i.e. load the per
     // block sums from the previous kernel)
     FPTYPE seed = isums[get_group_id(0)];
 
     // Scan multiple elements per thread
-    while (window < block_stop)
-    {
+    while (window < block_stop) {
         FPVECTYPE val_4;
-        if (i < block_stop) // Make sure we don't read out of bounds
-        {
+        if (i < block_stop) {
             val_4 = in4[i];
-        }
-        else
-        {
+        } else {
             val_4.x = 0.0f;
             val_4.y = 0.0f;
             val_4.z = 0.0f;
@@ -156,7 +147,7 @@ bottom_scan(__global const FPTYPE * in,
         val_4.z += val_4.y;
         val_4.w += val_4.z;
 
-        // ExScan sums in shared memory
+        // ExScan sums in local memory
         FPTYPE res = scanLocalMem(val_4.w, lmem, 1);
 
         // Update and write out to global memory
@@ -165,14 +156,17 @@ bottom_scan(__global const FPTYPE * in,
         val_4.z += res + seed;
         val_4.w += res + seed;
 
-        if (i < block_stop) // Make sure we don't write out of bounds
+        if (i < block_stop)
         {
             out4[i] = val_4;
         }
 
         // Next seed will be the last value
         // Last thread puts seed into smem.
-        if (get_local_id(0) == get_local_size(0)-1) s_seed = val_4.w;
+        barrier(CLK_LOCAL_MEM_FENCE);
+        if (get_local_id(0) == get_local_size(0)-1) {
+              s_seed = val_4.w;
+        }
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // Broadcast seed to other threads
@@ -183,7 +177,4 @@ bottom_scan(__global const FPTYPE * in,
         i += get_local_size(0);
     }
 }
-
-
-
 

@@ -68,7 +68,7 @@ bool scanCPU(T *data, T* reference, T* dev_result, const size_t size)
     if (passed)
         cout << "Passed" << endl;
     else
-        cout << "---FAILED---" << endl;
+        cout << "Failed" << endl;
     return passed;
 }
 
@@ -215,11 +215,12 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     cl_kernel bottom_scan = clCreateKernel(prog, "bottom_scan", &err);
     CL_CHECK_ERROR(err);
 
-    // If the device doesn't support at least 256 work items in a
-    // group, use a different kernel (TODO)
-    if (getMaxWorkGroupSize(dev) < 256)
-    {
-        cout << "Scan requires work group size of at least 256" << endl;
+    if ( getMaxWorkGroupSize(ctx, reduce)      < 256 ||
+         getMaxWorkGroupSize(ctx, top_scan)    < 256 ||
+         getMaxWorkGroupSize(ctx, bottom_scan) < 256) {
+
+        cout << "Scan requires a device that supports a work group " <<
+          "size of at least 256" << endl;
         char atts[1024] = "GSize_Not_Supported";
         // resultDB requires neg entry for every possible result
         int passes = op.getOptionInt("passes");
@@ -327,7 +328,6 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     evTransfer.FillTimingInfo();
     double inTransferTime = evTransfer.StartEndRuntime();
 
-
     // Repeat the test multiplie times to get a good measurement
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");
@@ -344,6 +344,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
             // input array, and computes the sum.
             err = clEnqueueNDRangeKernel(queue, reduce, 1, NULL,
                         &global_wsize, &local_wsize, 0, NULL, NULL);
+            CL_CHECK_ERROR(err);
 
             // Next, a top-level exclusive scan is performed on the array
             // of block sums
@@ -351,10 +352,13 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
             err = clEnqueueNDRangeKernel(queue, top_scan, 1, NULL,
                         &local_wsize, &local_wsize, 0, NULL, NULL);
 
+            CL_CHECK_ERROR(err);
+
             // Finally, a bottom-level scan is performed by each block
             // that is seeded with the scanned value in block sums
             err = clEnqueueNDRangeKernel(queue, bottom_scan, 1, NULL,
                         &global_wsize, &local_wsize, 0, NULL, NULL);
+            CL_CHECK_ERROR(err);
         }
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
@@ -416,5 +420,4 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     err = clReleaseKernel(bottom_scan);
     CL_CHECK_ERROR(err);
 }
-
 
