@@ -178,9 +178,11 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     // If the device doesn't support at least 256 work items in a
     // group, use a different kernel (TODO)
-    if (getMaxWorkGroupSize(dev) < 256)
-    {
-        cout << "Scan requires work group size of at least 256" << endl;
+    if ( getMaxWorkGroupSize(ctx, reduce)      < 256 ||
+         getMaxWorkGroupSize(ctx, top_scan)    < 256 ||
+         getMaxWorkGroupSize(ctx, bottom_scan) < 256) {
+        cout << "Sort requires a device that supports a work group size " <<
+          "of at least 256" << endl;
         char atts[1024] = "GSize_Not_Supported";
         // resultDB requires neg entry for every possible result
         int passes = op.getOptionInt("passes");

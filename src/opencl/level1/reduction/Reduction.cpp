@@ -55,15 +55,15 @@ bool checkResults(T* devResult, T* idata, const int numBlocks, const int size)
     double threshold = 1.0e-8;
     T diff = fabs(devSum - refSum);
 
-    cout << "TEST ";
+    cout << "Test ";
     if (diff < threshold)
     {
-        cout << "PASSED\n";
+        cout << "Passed\n";
         return true;
     }
     else
     {
-        cout << "FAILED\nDiff: " << diff << "\n";
+        cout << "Failed\nDiff: " << diff << "\n";
         return false;
     }
 }
