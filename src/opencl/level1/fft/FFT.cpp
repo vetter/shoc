@@ -63,7 +63,8 @@ addBenchmarkSpecOptions(OptionParser &op)
 template <class T2> void runTest(const string& name, cl_device_id id,
                                  cl_context ctx, cl_command_queue queue,
                                  ResultDatabase &resultDB, OptionParser& op);
-template <class T2> void dump(OptionParser& op);
+template <class T2> void dump(OptionParser& op, cl_device_id id,
+                              cl_context ctx, cl_command_queue queue);
 
 static void
 fillResultDB(const string& name, const string& reason, OptionParser &op,
@@ -106,14 +107,14 @@ RunBenchmark(cl::Device& devcpp,
         checkExtension(dev, "cl_amd_fp64");
 
     if (op.getOptionBool("dump-sp")) {
-        dump<cplxflt>(op);
+        dump<cplxflt>(op, dev, ctx, queue);
     }
     else if (op.getOptionBool("dump-dp")) {
         if (!has_dp) {
             cout << "dump-dp: no double precision support!\n";
             return;
         }
-        dump<cplxdbl>(op);
+        dump<cplxdbl>(op, dev, ctx, queue);
     }
     else {
         // Always run single precision test
@@ -154,7 +155,6 @@ RunBenchmark(cl::Device& devcpp,
 //   Added PCIe timings.  Added size index bounds check.
 //
 // ****************************************************************************
-
 template <class T2> inline bool dp(void);
 template <> inline bool dp<cplxflt>(void) { return false; }
 template <> inline bool dp<cplxdbl>(void) { return true; }
@@ -174,11 +174,11 @@ void runTest(const string& name,
 
     if (op.getOptionInt("MB") == 0) {
         int probSizes[4] = { 1, 8, 96, 256 };
-	int sizeIndex = op.getOptionInt("size")-1;
-	if (sizeIndex < 0 || sizeIndex >= 4) {
-	    cerr << "Invalid size index specified\n";
-	    exit(-1);
-	}
+    int sizeIndex = op.getOptionInt("size")-1;
+    if (sizeIndex < 0 || sizeIndex >= 4) {
+        cerr << "Invalid size index specified\n";
+        exit(-1);
+    }
         bytes = probSizes[sizeIndex];
     } else {
         bytes = op.getOptionInt("MB");
@@ -187,18 +187,13 @@ void runTest(const string& name,
     bytes *= 1024 * 1024;
 
     int passes = op.getOptionInt("passes");
-
-    fftDev = id;
-    fftCtx = ctx;
-    fftQueue = queue;
-
     bool do_dp = dp<T2>();
-    init(op, do_dp);
 
-#if 0
-    bytes = findAvailBytes(fftDev);
-    fprintf(stderr, "findAvailBytes()=%lu\n", bytes);
-#endif
+    cl_program fftProg;
+    cl_kernel fftKrnl, ifftKrnl, chkKrnl;
+
+    init(op, do_dp, id, ctx, queue, fftProg, fftKrnl,
+        ifftKrnl, chkKrnl);
 
     // now determine how much available memory will be used
     int half_n_ffts = bytes / (512*sizeof(T2)*2);
@@ -209,8 +204,8 @@ void runTest(const string& name,
 
     // allocate host memory
     T2 *source, *result;
-    allocHostBuffer((void**)&source, used_bytes);
-    allocHostBuffer((void**)&result, used_bytes);
+    allocHostBuffer((void**)&source, used_bytes, ctx, queue);
+    allocHostBuffer((void**)&result, used_bytes, ctx, queue);
 
     // init host memory...
     for (i = 0; i < half_n_cmplx; i++) {
@@ -221,32 +216,40 @@ void runTest(const string& name,
     }
 
     // alloc device memory
-    allocDeviceBuffer(&work, used_bytes);
-    allocDeviceBuffer(&chk, sizeof(cl_int));
+    allocDeviceBuffer(&work, used_bytes, ctx, queue);
+    allocDeviceBuffer(&chk, sizeof(cl_int), ctx, queue);
 
     // copy to device, and record transfer time
     cl_int chk_init = 0;
-    copyToDevice(chk, &chk_init, sizeof(cl_int));
+    copyToDevice(chk, &chk_init, sizeof(cl_int), queue);
     clFinish(queue);
 
     // (warm up)
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
     clFinish(queue);
 
-    // (measure)
+    // (measure h->d)
     int pcie_TH = Timer::Start();
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
     clFinish(queue);
     double transfer_time = Timer::Stop(pcie_TH, "PCIe Transfer Time");
+
+    // (measure d->h)
+    pcie_TH = Timer::Start();
+    copyFromDevice(source, work, used_bytes, queue);
+    clFinish(queue);
+    transfer_time += Timer::Stop(pcie_TH, "PCIe Transfer Time");
 
     const char *sizeStr;
     stringstream ss;
     ss << "N=" << (long)N;
     sizeStr = strdup(ss.str().c_str());
 
+    Event fftEvent("FFT");
     for (int k=0; k<passes; k++) {
+
         // time fft kernel
-        forward(work, n_ffts);
+        transform(work, n_ffts, fftEvent, fftKrnl, queue);
         fftEvent.FillTimingInfo();
         double nsec = (double)fftEvent.SubmitEndRuntime();
         double fftsz = 512;
@@ -258,25 +261,27 @@ void runTest(const string& name,
         resultDB.AddResult(name+"_Parity", sizeStr, "N", transfer_time*1e9f / nsec);
 
         // time ifft kernel
-        inverse(work, n_ffts);
-        ifftEvent.FillTimingInfo();
-        nsec = (double)ifftEvent.SubmitEndRuntime();
+        transform(work, n_ffts, fftEvent, ifftKrnl, queue);
+        fftEvent.FillTimingInfo();
+        nsec = (double)fftEvent.SubmitEndRuntime();
         Gflops = n_ffts*(5*fftsz*log2(fftsz))/nsec;
         gflopsPCIe = n_ffts*(5*fftsz*log2(fftsz)) /
                 (transfer_time*1e9f + nsec);
         resultDB.AddResult(name+"-INV", sizeStr, "GFLOPS", Gflops);
         resultDB.AddResult(name+"-INV_PCIe", sizeStr, "GFLOPS", gflopsPCIe);
-        resultDB.AddResult(name+"-INV_Parity", sizeStr, "N", transfer_time*1e9f / nsec);
+        resultDB.AddResult(name+"-INV_Parity", sizeStr, "N",
+            transfer_time*1e9f / nsec);
         // check kernel
-        int failed = check(work, chk, half_n_ffts, half_n_cmplx);
-        cout << "pass " << k << ((failed) ? ": failed\n" : ": passed\n");
+        int failed = check(work, chk, half_n_ffts, half_n_cmplx,
+            chkKrnl, queue);
+        cout << "Test " << ((failed) ? "Failed\n" : "Passed\n");
     }
 
-    freeDeviceBuffer(work);
-    freeDeviceBuffer(chk);
-    freeHostBuffer(source);
-    freeHostBuffer(result);
-    deinit();
+    freeDeviceBuffer(work, ctx, queue);
+    freeDeviceBuffer(chk, ctx, queue);
+    freeHostBuffer(source, ctx, queue);
+    freeHostBuffer(result, ctx, queue);
+    deinit(queue, fftProg, fftKrnl, ifftKrnl, chkKrnl);
 }
 
 
@@ -298,8 +303,8 @@ void runTest(const string& name,
 // Modifications:
 //
 // ****************************************************************************
-template <class T2>
-void dump(OptionParser& op)
+template <class T2> void dump(OptionParser& op, cl_device_id id,
+                              cl_context ctx, cl_command_queue queue)
 {
     int i;
     void* work;
@@ -308,11 +313,11 @@ void dump(OptionParser& op)
 
     if (op.getOptionInt("MB") == 0) {
         int probSizes[4] = { 1, 8, 96, 256 };
-	int sizeIndex = op.getOptionInt("size")-1;
-	if (sizeIndex < 0 || sizeIndex >= 4) {
-	    cerr << "Invalid size index specified\n";
-	    exit(-1);
-	}
+    int sizeIndex = op.getOptionInt("size")-1;
+    if (sizeIndex < 0 || sizeIndex >= 4) {
+        cerr << "Invalid size index specified\n";
+        exit(-1);
+    }
         bytes = probSizes[sizeIndex];
     } else {
         bytes = op.getOptionInt("MB");
@@ -322,7 +327,11 @@ void dump(OptionParser& op)
     bytes *= 1024 * 1024;
 
     bool do_dp = dp<T2>();
-    init(op, do_dp);
+    cl_program fftProg;
+    cl_kernel fftKrnl, ifftKrnl, chkKrnl;
+
+    init(op, do_dp, id, ctx, queue, fftProg, fftKrnl,
+        ifftKrnl, chkKrnl);
 
     // now determine how much available memory will be used
     int half_n_ffts = bytes / (512*sizeof(T2)*2);
@@ -334,8 +343,8 @@ void dump(OptionParser& op)
     fprintf(stderr, "used_bytes=%lu, N=%g\n", used_bytes, N);
 
     // allocate host and device memory
-    allocHostBuffer((void**)&source, used_bytes);
-    allocHostBuffer((void**)&result, used_bytes);
+    allocHostBuffer((void**)&source, used_bytes, ctx, queue);
+    allocHostBuffer((void**)&result, used_bytes, ctx, queue);
 
     // init host memory...
     for (i = 0; i < half_n_cmplx; i++) {
@@ -346,32 +355,33 @@ void dump(OptionParser& op)
     }
 
     // alloc device memory
-    allocDeviceBuffer(&work, used_bytes);
+    allocDeviceBuffer(&work, used_bytes, ctx, queue);
 
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
 
+    Event fftEvent("fft");
     fprintf(stdout, "INITIAL:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", source[i].x, source[i].y);
     }
 
-    forward(work, n_ffts);
-    copyFromDevice(result, work, used_bytes);
+    transform(work, n_ffts, fftEvent, fftKrnl, queue);
+    copyFromDevice(result, work, used_bytes, queue);
 
     fprintf(stdout, "FORWARD:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);
     }
 
-    inverse(work, n_ffts);
-    copyFromDevice(result, work, used_bytes);
+    transform(work, n_ffts, fftEvent, ifftKrnl, queue);
+    copyFromDevice(result, work, used_bytes, queue);
 
     fprintf(stdout, "\nINVERSE:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);
     }
 
-    freeDeviceBuffer(work);
-    freeHostBuffer(source);
-    freeHostBuffer(result);
+    freeDeviceBuffer(work, ctx, queue);
+    freeHostBuffer(source, ctx, queue);
+    freeHostBuffer(result, ctx, queue);
 }
