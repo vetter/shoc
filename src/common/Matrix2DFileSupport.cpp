@@ -9,7 +9,7 @@ GetMatrixFileName( std::string baseName )
     assert( false );
     return "";
 }
- 
+
 template<>
 std::string
 GetMatrixFileName<float>( std::string baseName )

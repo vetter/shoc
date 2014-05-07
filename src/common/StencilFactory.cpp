@@ -4,7 +4,7 @@
 
 
 template<class T>
-void 
+void
 StencilFactory<T>::CheckOptions( const OptionParser& options ) const
 {
     // number of iterations must be positive

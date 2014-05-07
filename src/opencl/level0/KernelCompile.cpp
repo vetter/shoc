@@ -166,7 +166,7 @@ void RunBenchmark(cl::Device& devcpp,
 
     int n_passes = op.getOptionInt("passes");
     int err;
-    
+
     for (int pass=0 ; pass<n_passes ; ++pass)
     {
         //
@@ -180,14 +180,14 @@ void RunBenchmark(cl::Device& devcpp,
                                                           &err);
         double len_short_create = Timer::Stop(TH_short_create, "TH_short_create");
         CL_CHECK_ERROR(err);
-    
+
         int TH_short_build = Timer::Start();
         // Compile the program
         err = clBuildProgram (short_prog, 0, NULL, NULL, NULL, NULL);
         double len_short_build = Timer::Stop(TH_short_build, "TH_short_build");
         CL_CHECK_ERROR(err);
 
-        // Extract out kernel 
+        // Extract out kernel
         int TH_short_extract = Timer::Start();
         cl_kernel short_kernel = clCreateKernel(short_prog, "Triad", &err);
         double len_short_extract = Timer::Stop(TH_short_extract, "TH_short_extract");
@@ -212,14 +212,14 @@ void RunBenchmark(cl::Device& devcpp,
                                                          &err);
         double len_long_create = Timer::Stop(TH_long_create, "TH_long_create");
         CL_CHECK_ERROR(err);
-    
+
         // Compile the program
         int TH_long_build = Timer::Start();
         err = clBuildProgram (long_prog, 0, NULL, NULL, NULL, NULL);
         double len_long_build = Timer::Stop(TH_long_build, "TH_long_build");
         CL_CHECK_ERROR(err);
 
-        // Extract out kernel 
+        // Extract out kernel
         int TH_long_extract = Timer::Start();
         cl_kernel long_kernel = clCreateKernel(long_prog, "scan", &err);
         double len_long_extract = Timer::Stop(TH_long_extract, "TH_long_extract");

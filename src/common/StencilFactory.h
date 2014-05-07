@@ -45,7 +45,7 @@ public:
     virtual ~StencilFactory( void ) { }
 
     std::string GetStencilName( void ) { return sname; }
-    
+
     virtual Stencil<T>* BuildStencil( const OptionParser& options ) = 0;
     virtual void CheckOptions( const OptionParser& options ) const = 0;
 

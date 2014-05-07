@@ -19,8 +19,8 @@ HostStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         DoPreIterationWork( mtx, iter );
 
         /* copy the "real" data to the temp matrix */
-        memcpy( tmpMtx.GetFlatData(), 
-                mtx.GetFlatData(), 
+        memcpy( tmpMtx.GetFlatData(),
+                mtx.GetFlatData(),
                 mtx.GetDataSize() );
 
 
@@ -30,14 +30,14 @@ HostStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
             for( size_t j = 1; j < mtx.GetNumColumns()-1; j++ )
             {
                 T oldCenterValue = tmpMtxData[i][j];
-                T oldNSEWValues = (tmpMtxData[i-1][j] + 
-                                        tmpMtxData[i+1][j] + 
-                                        tmpMtxData[i][j-1] + 
+                T oldNSEWValues = (tmpMtxData[i-1][j] +
+                                        tmpMtxData[i+1][j] +
+                                        tmpMtxData[i][j-1] +
                                         tmpMtxData[i][j+1]);
-                T oldDiagonalValues = (tmpMtxData[i-1][j-1] + 
-                                            tmpMtxData[i+1][j-1] + 
-                                            tmpMtxData[i-1][j+1] + 
-                                            tmpMtxData[i+1][j+1]); 
+                T oldDiagonalValues = (tmpMtxData[i-1][j-1] +
+                                            tmpMtxData[i+1][j-1] +
+                                            tmpMtxData[i-1][j+1] +
+                                            tmpMtxData[i+1][j+1]);
 
                 mtxData[i][j] = this->wCenter * oldCenterValue +
                                 this->wCardinal * oldNSEWValues +

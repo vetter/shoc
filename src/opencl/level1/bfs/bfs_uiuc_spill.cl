@@ -7,14 +7,14 @@
 #define get_queue_index(tid) ((tid%NUM_P_PER_MP))
 #define get_queue_offset(tid) ((tid%NUM_P_PER_MP)*W_Q_SIZE)
 
-//S. Xiao and W. Feng, .Inter-block GPU communication via fast barrier 
-//synchronization,.Technical Report TR-09-19, 
+//S. Xiao and W. Feng, .Inter-block GPU communication via fast barrier
+//synchronization,.Technical Report TR-09-19,
 //Dept. of Computer Science, Virginia Tech
 // ****************************************************************************
 // Function: __gpu_sync
 //
 // Purpose:
-//   Implements global barrier synchronization across thread blocks. Thread 
+//   Implements global barrier synchronization across thread blocks. Thread
 //   blocks must be limited to number of multiprocessors available
 //
 // Arguments:
@@ -34,12 +34,12 @@ void __gpu_sync(int blocks_to_synch , volatile __global unsigned int *g_mutex)
     //thread ID in a block
     barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);
     int tid_in_block= get_local_id(0);
-    
+
 
     // only thread 0 is used for synchronization
-    if (tid_in_block == 0) 
+    if (tid_in_block == 0)
     {
-        atom_add(g_mutex, 1);               
+        atom_add(g_mutex, 1);
         //only when all blocks add 1 to g_mutex will
         //g_mutex equal to blocks_to_synch
         while(g_mutex[0] < blocks_to_synch)
@@ -53,7 +53,7 @@ void __gpu_sync(int blocks_to_synch , volatile __global unsigned int *g_mutex)
 
 //An Effective GPU Implementation of Breadth-First Search, Lijuan Luo,
 //Martin Wong,Wen-mei Hwu ,
-//Department of Electrical and Computer Engineering, 
+//Department of Electrical and Computer Engineering,
 //University of Illinois at Urbana-Champaign
 // ****************************************************************************
 // Function: BFS_kernel_one_block
@@ -63,14 +63,14 @@ void __gpu_sync(int blocks_to_synch , volatile __global unsigned int *g_mutex)
 //   thread block (i.e max number of threads per block)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
-//   frontier_len: length of the given frontier array 
+//   frontier: array that stores the vertices to visit in the current level
+//   frontier_len: length of the given frontier array
 //   visited: mask that tells if a vertex is currently in frontier
-//   cost: array that stores the cost to visit each vertex 
+//   cost: array that stores the cost to visit each vertex
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
 //   max_local_mem: max size of the shared memory queue
 //   b_q: block level queue
@@ -127,7 +127,7 @@ __kernel void BFS_kernel_one_block(
         {
             //get the nodes to traverse from block queue
             unsigned int node_to_process=b_q[tid];
-            
+
             visited[node_to_process]=0;
             //get the offsets of the vertex in the edge list
             unsigned int offset = edgeArray[node_to_process];
@@ -171,7 +171,7 @@ __kernel void BFS_kernel_one_block(
         barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);
         //if traversal complete exit
         if(b_q_length[0]==0)
-        { 
+        {
             if(tid==0)
                 frontier_length[0]=0;
 
@@ -179,7 +179,7 @@ __kernel void BFS_kernel_one_block(
         }
         // if frontier exceeds one block in size copy block queue to
         //global queue and exit
-        else if( b_q_length[0] > get_local_size(0) || 
+        else if( b_q_length[0] > get_local_size(0) ||
                  b_q_length[0] > max_local_mem)
         {
             if(tid<(b_q_length[0]-b_offset[0]))
@@ -188,7 +188,7 @@ __kernel void BFS_kernel_one_block(
             {
                 frontier_length[0] = b_q_length[0];
             }
-            return; 
+            return;
         }
         f_len=b_q_length[0];
         barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);
@@ -199,23 +199,23 @@ __kernel void BFS_kernel_one_block(
 // Function: BFS_kernel_SM_block
 //
 // Purpose:
-//   Perform BFS on the given graph when the frontier length is greater than 
-//   one thread block but less than number of Streaming Multiprocessor(SM) 
+//   Perform BFS on the given graph when the frontier length is greater than
+//   one thread block but less than number of Streaming Multiprocessor(SM)
 //   thread blocks (i.e max threads per block * SM blocks)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
-//   frontier_len: length of the given frontier array 
+//   frontier: array that stores the vertices to visit in the current level
+//   frontier_len: length of the given frontier array
 //   frontier2: alternate frontier array
 //   visited: mask that tells if a vertex is currently in frontier
-//   cost: array that stores the cost to visit each vertex 
+//   cost: array that stores the cost to visit each vertex
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
-//   g_mutex: mutex for implementing global barrier 
-//   g_mutex2: gives the starting value of the g_mutex used in global barrier 
+//   g_mutex: mutex for implementing global barrier
+//   g_mutex2: gives the starting value of the g_mutex used in global barrier
 //   g_q_offsets: gives the offset of a block in the global queue
 //   g_q_size: keeps track of the size of frontier in intermediate iterations
 //   max_local_mem: max size of the shared memory queue
@@ -235,16 +235,16 @@ __kernel void BFS_kernel_SM_block(
     volatile __global unsigned int *frontier,
     unsigned int frontier_len,
     volatile __global unsigned int *frontier2,
-    volatile __global int *visited, 
+    volatile __global int *visited,
     volatile __global unsigned int *cost,
-    __global unsigned int *edgeArray, 
+    __global unsigned int *edgeArray,
     __global unsigned int *edgeArrayAux,
-    unsigned int numVertices, 
-    unsigned int numEdges, 
+    unsigned int numVertices,
+    unsigned int numEdges,
     volatile __global unsigned int *frontier_length,
-    volatile __global unsigned int *g_mutex, 
-    volatile __global unsigned int *g_mutex2, 
-    volatile __global unsigned int *g_q_offsets, 
+    volatile __global unsigned int *g_mutex,
+    volatile __global unsigned int *g_mutex2,
+    volatile __global unsigned int *g_q_offsets,
     volatile __global unsigned int *g_q_size,
     const unsigned int max_local_mem,
 
@@ -273,13 +273,13 @@ __kernel void BFS_kernel_SM_block(
         barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);
         if(tid<f_len)
         {
-            unsigned int node_to_process;  
-            
+            unsigned int node_to_process;
+
             //get the node to traverse from block queue
             if(loop_index==0)
                node_to_process=frontier[tid];
             else
-               node_to_process=frontier2[tid]; 
+               node_to_process=frontier2[tid];
 
             //node removed from frontier
             visited[node_to_process]=0;
@@ -315,7 +315,7 @@ __kernel void BFS_kernel_SM_block(
                                 frontier2[off]=nid;
                             else
                                 frontier[off]=nid;
-                        } 
+                        }
                     }
                 }
                 offset++;
@@ -353,7 +353,7 @@ __kernel void BFS_kernel_SM_block(
             else
                 frontier[lid+b_offset[0]]=b_q[lid];
         }
-        
+
         //global barrier
 		l_mutex+=get_num_groups(0);
 		__gpu_sync(l_mutex,g_mutex);
@@ -361,7 +361,7 @@ __kernel void BFS_kernel_SM_block(
         //exit if frontier size exceeds SM blocks or is less than 1 block
         if(g_q_size[0] < get_local_size(0) ||
             g_q_size[0] > get_local_size(0) * get_num_groups(0))
-                break;                                                  
+                break;
 
         loop_index=(loop_index+1)%2;
         //store the current frontier size
@@ -383,20 +383,20 @@ __kernel void BFS_kernel_SM_block(
 // Function: BFS_kernel_multi_block
 //
 // Purpose:
-//   Perform BFS on the given graph when the frontier length is greater than 
-//   than number of Streaming Multiprocessor(SM) thread blocks 
+//   Perform BFS on the given graph when the frontier length is greater than
+//   than number of Streaming Multiprocessor(SM) thread blocks
 //   (i.e max threads per block * SM blocks)
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the next level 
-//   frontier_len: length of the given frontier array 
+//   frontier: array that stores the vertices to visit in the next level
+//   frontier_len: length of the given frontier array
 //   frontier2: used with frontier in even odd loops
 //   visited: mask that tells if a vertex is currently in frontier
-//   cost: array that stores the cost to visit each vertex 
+//   cost: array that stores the cost to visit each vertex
 //   edgeArray: array that gives offset of a vertex in edgeArrayAux
-//   edgeArrayAux: array that gives the edge list of a vertex 
-//   numVertices: number of vertices in the given graph 
-//   numEdges: number of edges in the given graph 
+//   edgeArrayAux: array that gives the edge list of a vertex
+//   numVertices: number of vertices in the given graph
+//   numEdges: number of edges in the given graph
 //   frontier_length: length of the new frontier array
 //   max_local_mem: max size of the shared memory queue
 //   b_q: block level queue
@@ -444,7 +444,7 @@ __kernel void BFS_kernel_multi_block(
     if(tid<frontier_len)
     {
         //get the nodes to traverse from block queue
-        unsigned int node_to_process=frontier[tid];  
+        unsigned int node_to_process=frontier[tid];
         visited[node_to_process]=0;
         //get the offsets of the vertex in the edge list
         unsigned int offset=edgeArray[node_to_process];
@@ -475,7 +475,7 @@ __kernel void BFS_kernel_multi_block(
                         {
                             int off=atom_add(frontier_length,1);
                             frontier2[off]=nid;
-                        } 
+                        }
                 }
             }
             offset++;
@@ -508,10 +508,10 @@ __kernel void BFS_kernel_multi_block(
 //
 // Arguments:
 //   frontier_length: length of the new frontier array
-//   g_mutex: mutex for implementing global barrier 
-//   g_mutex2: gives the starting value of the g_mutex used in global barrier 
+//   g_mutex: mutex for implementing global barrier
+//   g_mutex2: gives the starting value of the g_mutex used in global barrier
 //   g_q_offsets: gives the offset of a block in the global queue
-//   g_q_size: size of the global queue 
+//   g_q_size: size of the global queue
 //
 // Returns:  nothing
 //
@@ -523,10 +523,10 @@ __kernel void BFS_kernel_multi_block(
 // ****************************************************************************
 __kernel void Reset_kernel_parameters(
 
-    __global unsigned int *frontier_length, 
-    __global volatile int *g_mutex, 
-    __global volatile int *g_mutex2, 
-    __global volatile int *g_q_offsets, 
+    __global unsigned int *frontier_length,
+    __global volatile int *g_mutex,
+    __global volatile int *g_mutex2,
+    __global volatile int *g_q_offsets,
     __global volatile int *g_q_size)
 {
     g_mutex[0]=0;
@@ -543,13 +543,13 @@ __kernel void Reset_kernel_parameters(
 //   Copy frontier2 data to frontier
 //
 // Arguments:
-//   frontier: array that stores the vertices to visit in the current level 
+//   frontier: array that stores the vertices to visit in the current level
 //   frontier2: alternate frontier array
 //   frontier_length: length of the frontier array
-//   g_mutex: mutex for implementing global barrier 
-//   g_mutex2: gives the starting value of the g_mutex used in global barrier 
+//   g_mutex: mutex for implementing global barrier
+//   g_mutex2: gives the starting value of the g_mutex used in global barrier
 //   g_q_offsets: gives the offset of a block in the global queue
-//   g_q_size: size of the global queue 
+//   g_q_size: size of the global queue
 //
 // Returns:  nothing
 //
@@ -560,12 +560,12 @@ __kernel void Reset_kernel_parameters(
 //
 // ****************************************************************************
 __kernel void Frontier_copy(
-    __global unsigned int *frontier, 
-    __global unsigned int *frontier2, 
-    __global unsigned int *frontier_length,  
-    __global volatile int *g_mutex, 
-    __global volatile int *g_mutex2, 
-    __global volatile int *g_q_offsets, 
+    __global unsigned int *frontier,
+    __global unsigned int *frontier2,
+    __global unsigned int *frontier_length,
+    __global volatile int *g_mutex,
+    __global volatile int *g_mutex2,
+    __global volatile int *g_q_offsets,
     __global volatile int *g_q_size)
 {
     unsigned int tid=get_global_id(0);

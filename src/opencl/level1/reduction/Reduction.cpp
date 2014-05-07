@@ -55,15 +55,15 @@ bool checkResults(T* devResult, T* idata, const int numBlocks, const int size)
     double threshold = 1.0e-8;
     T diff = fabs(devSum - refSum);
 
-    cout << "TEST ";
+    cout << "Test ";
     if (diff < threshold)
     {
-        cout << "PASSED\n";
+        cout << "Passed\n";
         return true;
     }
     else
     {
-        cout << "FAILED\nDiff: " << diff << "\n";
+        cout << "Failed\nDiff: " << diff << "\n";
         return false;
     }
 }
@@ -112,14 +112,14 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // Modifications:
 //   Jeremy Meredith, Thu Sep 24 17:30:18 EDT 2009
-//   Use implicit include of source file instead of 
+//   Use implicit include of source file instead of
 //   runtime loading.
 //
 // ****************************************************************************
 extern const char *cl_source_reduction;
 
 void
-RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp, 
+RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp,
         cl::CommandQueue& queuecpp,
         ResultDatabase &resultDB, OptionParser &op)
 {

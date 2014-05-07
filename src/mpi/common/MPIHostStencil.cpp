@@ -14,10 +14,10 @@ MPIHostStencil<T>::MPIHostStencil( T _wCenter,
                                 size_t _mpiGridCols,
                                 unsigned int _nItersPerHaloExchange,
                                 bool _dumpData )
-  : HostStencil<T>( _wCenter, 
+  : HostStencil<T>( _wCenter,
                 _wCardinal,
                 _wDiagonal ),
-    MPI2DGridProgram<T>( _mpiGridRows, 
+    MPI2DGridProgram<T>( _mpiGridRows,
                 _mpiGridCols,
                 _nItersPerHaloExchange ),
     dumpData( _dumpData )

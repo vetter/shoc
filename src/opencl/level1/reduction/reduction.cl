@@ -21,10 +21,10 @@ reduce(__global const FPTYPE *g_idata, __global FPTYPE *g_odata,
 
     // Reduce multiple elements per thread, strided by grid size
     while (i < n)
-    {         
+    {
         sdata[tid] += g_idata[i] + g_idata[i+blockSize];
         i += gridSize;
-    } 
+    }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // do reduction in shared mem

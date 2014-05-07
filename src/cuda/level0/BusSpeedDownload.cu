@@ -67,7 +67,7 @@ void RunBenchmark(ResultDatabase &resultDB,
     long long numMaxFloats = 1024 * (sizes[nSizes-1]) / 4;
 
     // Create some host memory pattern
-    float *hostMem = NULL; 
+    float *hostMem = NULL;
     if (pinned)
     {
         cudaMallocHost((void**)&hostMem, sizeof(float) * numMaxFloats);

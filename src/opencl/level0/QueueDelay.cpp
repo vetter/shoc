@@ -91,7 +91,7 @@ void RunBenchmark(cl::Device& devcpp,
     // Compile the program
     err = clBuildProgram(prog, 0, NULL, NULL, NULL, NULL);
     CL_CHECK_ERROR(err);
-    
+
     // If there is a build error, print the output and return
     if (err != CL_SUCCESS)
     {
@@ -120,23 +120,23 @@ void RunBenchmark(cl::Device& devcpp,
     // Extract out "plus-four" kernel
     cl_kernel kernel4 = clCreateKernel(prog, "four", &err);
     CL_CHECK_ERROR(err);
- 
+
     cl_mem zero = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
             sizeof(cl_int), NULL, &err);
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(kernel1, 0, sizeof(cl_mem),
-            (void*) &zero); 
+            (void*) &zero);
     err = clSetKernelArg(kernel2, 0, sizeof(cl_mem),
             (void*) &zero);
     err = clSetKernelArg(kernel3, 0, sizeof(cl_mem),
             (void*) &zero);
     err = clSetKernelArg(kernel4, 0, sizeof(cl_mem),
             (void*) &zero);
-    
+
     size_t maxGroupSize = getMaxWorkGroupSize(ctx, kernel1);
     size_t localWorkSize = (maxGroupSize >= 256 ? 256 : maxGroupSize);
     size_t globalWorkSize = localWorkSize * 256;
-       
+
     // Test single kernel
     for (int j = 0; j < passes; j++)
     {
@@ -148,7 +148,7 @@ void RunBenchmark(cl::Device& devcpp,
           Event evKernel2("Run Kernel2");
           Event evKernel3("Run Kernel3");
           Event evKernel4("Run Kernel4");
-           
+
           err = clEnqueueNDRangeKernel(queue, kernel1, 1, NULL,
                                        &globalWorkSize, &localWorkSize,
                                        0, NULL, &evKernel1.CLEvent());
@@ -163,29 +163,29 @@ void RunBenchmark(cl::Device& devcpp,
                                        0, NULL, &evKernel4.CLEvent());
           CL_CHECK_ERROR(err);
 
-          // Wait for the kernels to finish 
-          if (waitForEvents)       
-          {                    
+          // Wait for the kernels to finish
+          if (waitForEvents)
+          {
              err = clWaitForEvents(1, &evKernel4.CLEvent());
              CL_CHECK_ERROR(err);
           }
-       
+
           evKernel1.FillTimingInfo();
           evKernel2.FillTimingInfo();
           evKernel3.FillTimingInfo();
           evKernel4.FillTimingInfo();
 
-          total += evKernel1.SubmitStartDelay() + 
+          total += evKernel1.SubmitStartDelay() +
                    evKernel2.SubmitStartDelay() +
                    evKernel3.SubmitStartDelay() +
                    evKernel4.SubmitStartDelay();
-           
-       }   
-       resultDB.AddResult("SSDelay", "1 Kernel", "ms", 
+
+       }
+       resultDB.AddResult("SSDelay", "1 Kernel", "ms",
                           (total / ((double)reps * 4.0)) / 1.0e6 );
        total = 0.0;
     }
-   
+
     // Perform the test alternating between two kernels
     for (int j = 0; j < passes; j++)
     {
@@ -218,25 +218,25 @@ void RunBenchmark(cl::Device& devcpp,
                                        0, NULL, &evKernel4.CLEvent());
           CL_CHECK_ERROR(err);
 
-          
+
           // Wait for the kernel to finish
-          if (waitForEvents)       
-          {          
+          if (waitForEvents)
+          {
              err = clWaitForEvents(1, &evKernel4.CLEvent());
              CL_CHECK_ERROR(err);
           }
-       
+
           evKernel1.FillTimingInfo();
           evKernel2.FillTimingInfo();
           evKernel3.FillTimingInfo();
           evKernel4.FillTimingInfo();
-          total += evKernel1.SubmitStartDelay() + 
+          total += evKernel1.SubmitStartDelay() +
                    evKernel2.SubmitStartDelay() +
                    evKernel3.SubmitStartDelay() +
                    evKernel4.SubmitStartDelay();
-                   
-       }   
-       resultDB.AddResult("SSDelay", "2 Kernels", "ms", 
+
+       }
+       resultDB.AddResult("SSDelay", "2 Kernels", "ms",
                           (total / ((double)reps * 4.0)) / 1.0e6);
        total = 0.0;
     }
@@ -273,25 +273,25 @@ void RunBenchmark(cl::Device& devcpp,
                                        0, NULL, &evKernel4.CLEvent());
           CL_CHECK_ERROR(err);
 
-          
+
           // Wait for the kernel to finish
-          if (waitForEvents)       
-          {          
+          if (waitForEvents)
+          {
              err = clWaitForEvents(1, &evKernel4.CLEvent());
              CL_CHECK_ERROR(err);
           }
-       
+
           evKernel1.FillTimingInfo();
           evKernel2.FillTimingInfo();
           evKernel3.FillTimingInfo();
           evKernel4.FillTimingInfo();
-          total += evKernel1.SubmitStartDelay() + 
+          total += evKernel1.SubmitStartDelay() +
                    evKernel2.SubmitStartDelay() +
                    evKernel3.SubmitStartDelay() +
                    evKernel4.SubmitStartDelay();
-                   
-       }   
-       resultDB.AddResult("SSDelay", "4 Kernels", "ms", 
+
+       }
+       resultDB.AddResult("SSDelay", "4 Kernels", "ms",
                           (total / ((double)reps * 4.0)) / 1.0e6);
        total = 0.0;
     }

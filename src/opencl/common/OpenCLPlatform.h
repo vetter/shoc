@@ -38,7 +38,7 @@ namespace SHOC {
         string platformVersion;
         string platformExtensions;
         static const int MAGIC_KEY_OPENCL_PLATFORM;
-        
+
     public:
         // constructer collects information about all devices on this node
         OpenCLPlatform ();
@@ -47,12 +47,12 @@ namespace SHOC {
         OpenCLPlatform& operator= (const OpenCLPlatform &ocp);
 
         ~OpenCLPlatform () { }
-        
+
         void Print (ostream &os) const;
-        
+
         virtual void writeObject (ostringstream &oss) const;
         virtual void readObject (istringstream &iss);
-        
+
         bool operator< (const OpenCLPlatform &ocp) const;
         bool operator> (const OpenCLPlatform &ocp) const;
         bool operator== (const OpenCLPlatform &ocp) const;

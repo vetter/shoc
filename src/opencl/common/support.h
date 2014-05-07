@@ -138,7 +138,7 @@ inline std::string QueuePropsToString(cl_bitfield type)
 // Method:  getMaxWorkGroupSize
 //
 // Purpose:
-//   Finds the maximum valid work group size for the specified kernel and 
+//   Finds the maximum valid work group size for the specified kernel and
 //   OpenCL context.
 //
 // Arguments:
@@ -329,7 +329,7 @@ oclGetFirstDev(cl_context cxMainContext)
 // Method:  dumpPTXCode
 //
 // Purpose:
-//   
+//
 //
 // Arguments:
 //   ctx          context
@@ -341,14 +341,14 @@ oclGetFirstDev(cl_context cxMainContext)
 //
 // ****************************************************************************
 inline bool
-dumpPTXCode (cl_context ctx, cl_program prog, const char *name) 
+dumpPTXCode (cl_context ctx, cl_program prog, const char *name)
 {
     std::cout << "Dumping the PTX code" << std::endl;
     size_t ptx_length;
-    char* ptx_code;   
+    char* ptx_code;
     char buf[64];
     oclGetProgBinary (prog, oclGetFirstDev(ctx), &ptx_code, &ptx_length);
-        
+
     FILE* ptxFile = NULL;
     sprintf (buf, "%.59s.ptx", name);
 #ifdef WIN32
@@ -372,30 +372,30 @@ dumpPTXCode (cl_context ctx, cl_program prog, const char *name)
 // Purpose: returns maximum number of bytes *allocatable* (likely less than
 //          device memory size) on the device.
 //
-// Arguments: 
+// Arguments:
 //   device   id of the device
 //
 // Programmer:  Collin McCurdy
 // Creation:    June 8, 2010
 //
 // ****************************************************************************
-inline unsigned long 
+inline unsigned long
 findAvailBytes(cl_device_id device)
 {
     cl_ulong avail_bytes;
 
     clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE,
                     sizeof(cl_ulong), &avail_bytes, NULL);
-    
+
     return avail_bytes;
 }
 
 inline
-unsigned long 
+unsigned long
 findAvailBytes( const cl::Device& dev )
 {
     cl_ulong avail_bytes = dev.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
-    
+
     return avail_bytes;
 }
 

@@ -39,8 +39,8 @@ FPTYPE texFetch(image2d_t image, const int idx) {
 //                  last element is the index one past the last
 //                  element of the matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing
 //           out indirectly through a pointer
 //
@@ -50,34 +50,34 @@ FPTYPE texFetch(image2d_t image, const int idx) {
 // Modifications:
 //
 // ****************************************************************************
-__kernel void 
-spmv_csr_scalar_kernel( __global const FPTYPE * restrict val, 
+__kernel void
+spmv_csr_scalar_kernel( __global const FPTYPE * restrict val,
 #ifdef USE_TEXTURE
-                        image2d_t vec, 
+                        image2d_t vec,
 #else
-                        __global const FPTYPE * restrict vec, 
+                        __global const FPTYPE * restrict vec,
 #endif
-                        __global const int * restrict cols, 
-                        __global const int * restrict rowDelimiters, 
-                       const int dim, __global FPTYPE * restrict out) 
+                        __global const int * restrict cols,
+                        __global const int * restrict rowDelimiters,
+                       const int dim, __global FPTYPE * restrict out)
 {
-    int myRow = get_global_id(0); 
+    int myRow = get_global_id(0);
 
-    if (myRow < dim) 
+    if (myRow < dim)
     {
-        FPTYPE t=0; 
+        FPTYPE t=0;
         int start = rowDelimiters[myRow];
         int end = rowDelimiters[myRow+1];
-        for (int j = start; j < end; j++) 
+        for (int j = start; j < end; j++)
         {
-            int col = cols[j]; 
+            int col = cols[j];
 #ifdef USE_TEXTURE
             t += val[j] * texFetch(vec,col);
 #else
             t += val[j] * vec[col];
 #endif
         }
-        out[myRow] = t; 
+        out[myRow] = t;
     }
 }
 
@@ -97,8 +97,8 @@ spmv_csr_scalar_kernel( __global const FPTYPE * restrict val,
 //                  last element is the index one past the last
 //                  element of the matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing
 //           out indirectly through a pointer
 //
@@ -108,37 +108,37 @@ spmv_csr_scalar_kernel( __global const FPTYPE * restrict val,
 // Modifications:
 //
 // ****************************************************************************
-__kernel void 
-spmv_csr_vector_kernel(__global const FPTYPE * restrict val, 
+__kernel void
+spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
 #ifdef USE_TEXTURE
-                       image2d_t vec, 
+                       image2d_t vec,
 #else
-                       __global const FPTYPE * restrict vec, 
+                       __global const FPTYPE * restrict vec,
 #endif
-                       __global const int * restrict cols, 
-                       __global const int * restrict rowDelimiters, 
-                       const int dim, __global FPTYPE * restrict out) 
+                       __global const int * restrict cols,
+                       __global const int * restrict rowDelimiters,
+                       const int dim, __global FPTYPE * restrict out)
 {
     // Thread ID in block
     int t = get_local_id(0);
     // Thread ID within warp
-    int id = t & (VECTOR_SIZE-1); 
+    int id = t & (VECTOR_SIZE-1);
     // One row per warp
     int vecsPerBlock = get_local_size(0) / VECTOR_SIZE;
     int myRow = (get_group_id(0) * vecsPerBlock) + (t / VECTOR_SIZE);
 
-    __local volatile FPTYPE partialSums[128]; 
-    partialSums[t] = 0; 
+    __local volatile FPTYPE partialSums[128];
+    partialSums[t] = 0;
 
-    if (myRow < dim) 
+    if (myRow < dim)
     {
         int vecStart = rowDelimiters[myRow];
         int vecEnd = rowDelimiters[myRow+1];
         FPTYPE mySum = 0;
-        for (int j= vecStart + id; j < vecEnd; 
-             j+=VECTOR_SIZE) 
+        for (int j= vecStart + id; j < vecEnd;
+             j+=VECTOR_SIZE)
         {
-            int col = cols[j]; 
+            int col = cols[j];
 #ifdef USE_TEXTURE
             mySum += val[j] * texFetch(vec,col);
 #else
@@ -152,7 +152,7 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
         // Reduce partial sums
         // Needs to be modified if there is a change in vector
         // length
-        if (id < 16) partialSums[t] += partialSums[t+16]; 
+        if (id < 16) partialSums[t] += partialSums[t+16];
         barrier(CLK_LOCAL_MEM_FENCE);
         if (id <  8) partialSums[t] += partialSums[t+ 8];
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -163,10 +163,10 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
         if (id <  1) partialSums[t] += partialSums[t+ 1];
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        // Write result 
-        if (id == 0) 
+        // Write result
+        if (id == 0)
         {
-            out[myRow] = partialSums[t]; 
+            out[myRow] = partialSums[t];
         }
     }
 }
@@ -186,8 +186,8 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
 //   cols: array of column indices for each element of the sparse matrix
 //   rowLengths: array storing the length of each row of the sparse matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing directly
 //           out indirectly through a pointer
 //
@@ -198,25 +198,25 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
 //
 // ****************************************************************************
 __kernel void
-spmv_ellpackr_kernel(__global const FPTYPE * restrict val, 
+spmv_ellpackr_kernel(__global const FPTYPE * restrict val,
 #ifdef USE_TEXTURE
-                     image2d_t vec, 
+                     image2d_t vec,
 #else
-                     __global const  FPTYPE * restrict vec,                      
+                     __global const  FPTYPE * restrict vec,
 #endif
-                     __global const int * restrict cols, 
-                     __global const int * restrict rowLengths, 
-                     const int dim, __global FPTYPE * restrict out) 
+                     __global const int * restrict cols,
+                     __global const int * restrict rowLengths,
+                     const int dim, __global FPTYPE * restrict out)
 {
-    int t = get_global_id(0); 
+    int t = get_global_id(0);
 
-    if (t < dim) 
+    if (t < dim)
     {
         FPTYPE result = 0.0;
-        int max = rowLengths[t]; 
-        for (int i = 0; i < max; i++) 
+        int max = rowLengths[t];
+        for (int i = 0; i < max; i++)
         {
-            int ind = i * dim + t; 
+            int ind = i * dim + t;
 #ifdef USE_TEXTURE
 	          result += val[ind] * texFetch(vec,cols[ind]);
 #else

@@ -33,12 +33,12 @@ namespace SHOC {
     {
     protected:
         typedef std::list<DeviceType*> DeviceList;
-        
+
         int deviceCount;
         DeviceList devices;
-        
+
         static const int MAGIC_KEY_PLATFORM;
-        
+
     public:
         // Base constructor. Devices are instantiated by the derived class
         // that is OpenCL or CUDA specific.
@@ -57,7 +57,7 @@ namespace SHOC {
             devices.clear ();
             deviceCount = 0;
         }
-        
+
         // return number of devices for this platform
         int getDeviceCount() const        { return (deviceCount); }
 
@@ -79,7 +79,7 @@ namespace SHOC {
             for ( ; lit!=devices.end() ; ++lit)
                delete (*lit);
             devices.clear ();
-            
+
             // now copy the devices from the other container
             for (lit = pl.devices.begin() ; lit!=pl.devices.end() ; ++lit)
                devices.push_back (new DeviceType (*(*lit)));
@@ -113,15 +113,15 @@ namespace SHOC {
         void readObject(istringstream &iss)
         {
             int i, receivedKey = 0;
-            
+
             iss >> receivedKey;
             if (receivedKey != MAGIC_KEY_PLATFORM)  // wrong magic key
             {
-                cerr << "Wrong magic key received " << receivedKey 
+                cerr << "Wrong magic key received " << receivedKey
                      << " while unserializing a Platform object." << endl;
                 exit (-2);
             }
-            
+
             iss >> deviceCount;
 
             // deallocate existing devices first
@@ -129,7 +129,7 @@ namespace SHOC {
             for ( ; lit!=devices.end() ; ++lit)
                delete (*lit);
             devices.clear ();
-            
+
             for (i=0 ; i<deviceCount ; ++i)
             {
                 DeviceType *dev = new DeviceType();
@@ -143,19 +143,19 @@ namespace SHOC {
         bool operator< (const Platform &pl) const
         {
             int i;
-            
+
             if (deviceCount < pl.deviceCount)
                 return (true);
             if (deviceCount > pl.deviceCount)
                 return (false);
-            
+
             // test each device in the list next
             typename DeviceList::const_iterator lit1 = devices.begin();
             typename DeviceList::const_iterator lit2 = pl.devices.begin();
             for (i=0 ; i<deviceCount ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
-                // equal configurations. Configuration differences should be the 
+                // equal configurations. Configuration differences should be the
                 // exception, not the rule.
                 if (*(*lit1) == *(*lit2)) continue;
                 if (*(*lit1) < *(*lit2))
@@ -171,19 +171,19 @@ namespace SHOC {
         bool operator> (const Platform &pl) const
         {
             int i;
-            
+
             if (deviceCount > pl.deviceCount)
                 return (true);
             if (deviceCount < pl.deviceCount)
                 return (false);
-            
+
             // test each device in the list next
             typename DeviceList::const_iterator lit1 = devices.begin();
             typename DeviceList::const_iterator lit2 = pl.devices.begin();
             for (i=0 ; i<deviceCount ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
-                // equal configurations. Configuration differences should be the 
+                // equal configurations. Configuration differences should be the
                 // exception, not the rule.
                 if (*(*lit1) == *(*lit2)) continue;
                 if (*(*lit1) > *(*lit2))
@@ -199,10 +199,10 @@ namespace SHOC {
         bool operator== (const Platform &pl) const
         {
             int i;
-            
+
             if (deviceCount != pl.deviceCount)
                 return (false);
-            
+
             // test each device in the list next
             typename DeviceList::const_iterator lit1 = devices.begin();
             typename DeviceList::const_iterator lit2 = pl.devices.begin();

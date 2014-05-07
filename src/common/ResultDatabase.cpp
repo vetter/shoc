@@ -238,14 +238,14 @@ void ResultDatabase::DumpDetailed(ostream &out)
             out << "N/A\t";
         else
             out << r.GetMax()    << "\t";
-        for (int j=0; j<r.value.size(); j++)        
+        for (int j=0; j<r.value.size(); j++)
         {
             if (r.value[j] == FLT_MAX)
                 out << "N/A\t";
             else
                 out << r.value[j] << "\t";
         }
-        
+
         out << endl;
     }
     out << endl
@@ -317,7 +317,7 @@ void ResultDatabase::DumpSummary(ostream &out)
             out << "N/A\t";
         else
             out << r.GetMax()    << "\t";
-        
+
         out << endl;
     }
     out << endl

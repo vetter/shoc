@@ -472,7 +472,7 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
         int numPairs = nAtom * maxNeighbors;
         long int nbytes = (3 * sizeof(T) * (1+numPairs)) + // position data
                           (3 * sizeof(T) * nAtom) + // force for each atom
-                          (sizeof(int) * numPairs); // neighbor list 
+                          (sizeof(int) * numPairs); // neighbor list
         double gbytes = (double)nbytes / (1000. * 1000. * 1000.);
         resultDB.AddResult(testName + "-Bandwidth", atts, "GB/s", gbytes /
                 kernel_time);

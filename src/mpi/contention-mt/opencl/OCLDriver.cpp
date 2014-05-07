@@ -22,7 +22,7 @@ void RunBenchmark(cl::Device& id,
 
 cl::Device* _mpicontention_ocldev = NULL;
 cl::Context* _mpicontention_ocldriver_ctx = NULL;
-cl::CommandQueue* _mpicontention_ocldriver_queue = NULL; 
+cl::CommandQueue* _mpicontention_ocldriver_queue = NULL;
 OptionParser _mpicontention_gpuop;
 ResultDatabase _mpicontention_gpuseqrdb, _mpicontention_gpuwuprdb, _mpicontention_gpusimrdb;
 
@@ -48,14 +48,14 @@ ResultDatabase _mpicontention_gpuseqrdb, _mpicontention_gpuwuprdb, _mpicontentio
 int GPUSetup(OptionParser &op, int mympirank, int mynoderank)
 {
     addBenchmarkSpecOptions(op);
-    
+
     if (op.getOptionBool("infoDevices"))
     {
         OpenCLNodePlatformContainer ndc1;
         ndc1.Print (cout);
         return (0);
     }
-    
+
     // The device option supports specifying more than one device
     int platform = op.getOptionInt("platform");
     int deviceIdx = mynoderank;
@@ -177,7 +177,7 @@ void GPUDriversim()
     RunBenchmark( *_mpicontention_ocldev, *_mpicontention_ocldriver_ctx,
                     *_mpicontention_ocldriver_queue, _mpicontention_gpusimrdb,
                     _mpicontention_gpuop);
-    
+
 }
 
 ResultDatabase &GPUGetsimrdb()

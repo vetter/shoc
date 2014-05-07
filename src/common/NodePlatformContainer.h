@@ -15,8 +15,8 @@ using namespace std;
 // Class: NodePlatformContainer
 //
 // Purpose:
-//   Generic Node platform container, to be extended by the OpenCL and 
-//   CUDA specific implementations. A node container contains zero or more 
+//   Generic Node platform container, to be extended by the OpenCL and
+//   CUDA specific implementations. A node container contains zero or more
 //   platforms of type PlatformType.
 //   NodePlatformContainer implements the SerializableObject interface.
 //
@@ -34,23 +34,23 @@ namespace SHOC {
     {
     protected:
         typedef std::list<PlatformType*> PlatformList;
-        
+
         string nodeName;
         int platformCount;
         PlatformList platforms;
-        
+
         static const int MAGIC_KEY_NODE_CONTAINER;
-        
+
     public:
         // Base constructer collects information about the current host node.
-        // Platforms are instantiated by the OpenCL and CUDA specific 
+        // Platforms are instantiated by the OpenCL and CUDA specific
         // implementations.
         NodePlatformContainer ()
         {
             // Node information
             int res;
             char buf[1024];
-            
+
             res = gethostname (buf, 1024);
             if (res < 0) {
                 fprintf (stderr, "gethostname failed\n"); fflush(stderr);
@@ -71,10 +71,10 @@ namespace SHOC {
             platforms.clear ();
             platformCount = 0;
         }
-        
+
         // return the name of the host
-        const string& getNodeName() const   { return (nodeName); } 
-        
+        const string& getNodeName() const   { return (nodeName); }
+
         // return the number of Platforms on this node
         int getPlatformCount() const        { return (platformCount); }
 
@@ -98,7 +98,7 @@ namespace SHOC {
             for ( ; lit!=platforms.end() ; ++lit)
                delete (*lit);
             platforms.clear ();
-            
+
             // now copy the platforms from the other container
             for (lit = ndc.platforms.begin() ; lit!=ndc.platforms.end() ; ++lit)
                platforms.push_back (new PlatformType (*(*lit)));
@@ -137,15 +137,15 @@ namespace SHOC {
         void readObject(istringstream &iss)
         {
             int i, receivedKey = 0;
-            
+
             iss >> receivedKey;
             if (receivedKey != MAGIC_KEY_NODE_CONTAINER)  // wrong magic key
             {
-                cerr << "Wrong magic key received " << receivedKey 
+                cerr << "Wrong magic key received " << receivedKey
                      << " while unserializing a NodePlatformContainer object." << endl;
                 exit (-2);
             }
-            
+
             iss >> platformCount;
             string dummy;
             getline (iss, dummy);  // read the newline before the first string value
@@ -156,7 +156,7 @@ namespace SHOC {
             for ( ; lit!=platforms.end() ; ++lit)
                delete (*lit);
             platforms.clear ();
-            
+
             for (i=0 ; i<platformCount ; ++i)
             {
                 PlatformType *plf = new PlatformType();
@@ -170,19 +170,19 @@ namespace SHOC {
         bool operator< (const NodePlatformContainer &ndc) const
         {
             int i;
-            
+
             if (platformCount < ndc.platformCount)
                 return (true);
             if (platformCount > ndc.platformCount)
                 return (false);
-            
+
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();
             for (i=0 ; i<platformCount ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
-                // equal configurations. Configuration differences should be the 
+                // equal configurations. Configuration differences should be the
                 // exception, not the rule.
                 if (*(*lit1) == *(*lit2)) continue;
                 if (*(*lit1) < *(*lit2))
@@ -198,19 +198,19 @@ namespace SHOC {
         bool operator> (const NodePlatformContainer &ndc) const
         {
             int i;
-            
+
             if (platformCount > ndc.platformCount)
                 return (true);
             if (platformCount < ndc.platformCount)
                 return (false);
-            
+
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();
             for (i=0 ; i<platformCount ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
-                // equal configurations. Configuration differences should be the 
+                // equal configurations. Configuration differences should be the
                 // exception, not the rule.
                 if (*(*lit1) == *(*lit2)) continue;
                 if (*(*lit1) > *(*lit2))
@@ -226,10 +226,10 @@ namespace SHOC {
         bool operator== (const NodePlatformContainer &ndc) const
         {
             int i;
-            
+
             if (platformCount != ndc.platformCount)
                 return (false);
-            
+
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();

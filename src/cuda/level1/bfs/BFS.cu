@@ -29,32 +29,32 @@
 // Modifications:
 //
 // ****************************************************************************
-//TODO: Check if hostfile option in driver file adds automatically 
+//TODO: Check if hostfile option in driver file adds automatically
 void addBenchmarkSpecOptions(OptionParser &op)
-{   
-    op.addOption("graph_file", OPT_STRING, "random", "name of graph file"); 
+{
+    op.addOption("graph_file", OPT_STRING, "random", "name of graph file");
     op.addOption("degree", OPT_INT, "2", "average degree of nodes");
     op.addOption("algo", OPT_INT, "1", "1-IIIT BFS 2-UIUC BFS ");
-    op.addOption("dump-pl", OPT_BOOL, "false", 
+    op.addOption("dump-pl", OPT_BOOL, "false",
             "enable dump of path lengths to file");
     op.addOption("source_vertex", OPT_INT, "0",
             "vertex to start the traversal from");
-    op.addOption("global-barrier", OPT_BOOL, "false", 
+    op.addOption("global-barrier", OPT_BOOL, "false",
             "enable the use of global barrier in UIUC BFS");
 }
 
 
 // ****************************************************************************
-// Function: verify_results 
+// Function: verify_results
 //
 // Purpose:
-//  Verify BFS results by comparing the output path lengths from cpu and gpu 
-//  traversals 
+//  Verify BFS results by comparing the output path lengths from cpu and gpu
+//  traversals
 //
 // Arguments:
-//   cpu_cost: path lengths calculated on cpu 
-//   gpu_cost: path lengths calculated on gpu 
-//   numVerts: number of vertices in the given graph 
+//   cpu_cost: path lengths calculated on cpu
+//   gpu_cost: path lengths calculated on gpu
+//   numVerts: number of vertices in the given graph
 //   out_path_lengths: specify if path lengths should be dumped to files
 //
 // Returns:  nothing
@@ -65,7 +65,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Modifications:
 //
 // ****************************************************************************
-unsigned int verify_results(unsigned int *cpu_cost, unsigned int *gpu_cost, 
+unsigned int verify_results(unsigned int *cpu_cost, unsigned int *gpu_cost,
                             unsigned int numVerts,  bool out_path_lengths)
 {
     unsigned int unmatched_nodes=0;
@@ -73,11 +73,11 @@ unsigned int verify_results(unsigned int *cpu_cost, unsigned int *gpu_cost,
     {
         if(gpu_cost[i]!=cpu_cost[i])
         {
-            unmatched_nodes++;  
+            unmatched_nodes++;
         }
     }
 
-    // If user wants to write path lengths to file 
+    // If user wants to write path lengths to file
     if(out_path_lengths)
     {
         std::ofstream bfs_out_cpu("bfs_out_cpu.txt");
@@ -88,7 +88,7 @@ unsigned int verify_results(unsigned int *cpu_cost, unsigned int *gpu_cost,
                 bfs_out_cpu<<cpu_cost[i]<<"\n";
             else
                 bfs_out_cpu<<"0\n";
-        
+
             if(gpu_cost[i]!=UINT_MAX)
                 bfs_out_gpu<<gpu_cost[i]<<"\n";
             else
@@ -123,7 +123,7 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
 {
     typedef char frontier_type;
     typedef unsigned int cost_type;
-        
+
     // Get graph info
     unsigned int *edgeArray=G->GetEdgeOffsets();
     unsigned int *edgeArrayAux=G->GetEdgeList();
@@ -133,9 +133,9 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
 
     int *flag;
 
-    // Allocate pinned memory for frontier and cost arrays on CPU 
+    // Allocate pinned memory for frontier and cost arrays on CPU
     cost_type  *costArray;
-    CUDA_SAFE_CALL(cudaMallocHost((void **)&costArray, 
+    CUDA_SAFE_CALL(cudaMallocHost((void **)&costArray,
                                   sizeof(cost_type)*(numVerts)));
     CUDA_SAFE_CALL(cudaMallocHost((void **)&flag,
                                   sizeof(int)));
@@ -143,7 +143,7 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
     // Variables for GPU memory
     // Adjacency lists
     unsigned int *d_edgeArray=NULL,*d_edgeArrayAux=NULL;
-    // Cost array 
+    // Cost array
     cost_type  *d_costArray;
     // Flag to check when traversal is complete
     int *d_flag;
@@ -224,7 +224,7 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         while (*flag)
         {
             *flag=0;
-            // Set flag to 0 
+            // Set flag to 0
             CUDA_SAFE_CALL(cudaMemcpy(d_flag,flag,
                         sizeof(int),cudaMemcpyHostToDevice));
 
@@ -265,17 +265,17 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         for (int i=0;i<numVerts;i++)
         {
             if (costArray[i]!=UINT_MAX)
-                numVisited++;   
+                numVisited++;
         }
 
         bool dump_paths=op.getOptionBool("dump-pl");
         // Verify Results against serial BFS
         unsigned int unmatched_verts=verify_results(cpu_cost,costArray,numVerts,
                                                dump_paths);
-        
+
         // Total size transferred
         float gbytes = sizeof(cost_type)*numVerts+             //cost array
-                       sizeof(unsigned int)*(numVerts+1)+      //edgeArray 
+                       sizeof(unsigned int)*(numVerts+1)+      //edgeArray
                        sizeof(unsigned int)*adj_list_length;   //edgeArrayAux
         gbytes /= (1000. * 1000. * 1000.);
 
@@ -284,8 +284,8 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         sprintf(atts,"v:%d_e:%d ", numVerts, adj_list_length);
         if (unmatched_verts==0)
         {
-            totalKernelTime *= 1.e-3;  
-            totalTransferTime *= 1.e-3;  
+            totalKernelTime *= 1.e-3;
+            totalTransferTime *= 1.e-3;
             resultDB.AddResult("BFS_total",atts,"s",result_time);
             resultDB.AddResult("BFS_kernel_time",atts,"s",totalKernelTime);
             resultDB.AddResult("BFS",atts,"GB/s",gbytes/totalKernelTime);
@@ -297,7 +297,7 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
                                numEdges/result_time);
             resultDB.AddResult("BFS_visited_vertices", atts, "N",numVisited);
         }
-        else 
+        else
         {
             resultDB.AddResult("BFS_total",atts,"s",FLT_MAX);
             resultDB.AddResult("BFS_kernel_time",atts,"s",FLT_MAX);
@@ -311,15 +311,15 @@ void RunTest1(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         std::cout << "Verification of GPU results: ";
         if (unmatched_verts==0)
         {
-            std::cout << "Passed"; 
+            std::cout << "Passed";
         }
         else
         {
-            std::cout << "Failed\n"; 
+            std::cout << "Failed\n";
             return;
-        } 
+        }
         std::cout << endl;
-        
+
         if (j==passes-1) //if passes completed break;
             break;
 
@@ -380,7 +380,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
     unsigned int numVerts = G->GetNumVertices();
     unsigned int numEdges = G->GetNumEdges();
 
-    // Allocate memory for frontier & visited arrays on CPU 
+    // Allocate memory for frontier & visited arrays on CPU
     frontier_type *frontier;
     cost_type  *costArray;
     visited_type *visited;
@@ -424,7 +424,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
     // Get vertex to start traversal from
     const unsigned int source_vertex=op.getOptionInt("source_vertex");
     unsigned int frontier_length;
-    
+
     // Set initial condition for traversal
     frontier_length=1;
     frontier[0]=source_vertex;
@@ -469,28 +469,28 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         std::cout<<"Max number of blocks exceeded";
         return;
     }
-    
+
     // Get the usable shared memory
     unsigned int max_q_size=((devProp.sharedMemPerBlock-
                             (sizeof(unsigned int)*3))/sizeof(unsigned int));
 
     unsigned int q_size2 = max_q_size;
 
-    if (q_size2 > devProp.maxThreadsPerBlock) 
+    if (q_size2 > devProp.maxThreadsPerBlock)
     {
         q_size2 = devProp.maxThreadsPerBlock;
     }
-    
+
     unsigned int shared_mem2 = q_size2 * sizeof(unsigned int);
     unsigned int q_size1=max_q_size / 2;
 
-    if(q_size1 > devProp.maxThreadsPerBlock) 
+    if(q_size1 > devProp.maxThreadsPerBlock)
     {
         q_size1 = devProp.maxThreadsPerBlock;
     }
-    
-    unsigned int shared_mem1 = q_size1 * sizeof(unsigned int) * 2;        
-        
+
+    unsigned int shared_mem1 = q_size1 * sizeof(unsigned int) * 2;
+
     // Perform cpu bfs traversal to compare
     unsigned int *cpu_cost = new unsigned int[numVerts];
     G->GetVertexLengths(cpu_cost,source_vertex);
@@ -516,7 +516,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
             Reset_kernel_parameters<<<1,1>>>(d_frontier_length);
             CHECK_CUDA_ERROR();
 
-            //kernel for frontier length within one block 
+            //kernel for frontier length within one block
             if(frontier_length<devProp.maxThreadsPerBlock)
             {
                 BFS_kernel_one_block_spill<<<1, devProp.maxThreadsPerBlock,
@@ -583,18 +583,18 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         for(int i=0;i<numVerts;i++)
         {
             if(costArray[i]!=UINT_MAX)
-                numVisited++;   
+                numVisited++;
         }
 
         bool dump_paths=op.getOptionBool("dump-pl");
         //Verify Results against serial BFS
         unsigned int unmatched_verts=verify_results(cpu_cost,costArray,numVerts,
                                                dump_paths);
-        
+
         float gbytes=   sizeof(frontier_type)*numVerts*2+       //2 frontiers
                         sizeof(cost_type)*numVerts+             //cost array
                         sizeof(visited_type)*numVerts+          //visited array
-                        sizeof(unsigned int)*(numVerts+1)+      //edgeArray 
+                        sizeof(unsigned int)*(numVerts+1)+      //edgeArray
                         sizeof(unsigned int)*adj_list_length;   //edgeArrayAux
 
         gbytes/=(1000. * 1000. * 1000.);
@@ -604,8 +604,8 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         sprintf(atts,"v:%d_e:%d ",numVerts,adj_list_length);
         if(unmatched_verts==0)
         {
-            totalKernelTime *= 1.e-3;  
-            totalTransferTime *= 1.e-3;  
+            totalKernelTime *= 1.e-3;
+            totalTransferTime *= 1.e-3;
             resultDB.AddResult("BFS_total",atts,"s",result_time);
             resultDB.AddResult("BFS_kernel_time",atts,"s",totalKernelTime);
             resultDB.AddResult("BFS",atts,"GB/s",gbytes/totalKernelTime);
@@ -617,7 +617,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
                                numEdges/result_time);
             resultDB.AddResult("BFS_visited_vertices", atts, "N",numVisited);
         }
-        else 
+        else
         {
             resultDB.AddResult("BFS_total",atts,"s",FLT_MAX);
             resultDB.AddResult("BFS_kernel_time",atts,"s",FLT_MAX);
@@ -632,16 +632,16 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
         std::cout << endl << "Verification of GPU results: ";
         if(unmatched_verts==0)
         {
-            std::cout<<"Passed"; 
+            std::cout<<"Passed";
         }
         else
         {
-            std::cout<<"Failed\n"; 
+            std::cout<<"Failed\n";
             return;
         }
         cout << endl;
         //if passes completed break;
-        if(j==passes-1) 
+        if(j==passes-1)
             break;
 
         //reset the arrays to perform BFS again
@@ -668,7 +668,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
 
     //Clean up
     delete[] cpu_cost;
-    
+
     CUDA_SAFE_CALL(cudaEventDestroy(start_cuda_event));
     CUDA_SAFE_CALL(cudaEventDestroy(stop_cuda_event));
     CUDA_SAFE_CALL(cudaFreeHost(frontier));
@@ -697,7 +697,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
 //   op: the options parser / parameter database
 //
 // Returns:  nothing
-// Programmer: Aditya Sarwade 
+// Programmer: Aditya Sarwade
 // Creation: June 16, 2011
 //
 // Modifications:
@@ -705,7 +705,7 @@ void RunTest2(ResultDatabase &resultDB, OptionParser &op, Graph *G)
 // ****************************************************************************
 void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 {
-    
+
     // First, check if the device supports atomics, which are required
     // for this benchmark.  If not, return the "NoResult" sentinel.int device;
     int device;
@@ -724,9 +724,9 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         resultDB.AddResult("BFS_teps",atts,"Edges/s",FLT_MAX);
         resultDB.AddResult("BFS_visited_vertices",atts,"N",FLT_MAX);
     }
-    
+
     //adjacency list variables
-    //number of vertices and edges in graph 
+    //number of vertices and edges in graph
     unsigned int numVerts,numEdges;
     //Get the graph filename
     string inFileName = op.getOptionString("graph_file");
@@ -748,13 +748,13 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         //allocate memory for adjacency lists
         //edgeArray =new unsigned int[numVerts+1];
         //edgeArrayAux=new unsigned int[numVerts*(avg_degree+1)];
-        
+
         CUDA_SAFE_CALL(cudaMallocHost(edge_ptr1,
                         sizeof(unsigned int)*(numVerts+1)));
         CUDA_SAFE_CALL(cudaMallocHost(edge_ptr2,
                         sizeof(unsigned int)*(numVerts*(avg_degree+1))));
 
-        //Generate simple tree 
+        //Generate simple tree
         G->GenerateSimpleKWayGraph(numVerts,avg_degree);
     }
     else
@@ -767,15 +767,15 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             return;
         }
 
-        //get the number of vertices and edges from the first line 
+        //get the number of vertices and edges from the first line
         const char delimiters[]=" \n";
         char charBuf[MAX_LINE_LENGTH];
         fgets(charBuf,MAX_LINE_LENGTH,fp);
-        char *temp_token = strtok (charBuf, delimiters); 
+        char *temp_token = strtok (charBuf, delimiters);
         while(temp_token[0]=='%')
         {
             fgets(charBuf,MAX_LINE_LENGTH,fp);
-            temp_token = strtok (charBuf, delimiters); 
+            temp_token = strtok (charBuf, delimiters);
         }
         numVerts=atoi(temp_token);
         temp_token = strtok (NULL, delimiters);
@@ -805,7 +805,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                 RunTest2(resultDB,op,G);
                 break;
     }
-    
+
     //Clean up
     delete G;
     CUDA_SAFE_CALL(cudaFreeHost(*edge_ptr1));

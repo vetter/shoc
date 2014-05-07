@@ -63,8 +63,8 @@ void RunBenchmark(cl::Device& dev,
 //   the list of devices among the tasks.
 //
 //   Gabriel Marin, Tue Jun 01 15:38 EST 2010
-//   Check that we have valid (not NULL) context and queue objects before 
-//   running the benchmarks. Errors inside CreateContextFromSingleDevice or 
+//   Check that we have valid (not NULL) context and queue objects before
+//   running the benchmarks. Errors inside CreateContextFromSingleDevice or
 //   CreateCommandQueueForContextAndDevice were not propagated out to the main
 //   program.
 //
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 #endif
 
         OptionParser op;
-       
+
         //Add shared options to the parser
         op.addOption("platform", OPT_INT, "0", "specify OpenCL platform to use",
                 'p');
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
                 "show info for available platforms and devices", 'i');
         op.addOption("verbose", OPT_BOOL, "", "enable verbose output", 'v');
         op.addOption("quiet", OPT_BOOL, "", "write minimum necessary to standard output", 'q');
-                
+
         addBenchmarkSpecOptions(op);
 
         if (!op.parse(argc, argv))
@@ -114,12 +114,12 @@ int main(int argc, char *argv[])
 #endif
             return (op.HelpRequested() ? 0 : 1 );
         }
-        
+
         if (op.getOptionBool("infoDevices"))
         {
 #define DEBUG_DEVICE_CONTAINER 0
 #ifdef PARALLEL
-            // execute following code only if I am the process of lowest 
+            // execute following code only if I am the process of lowest
             // rank on this node
             NodeInfo NI;
             int mynoderank = NI.nodeRank();
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
                 MPI_Comm nlrcomm = NI.getNLRComm();
                 MPI_Comm_size(nlrcomm, &nlrsize);
                 MPI_Comm_rank(nlrcomm, &nlrrank);
-                
+
                 OpenCLNodePlatformContainer ndc1;
                 OpenCLMultiNodeContainer localMnc(ndc1);
                 localMnc.doMerge (nlrrank, nlrsize, nlrcomm);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         }
 
         bool verbose = op.getOptionBool("verbose");
-        
+
         // The device option supports specifying more than one device
         // for now, just choose the first one.
         int platform = op.getOptionInt("platform");

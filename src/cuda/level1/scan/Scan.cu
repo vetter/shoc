@@ -92,10 +92,10 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     int probSizes[4] = { 1, 8, 32, 64 };
 
     int size = probSizes[op.getOptionInt("size")-1];
-    
+
     // Convert to MiB
     size = (size * 1024 * 1024) / sizeof(T);
-    
+
     // create input data on CPU
     unsigned int bytes = size * sizeof(T);
 
@@ -149,11 +149,11 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     for (int k = 0; k < passes; k++)
     {
         float totalScanTime = 0.0f;
-        CUDA_SAFE_CALL(cudaEventRecord(start, 0));        
+        CUDA_SAFE_CALL(cudaEventRecord(start, 0));
         for (int j = 0; j < iters; j++)
         {
             // For scan, we use a reduce-then-scan approach
-            
+
             // Each thread block gets an equal portion of the
             // input array, and computes the sum.
             reduce<T, 256><<<num_blocks, num_threads, smem_size>>>
@@ -163,7 +163,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
             // of block sums
             scan_single_block<T, 256><<<1, num_threads, smem_size*2>>>
                 (d_block_sums, num_blocks);
- 
+
             // Finally, a bottom-level scan is performed by each block
             // that is seeded with the scanned value in block sums
             bottom_scan<T, vecT, 256><<<num_blocks, num_threads, 2*smem_size>>>
@@ -238,7 +238,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 template <class T>
 bool scanCPU(T *data, T* reference, T* dev_result, const size_t size)
 {
-    
+
     bool passed = true;
     T last = 0.0f;
 

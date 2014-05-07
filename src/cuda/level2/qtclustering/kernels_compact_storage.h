@@ -122,7 +122,7 @@ int generate_candidate_cluster_compact_storage(int seed_point, int degree, char 
         FETCH_POINT( cand_pnt_10, 10 );
         FETCH_POINT( cand_pnt_11, 11 );
     }while(0);
-    
+
     // different threads might exit this loop at different times, so let them catch up.
     __syncthreads();
 

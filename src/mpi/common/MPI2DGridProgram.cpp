@@ -38,8 +38,8 @@ MPI2DGridProgramBase::MPI2DGridProgramBase( size_t _mpiGridRows,
     {
         if( dims[0]*dims[1] < cwsize )
         {
-            std::cerr << "warning: using " 
-                << dims[0]*dims[1] 
+            std::cerr << "warning: using "
+                << dims[0]*dims[1]
                 << " of  " << cwsize
                 << " available tasks; the rest will idle"
                 << std::endl;
@@ -64,7 +64,7 @@ MPI2DGridProgramBase::MPI2DGridProgramBase( size_t _mpiGridRows,
                         &comm2d );
     if( comm2d != MPI_COMM_NULL )
     {
-        // I am participating - 
+        // I am participating -
         // find our place in the 2D topology.
         MPI_Cart_coords( comm2d, cwrank, 2, coords );
     }
@@ -107,7 +107,7 @@ MPI2DGridProgramBase::AddOptions( OptionParser& opts )
     }
     else
     {
-        // We only have one process to work with - 
+        // We only have one process to work with -
         // our "2D" topology is a 1x1 degenerate grid.
         ostr << "1,1";
     }
@@ -249,12 +249,12 @@ MPI2DGridProgram<T>::DoHaloExchange( Matrix2D<T>& mtx )
     creqs = NULL;
     reqs.clear();
 
-    // our dim1 data is not contiguous, so we can't do the simple send/receive 
+    // our dim1 data is not contiguous, so we can't do the simple send/receive
     // we used for north/south directions.
     // packing and unpacking into a contiguous buffer might be a bit faster than
     // using a derived datatype but makes our logic for handling the asynchronous
-    // receives more difficult (because we'd have to unpack the east/west values 
-    // after we test that we've received them, and thus keep track of which 
+    // receives more difficult (because we'd have to unpack the east/west values
+    // after we test that we've received them, and thus keep track of which
     // requests were for east boundary, and which were for the west boundary)
     MPI_Datatype dim1SliceType;
     MPI_Type_vector( mtx.GetNumRows(),   // number of blocks
@@ -327,7 +327,7 @@ MPI2DGridProgram<T>::DoHaloExchange( Matrix2D<T>& mtx )
     delete[] creqs;
     creqs = NULL;
 
-    // since we did the NS exchange first, then the EW exchange, 
+    // since we did the NS exchange first, then the EW exchange,
     // we swapped halo "corners"
 }
 
@@ -335,7 +335,7 @@ MPI2DGridProgram<T>::DoHaloExchange( Matrix2D<T>& mtx )
 template<class T>
 void
 MPI2DGridProgram<T>::DumpData( std::ostream& s,
-                            const Matrix2D<T>& mtx, 
+                            const Matrix2D<T>& mtx,
                             const char* desc )
 {
     typename Matrix2D<T>::ConstDataPtr adata = mtx.GetConstData();

@@ -57,7 +57,7 @@ void comm_find_winner(int *max_card, int *winner_node, int *winner_index, int cw
     // If I'm not one of the winners, set my index to max
     if(*max_card != glb_max_card)
         index = max_index;
-        
+
     MPI_Allreduce (&index, winner_index, 1, MPI_INT, MPI_MIN, _qtc_mpi_communicator);
 
     *max_card = glb_max_card;
