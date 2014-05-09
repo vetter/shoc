@@ -72,18 +72,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_scan;
 
 void
-RunBenchmark(cl::Device& devcpp,
-             cl::Context& ctxcpp,
-             cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+             cl_context ctx,
+             cl_command_queue queue,
              ResultDatabase &resultDB,
              OptionParser &op)
 {
-    // Convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     // Collect basic MPI information
     int size, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);

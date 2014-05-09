@@ -1158,71 +1158,90 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
 //
 // ****************************************************************************
 cl_device_id
-ListDevicesAndGetDevice(int platform, int device, bool output)
+ListDevicesAndGetDevice(int platformIdx, int deviceIdx, bool output)
 {
     cl_int err;
-    vector<cl::Platform> platforms;
 
-    err = cl::Platform::get( &platforms );
+    // TODO remove duplication between this function and GetNumOclDevices.
+    cl_uint nPlatforms = 0;
+    err = clGetPlatformIDs(0, NULL, &nPlatforms);
     CL_CHECK_ERROR(err);
 
-    long nPlatforms = (long)platforms.size();
     if (nPlatforms <= 0)
     {
         cerr << "No OpenCL platforms found. Exiting." << endl;
         exit(0);
     }
-    if (platform<0 || platform>=nPlatforms)  // platform ID out of range
+    if (platformIdx<0 || platformIdx>=nPlatforms)  // platform ID out of range
     {
-        cerr << "Platform index " << platform << " is out of range. "
+        cerr << "Platform index " << platformIdx << " is out of range. "
              << "Specify a platform index between 0 and "
              << nPlatforms-1 << endl;
         exit(-4);
     }
 
-    string platformName = platforms[platform].getInfo<CL_PLATFORM_NAME>();
-    string platformVersion = platforms[platform].getInfo<CL_PLATFORM_VERSION>();
-    // cout << "OpenCL platform name = '" << platformName << "'" << endl;
-    // cout << "OpenCL platform version = '" << platformVersion << "'" << endl;
+    cl_platform_id* platformIDs = new cl_platform_id[nPlatforms];
+    err = clGetPlatformIDs(nPlatforms, platformIDs, NULL);
+    CL_CHECK_ERROR(err);
 
     // query devices
-    std::vector<cl::Device> devs;
-    err = platforms[platform].getDevices( CL_DEVICE_TYPE_ALL, &devs );
-    // I should not report an error here if no devices are found.
-    // CL_CHECK_ERROR( err );
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs(platformIDs[platformIdx],
+                        CL_DEVICE_TYPE_ALL,
+                        0,
+                        NULL,
+                        &nDevices );
+    CL_CHECK_ERROR(err);
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs(platformIDs[platformIdx],
+                        CL_DEVICE_TYPE_ALL,
+                        nDevices,
+                        devIDs,
+                        NULL );
+    CL_CHECK_ERROR(err);
 
-    // for( vector<cl::Device>::iterator diter = devs.begin();
-    //    diter != devs.end();
-    //    diter++ )
-    // {
-    //    OpenCLDeviceInfo di((*diter)());
-    //    di.Print(cout);
-    //}
-
-    long nDevs = (long)devs.size();
-    if (nDevs <= 0)
+    if (nDevices <= 0)
     {
         cerr << "No OpenCL devices found. Exiting." << endl;
         exit(0);
     }
-    if (device<0 || device>=nDevs)  // platform ID out of range
+    if (deviceIdx<0 || deviceIdx>=nDevices)  // platform ID out of range
     {
-        cerr << "Device index " << device << " is out of range. "
-             << "Specify a device index between 0 and " << nDevs-1
+        cerr << "Device index " << deviceIdx << " is out of range. "
+             << "Specify a device index between 0 and " << nDevices-1
              << endl;
         exit(-5);
     }
 
-    cl::Device &clDevice = devs[device];
-    cl_device_id retval = clDevice();
+    cl_device_id retval = devIDs[deviceIdx];
     if( output )
     {
+        size_t nBytesNeeded = 0;
+        err = clGetDeviceInfo( retval,
+                                CL_DEVICE_NAME,
+                                0,
+                                NULL,
+                                &nBytesNeeded );
+        CL_CHECK_ERROR(err);
+        char* devName = new char[nBytesNeeded+1];
+        err = clGetDeviceInfo( retval,
+                                CL_DEVICE_NAME,
+                                nBytesNeeded+1,
+                                devName,
+                                NULL );
+        
         cout << "Chose device:"
-             << " name='"<<clDevice.getInfo<CL_DEVICE_NAME>()<<"'"
-             << " index="<<device
+             << " name='"<< devName <<"'"
+             << " index="<<deviceIdx
              << " id="<<retval
              << endl;
+
+        delete[] devName;
     }
+
+    delete[] platformIDs;
+    delete[] devIDs;
+
     return retval;
 }
 
@@ -1246,33 +1265,52 @@ ListDevicesAndGetDevice(int platform, int device, bool output)
 //
 // ****************************************************************************
 int
-GetNumOclDevices(int platform)
+GetNumOclDevices(int platformIndex)
 {
     cl_int err;
-    vector<cl::Platform> platforms;
 
-    err = cl::Platform::get( &platforms );
+    
+    cl_uint nPlatforms = 0;
+    err = clGetPlatformIDs(0, NULL, &nPlatforms);   // determine number of platforms available
     CL_CHECK_ERROR(err);
 
-    long nPlatforms = (long)platforms.size();
     if (nPlatforms <= 0)
     {
         cerr << "No OpenCL platforms found. Exiting." << endl;
         exit(-1);
     }
-    if (platform<0 || platform>=nPlatforms)  // platform ID out of range
+    if (platformIndex<0 || platformIndex>=nPlatforms)  // platform index out of range
     {
-        cerr << "Platform index " << platform << " is out of range. "
+
+        cerr << "Platform index " << platformIndex << " is out of range. "
              << "Specify a platform index between 0 and "
              << nPlatforms-1 << endl;
         exit(-4);
     }
 
-    // query devices
-    std::vector<cl::Device> devs;
-    err = platforms[platform].getDevices( CL_DEVICE_TYPE_ALL, &devs );
+    cl_platform_id* platformIDs = new cl_platform_id[nPlatforms];
+    err = clGetPlatformIDs(nPlatforms, platformIDs, NULL);
+    CL_CHECK_ERROR(err);
 
-    int nDevs = (int)devs.size();
-    return nDevs;
+    // query devices for the indicated platform
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs( platformIDs[platformIndex],
+                            CL_DEVICE_TYPE_ALL,
+                            0,
+                            NULL,
+                            &nDevices );
+    CL_CHECK_ERROR(err);
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs( platformIDs[platformIndex],
+                            CL_DEVICE_TYPE_ALL,
+                            nDevices,
+                            devIDs,
+                            NULL );
+    CL_CHECK_ERROR(err);
+
+    delete[] platformIDs;
+    delete[] devIDs;
+
+    return (int)nDevices;
 }
 

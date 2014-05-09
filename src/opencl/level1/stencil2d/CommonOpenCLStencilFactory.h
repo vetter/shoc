@@ -19,9 +19,9 @@ template<class T>
 class CommonOpenCLStencilFactory : public StencilFactory<T>
 {
 protected:
-    cl::Device& dev;
-    cl::Context& ctx;
-    cl::CommandQueue& queue;
+    cl_device_id dev;
+    cl_context ctx;
+    cl_command_queue queue;
 
     void ExtractOptions( const OptionParser& options,
                             T& wCenter,
@@ -32,9 +32,9 @@ protected:
 
 public:
     CommonOpenCLStencilFactory( std::string _sname,
-                                cl::Device& _dev,
-                                cl::Context& _ctx,
-                                cl::CommandQueue& _queue )
+                                cl_device_id _dev,
+                                cl_context _ctx,
+                                cl_command_queue _queue )
       : StencilFactory<T>( _sname ),
         dev( _dev ),
         ctx( _ctx ),

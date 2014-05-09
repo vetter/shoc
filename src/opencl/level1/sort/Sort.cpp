@@ -112,17 +112,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_sort;
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
     // Execute the test using 32-bit keys only
     runTest<unsigned int>("Sort-Rate", dev, ctx, queue, resultDB, op, " ");
 }

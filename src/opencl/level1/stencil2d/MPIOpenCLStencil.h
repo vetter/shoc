@@ -5,9 +5,6 @@
 #include <vector>
 #include "OpenCLStencil.h"
 #include "MPI2DGridProgram.h"
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 
 
 // ****************************************************************************
@@ -30,11 +27,11 @@ private:
     T* eData;
     T* wData;
 
-    virtual void DoPreIterationWork( cl::Buffer& buf,
-                                        cl::Buffer& altbuf,
+    virtual void DoPreIterationWork( cl_mem buf,
+                                        cl_mem altbuf,
                                         Matrix2D<T>& mtx,
                                         unsigned int iter,
-                                        cl::CommandQueue& queue );
+                                        cl_command_queue queue );
 
 public:
     MPIOpenCLStencil( T wCenter,
@@ -45,9 +42,9 @@ public:
                     size_t _mpiGridRows,
                     size_t _mpiGridCols,
                     unsigned int _nItersPerHaloExchange,
-                    cl::Device& dev,
-                    cl::Context& ctx,
-                    cl::CommandQueue& queue,
+                    cl_device_id dev,
+                    cl_context ctx,
+                    cl_command_queue queue,
                     bool _dumpData = false );
     virtual ~MPIOpenCLStencil( void );
 

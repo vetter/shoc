@@ -16,18 +16,12 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //    Jeremy Meredith, Wed Dec  1 17:05:27 EST 2010
 //    Added calculation of latency estimate.
 //
-void RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+void RunBenchmark(cl_device_id id,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id id = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     bool verbose = op.getOptionBool("verbose");
     bool pinned = !op.getOptionBool("nopinned");
     int  npasses = op.getOptionInt("passes");

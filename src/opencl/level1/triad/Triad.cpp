@@ -64,18 +64,12 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //
 // ****************************************************************************
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id devid,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id devid = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     bool verbose = op.getOptionBool("verbose");
     int n_passes = op.getOptionInt("passes");
     bool pinned = true; // !op.getOptionBool("nopinned");

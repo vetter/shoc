@@ -934,18 +934,12 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
 //
 // ****************************************************************************
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     //create list of problem sizes
     int probSizes[4] = {1024, 8192, 12288, 16384};
     int sizeClass = op.getOptionInt("size") - 1;

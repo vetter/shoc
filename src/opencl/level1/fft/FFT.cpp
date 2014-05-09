@@ -84,18 +84,12 @@ fillResultDB(const string& name, const string& reason, OptionParser &op,
 
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     if (getMaxWorkGroupSize(dev) < 64) {
         cout << "FFT requires MaxWorkGroupSize of at least 64" << endl;
         fillResultDB("SP-FFT", "MaxWorkGroupSize<64", op, resultDB);

@@ -36,7 +36,6 @@ namespace SHOC {
         typedef std::list<PlatformType*> PlatformList;
 
         string nodeName;
-        int platformCount;
         PlatformList platforms;
 
         static const int MAGIC_KEY_NODE_CONTAINER;
@@ -57,7 +56,6 @@ namespace SHOC {
                 exit (-1);
             }
             nodeName = buf;
-            platformCount = 0;
         }
 
 
@@ -69,19 +67,17 @@ namespace SHOC {
             for ( ; lit!=platforms.end() ; ++lit)
                delete (*lit);
             platforms.clear ();
-            platformCount = 0;
         }
 
         // return the name of the host
         const string& getNodeName() const   { return (nodeName); }
 
         // return the number of Platforms on this node
-        int getPlatformCount() const        { return (platformCount); }
+        int getPlatformCount() const        { return platforms.size(); }
 
         // copy constructor
         NodePlatformContainer (const NodePlatformContainer<PlatformType> &ndc)
         {
-            platformCount = ndc.platformCount;
             nodeName = ndc.nodeName;
             typename PlatformList::const_iterator lit = ndc.platforms.begin();
             for ( ; lit!=ndc.platforms.end() ; ++lit)
@@ -91,7 +87,6 @@ namespace SHOC {
         // copy/assignment operator
         NodePlatformContainer& operator= (const NodePlatformContainer<PlatformType> &ndc)
         {
-            platformCount = ndc.platformCount;
             nodeName = ndc.nodeName;
             // first clear any platforms that we have
             typename PlatformList::const_iterator lit = platforms.begin();
@@ -109,7 +104,7 @@ namespace SHOC {
         void Print (ostream &os) const
         {
             os << "Host name = '" << nodeName << "'" << endl;
-            os << "Number of platforms = " << platformCount << endl;
+            os << "Number of platforms = " << this->getPlatformCount() << endl;
 
             typename PlatformList::const_iterator lit = platforms.begin();
             for ( ; lit!=platforms.end() ; ++lit)
@@ -124,7 +119,7 @@ namespace SHOC {
         void writeObject(ostringstream &oss) const
         {
             oss << " " << MAGIC_KEY_NODE_CONTAINER
-                << " " << platformCount << "\n";
+                << " " << this->getPlatformCount() << "\n";
             oss << nodeName << "\n";
 
             typename PlatformList::const_iterator lit = platforms.begin();
@@ -146,7 +141,8 @@ namespace SHOC {
                 exit (-2);
             }
 
-            iss >> platformCount;
+            unsigned int nPlatforms;
+            iss >> nPlatforms;
             string dummy;
             getline (iss, dummy);  // read the newline before the first string value
             getline (iss, nodeName);
@@ -157,7 +153,7 @@ namespace SHOC {
                delete (*lit);
             platforms.clear ();
 
-            for (i=0 ; i<platformCount ; ++i)
+            for (i=0 ; i<nPlatforms ; ++i)
             {
                 PlatformType *plf = new PlatformType();
                 plf->readObject (iss);
@@ -171,15 +167,15 @@ namespace SHOC {
         {
             int i;
 
-            if (platformCount < ndc.platformCount)
+            if (this->getPlatformCount() < ndc.getPlatformCount())
                 return (true);
-            if (platformCount > ndc.platformCount)
+            if (this->getPlatformCount() > ndc.getPlatformCount())
                 return (false);
 
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();
-            for (i=0 ; i<platformCount ; ++i, ++lit1, ++lit2)
+            for (i=0 ; i<this->getPlatformCount() ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
                 // equal configurations. Configuration differences should be the
@@ -199,15 +195,15 @@ namespace SHOC {
         {
             int i;
 
-            if (platformCount > ndc.platformCount)
+            if (this->getPlatformCount() > ndc.getPlatformCount())
                 return (true);
-            if (platformCount < ndc.platformCount)
+            if (this->getPlatformCount() < ndc.getPlatformCount())
                 return (false);
 
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();
-            for (i=0 ; i<platformCount ; ++i, ++lit1, ++lit2)
+            for (i=0 ; i<this->getPlatformCount() ; ++i, ++lit1, ++lit2)
             {
                 // better test for equality first because we expect most nodes to have
                 // equal configurations. Configuration differences should be the
@@ -227,13 +223,13 @@ namespace SHOC {
         {
             int i;
 
-            if (platformCount != ndc.platformCount)
+            if (this->getPlatformCount() != ndc.getPlatformCount())
                 return (false);
 
             // test each platform in the list next
             typename PlatformList::const_iterator lit1 = platforms.begin();
             typename PlatformList::const_iterator lit2 = ndc.platforms.begin();
-            for (i=0 ; i<platformCount ; ++i, ++lit1, ++lit2)
+            for (i=0 ; i<this->getPlatformCount() ; ++i, ++lit1, ++lit2)
             {
                 if (! (*(*lit1) == *(*lit2)))
                     return (false);

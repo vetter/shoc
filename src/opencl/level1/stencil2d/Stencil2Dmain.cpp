@@ -6,9 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <assert.h>
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
@@ -52,9 +49,9 @@ void CheckOptions( const OptionParser& opts );
 template<class T>
 void
 DoTest( std::string testName,
-        cl::Device& dev,
-        cl::Context& ctx,
-        cl::CommandQueue& queue,
+        cl_device_id dev,
+        cl_context ctx,
+        cl_command_queue queue,
         ResultDatabase& resultDB,
         OptionParser& opts,
         std::string compileFlags )
@@ -335,9 +332,9 @@ DoTest( std::string testName,
 
 
 void
-RunBenchmark( cl::Device& dev,
-                cl::Context& ctx,
-                cl::CommandQueue& queue,
+RunBenchmark( cl_device_id dev,
+                cl_context ctx,
+                cl_command_queue queue,
                 ResultDatabase& resultDB,
                 OptionParser& op )
 {

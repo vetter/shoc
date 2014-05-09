@@ -10,10 +10,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
-
 #include "OpenCLDeviceInfo.h"
 #include "OpenCLNodePlatformContainer.h"
 #include "MultiNodeContainer.h"
@@ -37,9 +33,9 @@ typedef MultiNodeContainer<OpenCLNodePlatformContainer> OpenCLMultiNodeContainer
 
 void addBenchmarkSpecOptions(OptionParser &op);
 
-void RunBenchmark(cl::Device& dev,
-                  cl::Context& ctx,
-                  cl::CommandQueue& queue,
+void RunBenchmark(cl_device_id devID,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op);
 
@@ -178,7 +174,7 @@ int main(int argc, char *argv[])
 
         // If they haven't specified any devices, assume they
         // want the process with in-node rank N to use device N
-        int device = myNodeRank;
+        int deviceIdx = myNodeRank;
 
         // If they have, then round-robin the list of devices
         // among the processes on a node.
@@ -186,27 +182,40 @@ int main(int argc, char *argv[])
         if (deviceVec.size() > 0)
         {
         int len = deviceVec.size();
-            device = deviceVec[myNodeRank % len];
+            deviceIdx = deviceVec[myNodeRank % len];
         }
 
         // Check for an erroneous device
-        if (device >= GetNumOclDevices(platform)) {
-            cerr << "Warning: device index: " << device
+        if (deviceIdx >= GetNumOclDevices(platform)) {
+            cerr << "Warning: device index: " << deviceIdx
                  << " out of range, defaulting to device 0.\n";
-            device = 0;
+            deviceIdx = 0;
         }
 
         // Initialization
         if (verbose) cout << ">> initializing\n";
-        cl::Device     id    = ListDevicesAndGetDevice(platform, device);
-        std::vector<cl::Device> ctxDevices;
-        ctxDevices.push_back( id );
-        cl::Context ctx( ctxDevices );
-        cl::CommandQueue queue( ctx, id, CL_QUEUE_PROFILING_ENABLE );
+        cl_device_id devID = ListDevicesAndGetDevice(platform, deviceIdx);
+        cl_int clErr;
+        cl_context ctx = clCreateContext( NULL,     // properties
+                                            1,      // number of devices
+                                            &devID, // device
+                                            NULL,   // notification function
+                                            NULL,
+                                            &clErr );
+        CL_CHECK_ERROR(clErr);
+        cl_command_queue queue = clCreateCommandQueue( ctx,
+                                                        devID,
+                                                        CL_QUEUE_PROFILING_ENABLE,
+                                                        &clErr );
+        CL_CHECK_ERROR(clErr);
         ResultDatabase resultDB;
 
         // Run the benchmark
-        RunBenchmark(id, ctx, queue, resultDB, op);
+        RunBenchmark(devID, ctx, queue, resultDB, op);
+
+        clReleaseCommandQueue( queue );
+        clReleaseContext( ctx );
+
 
 #ifndef PARALLEL
         resultDB.DumpDetailed(cout);
@@ -219,11 +228,6 @@ int main(int argc, char *argv[])
             pardb.DumpOutliers(cout);
         }
 #endif
-    }
-    catch( cl::Error e )
-    {
-        std::cerr << e.what() << '(' << e.err() << ')' << std::endl;
-        ret = 1;
     }
     catch( InvalidArgValue& e )
     {

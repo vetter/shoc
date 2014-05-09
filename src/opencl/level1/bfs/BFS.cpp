@@ -1318,18 +1318,12 @@ void RunTest2(
 // Modifications:
 //
 // ****************************************************************************
-void RunBenchmark(
-        cl::Device& devcpp,
-        cl::Context& ctxcpp,
-        cl::CommandQueue& queuecpp,
+void RunBenchmark(cl_device_id device,
+        cl_context context,
+        cl_command_queue queue,
         ResultDatabase &resultDB,
         OptionParser &op)
 {
-    //Get device context and command queue
-    cl_device_id device = devcpp();
-    cl_context context = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     //adjacency list variables
     cl_mem h_edge,h_edgeAux;
     //number of vertices and edges in graph

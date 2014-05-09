@@ -1,6 +1,3 @@
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "OpenCLNodePlatformContainer.h"
 #include "support.h"
 #include <stdlib.h>
@@ -67,18 +64,21 @@ void
 OpenCLNodePlatformContainer::initialize ()
 {
     cl_int err;
-    vector<cl::Platform> clPlatforms;
 
-    err = cl::Platform::get( &clPlatforms );
+    cl_uint nPlatforms = 0;
+    err = clGetPlatformIDs( 0,
+                            NULL,
+                            &nPlatforms );
+    CL_CHECK_ERROR(err);
+    cl_platform_id* platformIDs = new cl_platform_id[nPlatforms];
+    err = clGetPlatformIDs( nPlatforms,
+                            platformIDs,
+                            NULL );
     CL_CHECK_ERROR(err);
 
-    for( vector<cl::Platform>::iterator iter = clPlatforms.begin();
-        iter != clPlatforms.end();
-        iter++ )
+    for( unsigned int i = 0; i < nPlatforms; ++i )
     {
-        OpenCLPlatform *openclPlatform = new OpenCLPlatform (*iter);
-        platforms.push_back( openclPlatform );
-        platformCount += 1;
+        platforms.push_back( new OpenCLPlatform(platformIDs[i]) );
     }
 }
 

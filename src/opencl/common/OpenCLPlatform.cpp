@@ -55,30 +55,67 @@ OpenCLPlatform::OpenCLPlatform () : Platform<OpenCLDeviceInfo>()
 // Modifications:
 //
 // ****************************************************************************
-OpenCLPlatform::OpenCLPlatform (cl::Platform &clPlatform) :
+
+std::string
+OpenCLPlatform::LookupInfo( cl_platform_id platformID, 
+                            cl_platform_info paramName )
+{
+    cl_int err;
+
+    size_t nBytesNeeded = 0;
+    err = clGetPlatformInfo(platformID,
+                            paramName,
+                            NULL,
+                            NULL,
+                            &nBytesNeeded);
+    CL_CHECK_ERROR(err);
+    char* paramValue = new char[nBytesNeeded+1];
+    err = clGetPlatformInfo(platformID,
+                            paramName,
+                            nBytesNeeded+1,
+                            paramValue,
+                            NULL);
+
+    std::string ret( paramValue );
+    delete[] paramValue;
+
+    return ret;
+}
+
+
+OpenCLPlatform::OpenCLPlatform (cl_platform_id platformID) :
            Platform<OpenCLDeviceInfo>()
 {
     int err;
-    platformName = clPlatform.getInfo<CL_PLATFORM_NAME>();
-    platformVendor = clPlatform.getInfo<CL_PLATFORM_VENDOR>();
-    platformVersion = clPlatform.getInfo<CL_PLATFORM_VERSION>();
-    platformExtensions = clPlatform.getInfo<CL_PLATFORM_EXTENSIONS>();
+
+    platformName = LookupInfo(platformID, CL_PLATFORM_NAME);
+    platformVendor = LookupInfo(platformID, CL_PLATFORM_VENDOR);
+    platformVersion = LookupInfo(platformID, CL_PLATFORM_VERSION);
+    platformExtensions = LookupInfo(platformID, CL_PLATFORM_EXTENSIONS);
 
     // query devices
-    std::vector<cl::Device> devs;
-    err = clPlatform.getDevices( CL_DEVICE_TYPE_ALL, &devs );
-    // I should not print an error message here if no devices are present.
-    // I will just report that there are zero devices.
-//    CL_CHECK_ERROR( err );
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs( platformID,
+                            CL_DEVICE_TYPE_ALL,
+                            0,
+                            NULL,
+                            &nDevices );
+    CL_CHECK_ERROR(err);
 
-    for( vector<cl::Device>::iterator diter = devs.begin();
-        diter != devs.end();
-        diter++ )
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs( platformID,
+                            CL_DEVICE_TYPE_ALL,
+                            nDevices,
+                            devIDs,
+                            NULL );
+    CL_CHECK_ERROR(err);
+
+    for( unsigned int i = 0; i < nDevices; ++i )
     {
-        OpenCLDeviceInfo* openclDevice = new OpenCLDeviceInfo( (*diter)() );
-        devices.push_back( openclDevice );
-        ++ deviceCount;
+        devices.push_back( new OpenCLDeviceInfo( devIDs[i] ) );
     }
+
+    delete[] devIDs;
 }
 
 
