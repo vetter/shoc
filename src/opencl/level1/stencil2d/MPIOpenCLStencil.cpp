@@ -202,7 +202,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         ewDataSize, // size
                                         eData,
                                         ceEvents.size(),    // num events to wait on
-                                        ceEvents.front(),   // events to wait on
+                                        ceEvents.empty() ? NULL : &ceEvents.front(),   // events to wait on
                                         &eEvent);   // completion event
             CL_CHECK_ERR(clErr);
             waitEvents.push_back( eEvent );
@@ -243,7 +243,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         ewDataSize, // size
                                         wData,      // host location
                                         cwEvents.size(),    // num events to wait on
-                                        cwEvents.front(),   // events to wait on
+                                        cwEvents.empty() ? NULL : &cwEvents.front(),   // events to wait on
                                         &wEvent );  // completion event
 
             CL_CHECK_ERR(clErr);                                            
@@ -254,7 +254,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         // wait for all reads from device to complete
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), waitEvents.front() );
+            clErr = clWaitForEvents( waitEvents.size(), 
+                                    waitEvents.empty() ? NULL : &waitEvents.front() );
             CL_CHECK_ERR(clErr);
             waitEvents.clear();
         }
@@ -382,7 +383,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), waitEvents.front() );
+            clErr = clWaitForEvents( waitEvents.size(), 
+                                waitEvents.empty() ? NULL : &waitEvents.front() );
             CL_CHECK_ERR(clErr);
             waitEvents.clear();
         }
@@ -435,7 +437,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), waitEvents.front() );
+            clErr = clWaitForEvents( waitEvents.size(), 
+                                waitEvents.empty() ? NULL : &waitEvents.front() );
             CL_CHECK_ERR(clErr);
             waitEvents.clear();
         }
@@ -521,7 +524,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), waitEvents.front() );
+            clErr = clWaitForEvents( waitEvents.size(), 
+                                waitEvents.empty() ? NULL : &waitEvents.front() );
             CL_CHECK_ERR(clErr);
             waitEvents.clear();
         }

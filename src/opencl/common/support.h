@@ -86,8 +86,10 @@ inline const char *CLErrorString(cl_int err)
         if(err != CL_SUCCESS) \
         { \
             std::ostringstream msgstr; \
-            msgstr << __FILE__ << ':' << __LINE__ << ": " << CLErrorString(err); \
-            throw SHOC_OCLException(err, msgstr.str()); \
+            msgstr << __FILE__ << ':' << __LINE__ << ": " \
+                << CLErrorString(err); \
+            throw SHOC_OpenCLException(err, msgstr.str()); \
+        } \
     }
 
 #else // defined(USE_CL_EXCEPTIONS)
@@ -95,8 +97,10 @@ inline const char *CLErrorString(cl_int err)
 #define CL_CHECK_ERROR(err) \
     {                       \
         if (err != CL_SUCCESS)                  \
+        { \
             std::cerr << __FILE__ << ':' << __LINE__ << ": " << CLErrorString(err) << std::endl; \
             exit(1); \
+        } \
     }
 #endif // defined(USE_CL_EXCEPTIONS)
 

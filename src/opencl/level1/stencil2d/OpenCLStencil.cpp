@@ -260,7 +260,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     0,
                                     rowExtent,
                                     waitEvents.size(),
-                                    (const cl_event*)waitEvents.front(),
+                                    waitEvents.empty() ? NULL : &waitEvents.front(),
                                     NULL );
     CL_CHECK_ERROR(clErr);
     clErr = clEnqueueCopyBuffer( queue,
@@ -324,7 +324,8 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     CL_CHECK_ERROR(clErr);
     waitEvents.push_back( ceEvent );
 
-    clErr = clWaitForEvents( waitEvents.size(), (const cl_event*)waitEvents.front() );
+    clErr = clWaitForEvents( waitEvents.size(),
+                        waitEvents.empty() ? NULL : &waitEvents.front() );
     CL_CHECK_ERROR(clErr);
 
     // do the stencil iterations
@@ -360,21 +361,22 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                 localDataSize );
 
         cl_event evt;
-        std::vector<size_t> gWorkDims;
+        std::vector<size_t> gWorkDims(2, 0);
         gWorkDims[0] = mtx.GetNumRows() - 2;
         gWorkDims[1] = mtx.GetNumColumns() - 2;
-        std::vector<size_t> lWorkDims;
+        std::vector<size_t> lWorkDims(2, 0);
         lWorkDims[0] = 1;
         lWorkDims[1] = lCols;
         clErr = clEnqueueNDRangeKernel( queue,
                                 kernel,
                                 gWorkDims.size(),   // number of work dimensions
                                 NULL,               // global work offset - use all 0s
-                                (const size_t*)gWorkDims.front(),  // global work dimensions
-                                (const size_t*)lWorkDims.front(),  // local work dimensions
+                                &gWorkDims.front(),  // global work dimensions
+                                &lWorkDims.front(),  // local work dimensions
                                 0,      // number of events to wait on
                                 NULL,   // events to wait on
                                 &evt ); // completion event
+        CL_CHECK_ERROR(clErr);
 
         if( iter == nIters-1 )
         {
@@ -386,6 +388,26 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
         {
             // Not the last iteration - more iterations to follow.
             // wait for this iteration to complete.
+#if READY
+#else
+            cl_command_type clct;
+            clErr = clGetEventInfo(evt,
+                        CL_EVENT_COMMAND_TYPE,
+                        sizeof(clct),
+                        &clct,
+                        NULL );
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "command type=" << clct << std::endl;
+            cl_int cles;
+            clErr = clGetEventInfo(evt,
+                        CL_EVENT_COMMAND_EXECUTION_STATUS,
+                        sizeof(cles),
+                        &cles,
+                        NULL);
+            std::cerr << "execution status=" << cles << std::endl;
+            CL_CHECK_ERROR(clErr);
+#endif // READY
+
             clErr = clWaitForEvents( 1, &evt );
             CL_CHECK_ERROR(clErr);
         }
@@ -411,7 +433,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     mtx.GetDataSize(),  // number of bytes
                                     mtx.GetFlatData(),  // store location
                                     waitEvents.size(),  // number of events to wait on
-                                    (const cl_event*)waitEvents.front(), // events to wait on
+                                    waitEvents.empty() ? NULL : &waitEvents.front(), // events to wait on
                                     NULL ); // completion event
     CL_CHECK_ERROR(clErr);
 
