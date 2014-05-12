@@ -54,6 +54,9 @@ protected:
                                 T wDiagonal,
                                 size_t localDataSize );
 
+    static void ClearWaitEvents( std::vector<cl_event>& waitEvents );
+
+    cl_context  GetContext( void )      { return context; }
 
 public:
     OpenCLStencil( T wCenter,

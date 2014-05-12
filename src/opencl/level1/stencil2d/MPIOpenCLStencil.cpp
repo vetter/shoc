@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <cassert>
 #include "MPIOpenCLStencil.h"
+#include "support.h"
 
 
 
@@ -95,6 +96,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         unsigned int iter,
                                         cl_command_queue queue )
 {
+    cl_int clErr;
+
     // do the halo exchange at desired frequency
     // note that we *do not* do the halo exchange here before the
     // first iteration, because we did it already (before we first
@@ -102,8 +105,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
     unsigned int haloWidth = this->GetNumberIterationsPerHaloExchange();
     if( (iter > 0) && (iter % haloWidth) == 0 )
     {
-        unsigned int nRows = mtx.GetNumRows();
-        unsigned int nCols = mtx.GetNumColumns();
+        size_t nRows = mtx.GetNumRows();
+        size_t nCols = mtx.GetNumColumns();
         unsigned int nPaddedCols = mtx.GetNumPaddedColumns();
         T* flatData = mtx.GetFlatData();
         std::vector<cl_event> waitEvents;
@@ -122,18 +125,18 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         // OpenCL 1.0 does not have a strided read, so we need to get
         // the non-contiguous halo sides into contiguous buffers
         // before reading into our host buffers
-        cl_mem contigEBuf = clCreateBuffer( ctx,
+        cl_mem contigEBuf = clCreateBuffer( this->GetContext(),
                                             CL_MEM_READ_WRITE,
                                             ewDataSize,
                                             NULL,
                                             &clErr );
-        CL_ERROR_CHECK(clErr);
-        cl_mem contigWBuf = clCreateBuffer( ctx,
+        CL_CHECK_ERROR(clErr);
+        cl_mem contigWBuf = clCreateBuffer( this->GetContext(),
                                             CL_MEM_READ_WRITE,
                                             ewDataSize,
                                             NULL,
                                             &clErr );
-        CL_ERROR_CHECK(clErr);
+        CL_CHECK_ERROR(clErr);
 
         if( this->HaveNorthNeighbor() )
         {
@@ -147,7 +150,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,      // num events to wait on
                                         NULL,   // events to wait on
                                         &nEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
 
@@ -162,8 +165,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         flatData + ((nRows - 2*haloWidth) * nPaddedCols),
                                         0,      // num events to wait on
                                         NULL,   // events to wait on
-                                        &sEvents);  // completion event
-            CL_CHECK_ERR(clErr);
+                                        &sEvent);  // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
 
@@ -190,7 +193,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,  // num events to wait on
                                             NULL,   // events to wait on
                                             &ceEvent);  // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
 
             // copy data into contiguous array on host
             std::vector<cl_event> ceEvents;
@@ -204,7 +207,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         ceEvents.size(),    // num events to wait on
                                         ceEvents.empty() ? NULL : &ceEvents.front(),   // events to wait on
                                         &eEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
 
@@ -231,7 +234,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,      // num events to wait on
                                             NULL,   // events to wait on
                                             &cwEvent);  // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
 
             // copy into a contiguous array on the host
             std::vector<cl_event> cwEvents;
@@ -246,7 +249,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         cwEvents.empty() ? NULL : &cwEvents.front(),   // events to wait on
                                         &wEvent );  // completion event
 
-            CL_CHECK_ERR(clErr);                                            
+            CL_CHECK_ERROR(clErr);                                            
             waitEvents.push_back( wEvent );
         }
 
@@ -254,10 +257,9 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
         // wait for all reads from device to complete
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), 
-                                    waitEvents.empty() ? NULL : &waitEvents.front() );
-            CL_CHECK_ERR(clErr);
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         // put east/west data into correct position in matrix
@@ -310,7 +312,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,  // num events to wait on
                                             NULL,   // events to wait on
                                             &nEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
         if( this->HaveSouthNeighbor() )
@@ -324,7 +326,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,      // num events to wait on
                                             NULL,   // events to wait on
                                             &sEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
 
@@ -351,7 +353,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,      // num events to wait on
                                         NULL,   // events to wait on
                                         &eEvent );  // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
 
@@ -378,15 +380,14 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         NULL,       // events to wait on
                                         &wEvent );  // completion event
 
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), 
-                                waitEvents.empty() ? NULL : &waitEvents.front() );
-            CL_CHECK_ERR(clErr);
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         if( this->HaveEastNeighbor() )
@@ -409,7 +410,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,      // number of events to wait on
                                         NULL,   // events to wait on
                                         &eEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
@@ -432,15 +433,14 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,      // number of events to wait on
                                         NULL,   // events to wait on
                                         &wEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), 
-                                waitEvents.empty() ? NULL : &waitEvents.front() );
-            CL_CHECK_ERR(clErr);
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         // we may have changed the local halo values on the device
@@ -459,7 +459,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,          // num events to wait on
                                         NULL,       // events to wait on
                                         &nEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
         if( this->HaveSouthNeighbor() )
@@ -473,7 +473,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                         0,          // num events to wait on
                                         NULL,       // events to wait on
                                         &sEvent );  // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
         if( this->HaveEastNeighbor() )
@@ -496,7 +496,7 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,      // num events to wait on
                                             NULL,   // events to wait on
                                             &eEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
@@ -519,21 +519,20 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
                                             0,      // num events to wait on
                                             NULL,   // events to wait on
                                             &wEvent);   // completion event
-            CL_CHECK_ERR(clErr);
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            clErr = clWaitForEvents( waitEvents.size(), 
-                                waitEvents.empty() ? NULL : &waitEvents.front() );
-            CL_CHECK_ERR(clErr);
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         clErr = clReleaseMemObject( contigEBuf );
-        CL_CHECK_ERR(clErr);
+        CL_CHECK_ERROR(clErr);
         clErr = clReleaseMemObject( contigWBuf );
-        CL_CHECK_ERR(clErr);
+        CL_CHECK_ERROR(clErr);
     }
 }
 

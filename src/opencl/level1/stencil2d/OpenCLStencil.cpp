@@ -201,6 +201,21 @@ OpenCLStencil<T>::SetStencilKernelArgs( cl_mem currData,
 
 template<class T>
 void
+OpenCLStencil<T>::ClearWaitEvents( std::vector<cl_event>& waitEvents )
+{
+    for( std::vector<cl_event>::iterator iter = waitEvents.begin();
+            iter != waitEvents.end();
+            ++iter )
+    {
+        clReleaseEvent( *iter );
+    }
+    waitEvents.clear();
+}
+
+
+
+template<class T>
+void
 OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
     std::vector<cl_event> waitEvents;
@@ -263,6 +278,8 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     waitEvents.empty() ? NULL : &waitEvents.front(),
                                     NULL );
     CL_CHECK_ERROR(clErr);
+    ClearWaitEvents( waitEvents );
+
     clErr = clEnqueueCopyBuffer( queue,
                                     *currData,
                                     *newData,
@@ -277,8 +294,6 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that
     // seems like it would be useful here.  For OpenCL 1.0 compatibility,
     // we use a custom kernel that copies the non-contiguous data.
-    waitEvents.clear();
-
     SetCopyRectKernelArgs( *newData,  // dest
                             0,  // dest offset
                             (int)mtx.GetNumPaddedColumns(),  // dest pitch
@@ -327,9 +342,10 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     clErr = clWaitForEvents( waitEvents.size(),
                         waitEvents.empty() ? NULL : &waitEvents.front() );
     CL_CHECK_ERROR(clErr);
+    ClearWaitEvents( waitEvents );
+
 
     // do the stencil iterations
-    waitEvents.clear();
     for( int iter = 0; iter < nIters; iter++ )
     {
         this->DoPreIterationWork( *currData,
@@ -360,9 +376,9 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                 this->wDiagonal,
                                 localDataSize );
 
-        cl_event evt;
+        cl_event mainKernelEvt;
         std::vector<size_t> gWorkDims(2, 0);
-        gWorkDims[0] = mtx.GetNumRows() - 2;
+        gWorkDims[0] = (mtx.GetNumRows() - 2) / lRows;
         gWorkDims[1] = mtx.GetNumColumns() - 2;
         std::vector<size_t> lWorkDims(2, 0);
         lWorkDims[0] = 1;
@@ -375,23 +391,39 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                 &lWorkDims.front(),  // local work dimensions
                                 0,      // number of events to wait on
                                 NULL,   // events to wait on
-                                &evt ); // completion event
+                                &mainKernelEvt ); // completion event
         CL_CHECK_ERROR(clErr);
 
         if( iter == nIters-1 )
         {
             // last iteration - put the event in the dependency list
             // to be used by the read buffer command
-            waitEvents.push_back( evt );
+            waitEvents.push_back( mainKernelEvt );
         }
         else
         {
             // Not the last iteration - more iterations to follow.
             // wait for this iteration to complete.
 #if READY
-#else
+            cl_command_queue clqueue;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_COMMAND_QUEUE,
+                        sizeof(clqueue),
+                        &clqueue,
+                        NULL);
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "queue=" << queue << ", clqueue=" << clqueue << std::endl;
+
+            cl_context clctxt;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_CONTEXT,
+                        sizeof(clctxt),
+                        &clctxt,
+                        NULL);
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "ctx=" << context << ", clctxt=" << clctxt << std::endl;
             cl_command_type clct;
-            clErr = clGetEventInfo(evt,
+            clErr = clGetEventInfo(mainKernelEvt,
                         CL_EVENT_COMMAND_TYPE,
                         sizeof(clct),
                         &clct,
@@ -399,17 +431,19 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
             CL_CHECK_ERROR(clErr);
             std::cerr << "command type=" << clct << std::endl;
             cl_int cles;
-            clErr = clGetEventInfo(evt,
+            clErr = clGetEventInfo(mainKernelEvt,
                         CL_EVENT_COMMAND_EXECUTION_STATUS,
                         sizeof(cles),
                         &cles,
                         NULL);
-            std::cerr << "execution status=" << cles << std::endl;
             CL_CHECK_ERROR(clErr);
+            std::cerr << "execution status=" << cles << std::endl;
+
 #endif // READY
 
-            clErr = clWaitForEvents( 1, &evt );
+            clErr = clWaitForEvents( 1, &mainKernelEvt );
             CL_CHECK_ERROR(clErr);
+            ClearWaitEvents( waitEvents );
         }
 
         // switch to put new data into other buffer
@@ -436,8 +470,7 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     waitEvents.empty() ? NULL : &waitEvents.front(), // events to wait on
                                     NULL ); // completion event
     CL_CHECK_ERROR(clErr);
-
-    waitEvents.clear();
+    ClearWaitEvents( waitEvents );
 
     clReleaseMemObject( dataBuf1 );
     clReleaseMemObject( dataBuf2 );

@@ -14,15 +14,15 @@ using namespace SHOC;
 
 void addBenchmarkSpecOptions(OptionParser &op);
 
-void RunBenchmark(cl::Device& id,
-                  cl::Context& ctx,
-                  cl::CommandQueue& queue,
+void RunBenchmark(cl_device_id id,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op);
 
-cl::Device* _mpicontention_ocldev = NULL;
-cl::Context* _mpicontention_ocldriver_ctx = NULL;
-cl::CommandQueue* _mpicontention_ocldriver_queue = NULL;
+cl_device_id* _mpicontention_ocldev = NULL;
+cl_context* _mpicontention_ocldriver_ctx = NULL;
+cl_command_queue* _mpicontention_ocldriver_queue = NULL;
 
 // ****************************************************************************
 // Function: GPUSetup
@@ -70,13 +70,29 @@ int GPUSetup(OptionParser &op, int mympirank, int mynoderank)
     int device = op.getOptionVecInt("device")[deviceIdx];
 
     // Initialization
-    _mpicontention_ocldev = new cl::Device( ListDevicesAndGetDevice(platform, device) );
-    std::vector<cl::Device> ctxDevices;
-    ctxDevices.push_back( *_mpicontention_ocldev );
-    _mpicontention_ocldriver_ctx   = new cl::Context( ctxDevices );
-    _mpicontention_ocldriver_queue = new cl::CommandQueue( *_mpicontention_ocldriver_ctx, *_mpicontention_ocldev, CL_QUEUE_PROFILING_ENABLE );
+    cl_int clErr;
+    _mpicontention_ocldev = new cl_device_id( ListDevicesAndGetDevice(platform, device) );
+
+    cl_context ctx = clCreateContext( NULL,
+                                1,                      // number of devices
+                                _mpicontention_ocldev,  // device
+                                NULL,                   // notification fcn
+                                NULL,                   // notification fcn data
+                                &clErr );
+    CL_CHECK_ERROR(clErr);
+    _mpicontention_ocldriver_ctx = new cl_context(ctx);
+
+    cl_command_queue queue = clCreateCommandQueue(ctx,
+                                                    *_mpicontention_ocldev,
+                                                    CL_QUEUE_PROFILING_ENABLE,
+                                                    &clErr);
+    CL_CHECK_ERROR(clErr);
+    _mpicontention_ocldriver_queue = new cl_command_queue(queue);
+
     return 0;
 }
+
+
 
 // ****************************************************************************
 // Function: GPUCleanup
@@ -98,9 +114,21 @@ int GPUSetup(OptionParser &op, int mympirank, int mynoderank)
 int GPUCleanup(OptionParser &op)
 {
     // Cleanup
-    delete _mpicontention_ocldriver_queue;
-    delete _mpicontention_ocldriver_ctx;
+    if( _mpicontention_ocldriver_queue != NULL )
+    {
+        clReleaseCommandQueue( *_mpicontention_ocldriver_queue );
+        delete _mpicontention_ocldriver_queue;
+        _mpicontention_ocldriver_queue = NULL;
+    }
+
+    if( _mpicontention_ocldriver_ctx != NULL )
+    {
+        clReleaseContext( *_mpicontention_ocldriver_ctx );
+        delete _mpicontention_ocldriver_ctx;
+        _mpicontention_ocldriver_ctx = NULL;
+    }
     delete _mpicontention_ocldev;
+    _mpicontention_ocldev = NULL;
 
     return 0;
 }
