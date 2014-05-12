@@ -39,7 +39,7 @@ template <class T> __global__ void MulMAdd8(T *data, int nIters, T v1, T v2);
 // Forward Declarations
 // execute simple precision and double precision versions of the benchmarks
 template <class T> void
-RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet, 
+RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         float repeatF, ProgressBar &pb, const char* precision);
 
 // Block size to use in measurements
@@ -112,7 +112,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         doDouble = true;
     }
 
-    // determine the speed of the device first. This determines the number of 
+    // determine the speed of the device first. This determines the number of
     // iterations for all kernels.
     const unsigned int halfBufSize = 1024*1024;
     unsigned int halfNumFloats = halfBufSize / sizeof(float), numFloats = 2*halfNumFloats;
@@ -120,7 +120,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     hostMem = new float[numFloats];
     cudaMalloc((void**)&gpu_mem, halfBufSize*2);
     CHECK_CUDA_ERROR();
-    
+
     // Initialize host data, with the first half the same as the second
     for (int j=0; j<halfNumFloats; ++j)
     {
@@ -151,7 +151,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         threads.x = 128;
         blocks.x  = (numFloats)/128;
     }
-    
+
     // Benchmark the MulMAdd2 kernel to compute a scaling factor.
     t = 0.0f;
     cudaEventRecord(start, 0);
@@ -172,7 +172,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     // Each kernel is executed 'passes' number of times for each single precision and
     // double precision (if avaialble).
     int totalRuns = 18*passes;
-    if (doDouble) 
+    if (doDouble)
        totalRuns <<= 1;  // multiply by 2
     ProgressBar pb(totalRuns);
     if (!verbose && !quiet)
@@ -181,14 +181,14 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     // Run single precision kernels
     RunTest<float> (resultDB, passes, verbose, quiet,
              repeatF, pb, "-SP");
-    
+
     if (doDouble)
         RunTest<double> (resultDB, passes, verbose, quiet,
              repeatF, pb, "-DP");
     else
     {
         const char atts[] = "DP_Not_Supported";
-        for (int pas=0 ; pas<passes ; ++pas) 
+        for (int pas=0 ; pas<passes ; ++pas)
         {
             resultDB.AddResult("Add1-DP", atts, "GFLOPS", FLT_MAX);
             resultDB.AddResult("Add2-DP", atts, "GFLOPS", FLT_MAX);
@@ -215,7 +215,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             //resultDB.AddResult("MAddU-DP", atts, "GFLOPS", FLT_MAX);
         }
     }
-    
+
     // Problem Size
     int w = 2048, h = 2048;
 
@@ -239,7 +239,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
        }
 */
     const int nbytes_sp = w * h * sizeof(float);
-    
+
     // Allocate gpu memory
     float *target_sp;
     cudaMalloc((void**)&target_sp, nbytes_sp);
@@ -370,7 +370,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 
     if (!verbose)
         fprintf (stdout, "\n\n");
-    
+
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 }
@@ -379,7 +379,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 // Function: RunTest
 //
 // Purpose:
-//   Template function used for specializing the generic kernels for 
+//   Template function used for specializing the generic kernels for
 //   single precision and double precision.
 //
 // Arguments:
@@ -407,7 +407,7 @@ RunTest(ResultDatabase &resultDB,
     int realRepeats = (int)round(repeatF*20);
     if (realRepeats < 2)
        realRepeats = 2;
-    
+
     // Alloc host memory
     int halfNumFloats = 1024*1024;
     int numFloats = 2*halfNumFloats;
@@ -416,7 +416,7 @@ RunTest(ResultDatabase &resultDB,
 
     cudaMalloc((void**)&gpu_mem, numFloats*sizeof(T));
     CHECK_CUDA_ERROR();
-    
+
     // Variables used for timing
     float t = 0.0f;
     cudaEvent_t start, stop;
@@ -453,7 +453,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        double flopCount = (double)numFloats * 1 * realRepeats * 240 * 1;
        double gflop = flopCount / (double)(t);
@@ -470,7 +470,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -484,7 +484,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -513,7 +513,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 1 * realRepeats * 120 * 2;
        gflop = flopCount / (double)(t);
@@ -530,7 +530,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -544,7 +544,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -572,7 +572,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 1 * realRepeats * 60 * 4;
        gflop = flopCount / (double)(t);
@@ -589,7 +589,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -603,7 +603,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -631,7 +631,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 1 * realRepeats * 30 * 8;
        gflop = flopCount / (double)(t);
@@ -648,7 +648,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -662,7 +662,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -691,7 +691,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 200 * 1;
        gflop = flopCount / (double)(t);
@@ -708,7 +708,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -722,7 +722,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -751,7 +751,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 100 * 2;
        gflop = flopCount / (double)(t);
@@ -768,7 +768,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -782,7 +782,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -810,7 +810,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 50 * 4;
        gflop = flopCount / (double)(t);
@@ -827,7 +827,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -841,7 +841,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -869,7 +869,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 25 * 8;
        gflop = flopCount / (double)(t);
@@ -886,7 +886,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -900,7 +900,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -929,7 +929,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 240 * 1;
        gflop = flopCount / (double)(t);
@@ -946,7 +946,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -960,7 +960,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -989,7 +989,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 120 * 2;
        gflop = flopCount / (double)(t);
@@ -1006,7 +1006,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1020,7 +1020,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1048,7 +1048,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 60 * 4;
        gflop = flopCount / (double)(t);
@@ -1065,7 +1065,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1079,7 +1079,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1107,7 +1107,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 2 * realRepeats * 30 * 8;
        gflop = flopCount / (double)(t);
@@ -1124,7 +1124,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1138,7 +1138,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1167,7 +1167,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 3 * realRepeats * 160 * 1;
        gflop = flopCount / (double)(t);
@@ -1184,7 +1184,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1198,7 +1198,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1227,7 +1227,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 3 * realRepeats * 80 * 2;
        gflop = flopCount / (double)(t);
@@ -1244,7 +1244,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1258,7 +1258,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1286,7 +1286,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 3 * realRepeats * 40 * 4;
        gflop = flopCount / (double)(t);
@@ -1303,7 +1303,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1317,7 +1317,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1345,7 +1345,7 @@ RunTest(ResultDatabase &resultDB,
        CHECK_CUDA_ERROR();
        cudaEventElapsedTime(&t, start, stop);
        t *= 1.e6;
-       
+
        // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
        flopCount = (double)numFloats * 3 * realRepeats * 20 * 8;
        gflop = flopCount / (double)(t);
@@ -1362,7 +1362,7 @@ RunTest(ResultDatabase &resultDB,
        cudaMemcpy(hostMem2, gpu_mem, numFloats*sizeof(T), cudaMemcpyDeviceToHost);
        cudaEventRecord(stop, 0);
        cudaEventSynchronize(stop);
-               
+
        // Check the result -- At a minimum the first half of memory
        // should match the second half exactly
        for (int j=0 ; j<halfNumFloats ; ++j)
@@ -1376,7 +1376,7 @@ RunTest(ResultDatabase &resultDB,
               break;
           }
        }
-             
+
        // update progress bar
        pb.addItersDone();
        if (!verbose && !quiet)
@@ -1463,7 +1463,7 @@ RunTest(ResultDatabase &resultDB,
 __global__ void MAddU(float *target, float val1, float val2)
 {
     int index = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     // Create a bunch of local variables we can use up to 32 steps..
     register float v0=val1,     v1=val2,     v2=v0+v1,    v3=v0+v2;
     register float v4=v0+v3,    v5=v0+v4,    v6=v0+v5,    v7=v0+v6;
@@ -1537,7 +1537,7 @@ __global__ void MAddU_DP(double *target, double val1, double val2)
 __global__ void MulMAddU(float *target, float val1, float val2)
 {
     int index = blockIdx.x*blockDim.x + threadIdx.x;
-    
+
     register float v0=val1,     v1=val2,     v2=v0+v1,    v3=v0+v2;
     register float v4=v0+v3,    v5=v0+v4,    v6=v0+v5,    v7=v0+v6;
     register float v8=v0+v7,    v9=v0+v8,    v10=v0+v9,   v11=v0+v10;
@@ -1566,7 +1566,7 @@ __global__ void MulMAddU(float *target, float val1, float val2)
                     s8+s9+s10+s11+s12+s13+s14+s15 +
                     s16+s17+s18+s19+s20+s21+s22+s23+
                     s24+s25+s26+s27+s28+s29+s30+s31);
-    
+
     target[index] = result;
 }
 
@@ -1682,11 +1682,11 @@ __global__ void Add1(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid];
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 12 more times for 240 operations total.
       */
-     ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 
-     ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 
+     ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20
+     ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20 ADD1_MOP20
   }
   data[gid] = s;
 }
@@ -1696,7 +1696,7 @@ __global__ void Add2(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 6 more times for 120 operations total.
       */
      ADD2_MOP20 ADD2_MOP20 ADD2_MOP20
@@ -1710,7 +1710,7 @@ __global__ void Add4(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 10 operations. 
+     /* Each macro op has 10 operations.
         Unroll 6 more times for 60 operations total.
       */
      ADD4_MOP10 ADD4_MOP10 ADD4_MOP10
@@ -1724,7 +1724,7 @@ __global__ void Add8(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2, s5=8.0f-s, s6=8.0f-s2, s7=7.0f-s, s8=7.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 5 operations. 
+     /* Each macro op has 5 operations.
         Unroll 6 more times for 30 operations total.
       */
      ADD8_MOP5 ADD8_MOP5 ADD8_MOP5
@@ -1739,7 +1739,7 @@ __global__ void Mul1(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid]-data[gid]+0.999f;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 10 more times for 200 operations total.
       */
      MUL1_MOP20 MUL1_MOP20 MUL1_MOP20 MUL1_MOP20 MUL1_MOP20
@@ -1753,7 +1753,7 @@ __global__ void Mul2(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid]-data[gid]+0.999f, s2=s-0.0001f;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 5 more times for 100 operations total.
       */
      MUL2_MOP20 MUL2_MOP20 MUL2_MOP20
@@ -1767,7 +1767,7 @@ __global__ void Mul4(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid]-data[gid]+0.999f, s2=s-0.0001f, s3=s-0.0002f, s4=s-0.0003f;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 10 operations. 
+     /* Each macro op has 10 operations.
         Unroll 5 more times for 50 operations total.
       */
      MUL4_MOP10 MUL4_MOP10 MUL4_MOP10
@@ -1781,7 +1781,7 @@ __global__ void Mul8(T *data, int nIters, T v) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid]-data[gid]+0.999f, s2=s-0.0001f, s3=s-0.0002f, s4=s-0.0003f, s5=s-0.0004f, s6=s-0.0005f, s7=s-0.0006f, s8=s-0.0007f;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 5 operations. 
+     /* Each macro op has 5 operations.
         Unroll 5 more times for 25 operations total.
       */
      MUL8_MOP5 MUL8_MOP5 MUL8_MOP5
@@ -1796,11 +1796,11 @@ __global__ void MAdd1(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid];
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 12 more times for 240 operations total.
       */
-     MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 
-     MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 
+     MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20
+     MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20 MADD1_MOP20
   }
   data[gid] = s;
 }
@@ -1810,7 +1810,7 @@ __global__ void MAdd2(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 6 more times for 120 operations total.
       */
      MADD2_MOP20 MADD2_MOP20 MADD2_MOP20
@@ -1824,7 +1824,7 @@ __global__ void MAdd4(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 10 operations. 
+     /* Each macro op has 10 operations.
         Unroll 6 more times for 60 operations total.
       */
      MADD4_MOP10 MADD4_MOP10 MADD4_MOP10
@@ -1838,7 +1838,7 @@ __global__ void MAdd8(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2, s5=8.0f-s, s6=8.0f-s2, s7=7.0f-s, s8=7.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 5 operations. 
+     /* Each macro op has 5 operations.
         Unroll 6 more times for 30 operations total.
       */
      MADD8_MOP5 MADD8_MOP5 MADD8_MOP5
@@ -1853,7 +1853,7 @@ __global__ void MulMAdd1(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid];
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 8 more times for 160 operations total.
       */
      MULMADD1_MOP20 MULMADD1_MOP20 MULMADD1_MOP20 MULMADD1_MOP20
@@ -1867,7 +1867,7 @@ __global__ void MulMAdd2(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 20 operations. 
+     /* Each macro op has 20 operations.
         Unroll 4 more times for 80 operations total.
       */
      MULMADD2_MOP20 MULMADD2_MOP20
@@ -1881,7 +1881,7 @@ __global__ void MulMAdd4(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 10 operations. 
+     /* Each macro op has 10 operations.
         Unroll 4 more times for 40 operations total.
       */
      MULMADD4_MOP10 MULMADD4_MOP10
@@ -1895,7 +1895,7 @@ __global__ void MulMAdd8(T *data, int nIters, T v1, T v2) {
   int gid = blockIdx.x*blockDim.x + threadIdx.x;
   register T s = data[gid], s2=10.0f-s, s3=9.0f-s, s4=9.0f-s2, s5=8.0f-s, s6=8.0f-s2, s7=7.0f-s, s8=7.0f-s2;
   for (int j=0 ; j<nIters ; ++j) {
-     /* Each macro op has 5 operations. 
+     /* Each macro op has 5 operations.
         Unroll 4 more times for 20 operations total.
       */
      MULMADD8_MOP5 MULMADD8_MOP5

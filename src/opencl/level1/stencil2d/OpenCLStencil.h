@@ -3,9 +3,8 @@
 
 #include <vector>
 #include "Stencil.h"
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
+#include "support.h"
+
 
 // ****************************************************************************
 // Class:  OpenCLStencil
@@ -24,19 +23,40 @@ private:
     size_t lRows;
     size_t lCols;
 
-    cl::Context& context;
-    cl::Device& device;
-    cl::CommandQueue& queue;
-    cl::Kernel kernel;
+    cl_context context;
+    cl_device_id device;
+    cl_command_queue queue;
+    cl_kernel kernel;
 
 protected:
-    cl::Kernel copyRectKernel;
+    cl_kernel copyRectKernel;
 
-    virtual void DoPreIterationWork( cl::Buffer& buf,
-                                        cl::Buffer& altBuf,
+    virtual void DoPreIterationWork( cl_mem buf,
+                                        cl_mem altBuf,
                                         Matrix2D<T>& mtx,
                                         unsigned int iter,
-                                        cl::CommandQueue& queue );
+                                        cl_command_queue queue );
+
+    void SetCopyRectKernelArgs( cl_mem dest,
+                                int destOffset,
+                                int destPitch,
+                                cl_mem src,
+                                int srcOffset,
+                                int srcPitch,
+                                int width,
+                                int height );
+ 
+    void SetStencilKernelArgs( cl_mem currData,
+                                cl_mem newData,
+                                int alignment,
+                                T wCenter,
+                                T wCardinal,
+                                T wDiagonal,
+                                size_t localDataSize );
+
+    static void ClearWaitEvents( std::vector<cl_event>& waitEvents );
+
+    cl_context  GetContext( void )      { return context; }
 
 public:
     OpenCLStencil( T wCenter,
@@ -44,9 +64,9 @@ public:
                     T wDiagonal,
                     size_t _lRows,
                     size_t _lCols,
-                    cl::Device& dev,
-                    cl::Context& ctx,
-                    cl::CommandQueue& queue );
+                    cl_device_id dev,
+                    cl_context ctx,
+                    cl_command_queue queue );
 
     virtual void operator()( Matrix2D<T>&, unsigned int nIters );
 };

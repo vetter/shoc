@@ -7,7 +7,7 @@
 using namespace std;
 
 // ****************************************************************************
-// Function: MPITest 
+// Function: MPITest
 //
 // Purpose:
 //   dumps results from GPU and MPI groups in sequence
@@ -20,7 +20,7 @@ using namespace std;
 //   mypair: my pair to communicate to
 //   newcomm: the context for the ranks
 //
-// Returns: 
+// Returns:
 //
 // Creation: July 08, 2009
 //
@@ -51,46 +51,46 @@ void MPITest(OptionParser &op, ResultDatabase &resultDB, int numtasks, int myran
         exit(1);
     }
 
-    for (msgsize = minmsg_sz; msgsize <= maxmsg_sz; 
-         msgsize = (msgsize ? msgsize * 2 : msgsize + 1)) 
+    for (msgsize = minmsg_sz; msgsize <= maxmsg_sz;
+         msgsize = (msgsize ? msgsize * 2 : msgsize + 1))
     {
 
         MPI_Barrier(newcomm);
 
-        if (myrank < mypair) 
+        if (myrank < mypair)
         {
-            for (i = 0; i < iterations + skip; i++) 
+            for (i = 0; i < iterations + skip; i++)
             {
                 if (i == skip) t_start = MPI_Wtime();
                 sendptr = sendbuf+msgsize*((j++)%16);
                 recvptr = recvbuf+msgsize*((j++)%16);
                 MPI_Send(sendptr, msgsize, MPI_CHAR, mypair, 1, newcomm);
-                MPI_Recv(recvptr, msgsize, MPI_CHAR, mypair, 1, newcomm, 
+                MPI_Recv(recvptr, msgsize, MPI_CHAR, mypair, 1, newcomm,
                                 &reqstat);
             }
             t_end = MPI_Wtime();
         }
-        else if (myrank > mypair) 
+        else if (myrank > mypair)
         {
-            for (i = 0; i < iterations + skip; i++) 
+            for (i = 0; i < iterations + skip; i++)
             {
                 if (i == skip) t_start = MPI_Wtime();
                 sendptr = sendbuf+msgsize*((j++)%16);
                 recvptr = recvbuf+msgsize*((j++)%16);
-                MPI_Recv(sendptr, msgsize, MPI_CHAR, mypair, 1, newcomm, 
+                MPI_Recv(sendptr, msgsize, MPI_CHAR, mypair, 1, newcomm,
                                 &reqstat);
                 MPI_Send(recvptr, msgsize, MPI_CHAR, mypair, 1, newcomm);
             }
             t_end = MPI_Wtime();
         }
-        else 
+        else
         {
-            for (i = 0; i < iterations + skip; i++) 
+            for (i = 0; i < iterations + skip; i++)
             {
                 if (i == skip) t_start = MPI_Wtime();
                 sendptr = sendbuf+msgsize*((j++)%16);
                 recvptr = recvbuf+msgsize*((j++)%16);
-                MPI_Irecv(sendptr, msgsize, MPI_CHAR, mypair, 1, newcomm, 
+                MPI_Irecv(sendptr, msgsize, MPI_CHAR, mypair, 1, newcomm,
                                 &req);
                 MPI_Send(recvptr, msgsize, MPI_CHAR, mypair, 1, newcomm);
                 MPI_Wait(&req, &reqstat);
@@ -109,7 +109,7 @@ void MPITest(OptionParser &op, ResultDatabase &resultDB, int numtasks, int myran
         //MPI_Comm_size(newcomm,&j);
         //avglat/=j;
         j=0;
-        //if (myrank == 0) 
+        //if (myrank == 0)
         //{
         //    printf("\n%d\t%f\t%f\t%f",msgsize,minlat,avglat,maxlat);
         //    fflush(stdout);

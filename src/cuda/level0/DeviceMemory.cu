@@ -68,7 +68,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Creation: September 08, 2009
 //
 // Modifications:
-//   Gabriel Marin, 06/09/2010: Change memory access patterns to eliminate 
+//   Gabriel Marin, 06/09/2010: Change memory access patterns to eliminate
 //   data reuse. Add auto-scaling factor.
 //
 //   Jeremy Meredith, 10/09/2012: Ignore errors at large thread counts
@@ -91,7 +91,7 @@ void RunBenchmark(ResultDatabase &resultDB,
     const long availMem = findAvailBytes();
     while (memSize*2 > availMem)
        memSize >>= 1;   // keep it a power of 2
-    
+
     const unsigned int numWordsFloat = memSize / sizeof(float);
 
     // Initialize host memory
@@ -129,7 +129,7 @@ void RunBenchmark(ResultDatabase &resultDB,
     double scalet = 0.15 / t;
     if (scalet < 1)
         scalet = 1;
-    
+
     const unsigned int maxRepeatsCoal  = 256*scalet;
     const unsigned int maxRepeatsUnit  = 16*scalet;
     const unsigned int maxRepeatsLocal = 300*scalet;
@@ -151,7 +151,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             cudaEventRecord(stop, 0);
             cudaEventSynchronize(stop);
 
-            // We can run out of resources at larger thread counts on 
+            // We can run out of resources at larger thread counts on
             // some devices.  If we made a successful run at smaller
             // thread counts, just ignore errors at this size.
             if (threads > minGroupSize)
@@ -166,7 +166,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             t = 0.0f;
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsCoal * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsCoal * 16 * sizeof(float))
                    / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("readGlobalMemoryCoalesced", sizeStr, "GB/s",
                     bdwth);
@@ -180,7 +180,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             CHECK_CUDA_ERROR();
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsUnit * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsUnit * 16 * sizeof(float))
                    / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("readGlobalMemoryUnit", sizeStr, "GB/s", bdwth);
 
@@ -193,7 +193,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             CHECK_CUDA_ERROR();
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsLocal * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsLocal * 16 * sizeof(float))
                    / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("readLocalMemory", sizeStr, "GB/s", bdwth);
 
@@ -206,7 +206,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             CHECK_CUDA_ERROR();
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsCoal * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsCoal * 16 * sizeof(float))
                    / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("writeGlobalMemoryCoalesced", sizeStr, "GB/s",
                     bdwth);
@@ -220,7 +220,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             CHECK_CUDA_ERROR();
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsUnit * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsUnit * 16 * sizeof(float))
                     / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("writeGlobalMemoryUnit", sizeStr, "GB/s",
                     bdwth);
@@ -234,7 +234,7 @@ void RunBenchmark(ResultDatabase &resultDB,
             CHECK_CUDA_ERROR();
             cudaEventElapsedTime(&t, start, stop);
             t /= 1.e3;
-            bdwth = ((double) globalWorkSize * maxRepeatsLocal * 16 * sizeof(float)) 
+            bdwth = ((double) globalWorkSize * maxRepeatsLocal * 16 * sizeof(float))
                    / (t * 1000. * 1000. * 1000.);
             resultDB.AddResult("writeLocalMemory", sizeStr, "GB/s", bdwth);
         }
@@ -276,7 +276,7 @@ void RunBenchmark(ResultDatabase &resultDB,
 //   for now, which also matches the current OpenCL variant's behavior.
 //
 //   Jeremy Meredith, Wed Oct 10 11:54:32 EDT 2012
-//   Kernel rep factor of 1024 on the last texture test on the biggest 
+//   Kernel rep factor of 1024 on the last texture test on the biggest
 //   texture size caused Windows to time out (the more-than-five-seconds-long
 //   kernel problem).  I made kernel rep factor problem-size dependent.
 //

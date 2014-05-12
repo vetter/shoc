@@ -33,7 +33,7 @@
 #define iexp_1_4   (T2)(  0, 1 )
 #define iexp_3_8   (T2)( -1, 1 )//requires post-multiply by 1/sqrt(2)
 
- 
+
 inline void globalLoads8(T2 *data, __global T2 *in, int stride){
     for( int i = 0; i < 8; i++ )
         data[i] = in[i*stride];
@@ -90,7 +90,7 @@ inline T2 exp_i( T phi ) {
 //    return (T2)( native_cos(phi), native_sin(phi) );
 //#else
     return (T2)( cos(phi), sin(phi) );
-//#endif    
+//#endif
 }
 
 inline T2 cmplx_mul( T2 a, T2 b ) { return (T2)( a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x ); }
@@ -175,17 +175,17 @@ inline T2 cmplx_sub( T2 a, T2 b ) { return (T2)( a.x - b.x, a.y - b.y ); }
 
 __kernel void fft1D_512 (__global T2 *work)
 {
-  int tid = get_local_id(0); 
-  int blockIdx = get_group_id(0) * 512 + tid; 
+  int tid = get_local_id(0);
+  int blockIdx = get_group_id(0) * 512 + tid;
   int hi = tid>>3;
   int lo = tid&7;
-  T2 data[8]; 
+  T2 data[8];
   __local T smem[8*8*9];
 
-  // starting index of data to/from global memory 
-  work = work + blockIdx;  
-  //out = out + blockIdx; 
-  globalLoads8(data, work, 64); // coalesced global reads 
+  // starting index of data to/from global memory
+  work = work + blockIdx;
+  //out = out + blockIdx;
+  globalLoads8(data, work, 64); // coalesced global reads
 
   FFT8( data );
 
@@ -207,16 +207,16 @@ __kernel void fft1D_512 (__global T2 *work)
 __kernel void ifft1D_512 (__global T2 *work)
 {
   int i;
-  int tid = get_local_id(0); 
-  int blockIdx = get_group_id(0) * 512 + tid; 
+  int tid = get_local_id(0);
+  int blockIdx = get_group_id(0) * 512 + tid;
   int hi = tid>>3;
   int lo = tid&7;
-  T2 data[8]; 
+  T2 data[8];
   __local T smem[8*8*9];
-  
-  // starting index of data to/from global memory 
-  work = work + blockIdx; 
-  globalLoads8(data, work, 64); // coalesced global reads 
+
+  // starting index of data to/from global memory
+  work = work + blockIdx;
+  globalLoads8(data, work, 64); // coalesced global reads
 
   // Inject an artificial error for testing the sensitivity of FFT
   // if( blockIdx == 0 ){ data[6] *= 1.001; }
@@ -245,16 +245,16 @@ __kernel void ifft1D_512 (__global T2 *work)
 __kernel void
 chk1D_512(__global T2* work, int half_n_cmplx, __global int* fail)
 {
-    int i, tid = get_local_id(0); 
-    int blockIdx = get_group_id(0) * 512 + tid; 
+    int i, tid = get_local_id(0);
+    int blockIdx = get_group_id(0) * 512 + tid;
     T2 a[8], b[8];
-    
-    work = work + blockIdx; 
+
+    work = work + blockIdx;
 
     for (i = 0; i < 8; i++) {
         a[i] = work[i*64];
     }
-    
+
     for (i = 0; i < 8; i++) {
         b[i] = work[half_n_cmplx+i*64];
     }

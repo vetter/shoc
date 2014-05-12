@@ -18,7 +18,7 @@ SerialStencilValidater<T>::ValidateResult( const Matrix2D<T>& exp,
     valResultStr << validationErrors.size() << " validation errors";
     if( (validationErrors.size() > 0) && (nValErrsToPrint > 0) )
     {
-        PrintValidationErrors( valResultStr, validationErrors, nValErrsToPrint );
+        this->PrintValidationErrors( valResultStr, validationErrors, nValErrsToPrint );
     }
     std::cout << valResultStr.str() << std::endl;
 }

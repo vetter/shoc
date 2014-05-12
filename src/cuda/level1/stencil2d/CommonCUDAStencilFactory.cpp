@@ -6,7 +6,7 @@
 
 
 template<class T>
-void 
+void
 CommonCUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
 {
     // let base class check its options first
@@ -70,7 +70,7 @@ CommonCUDAStencilFactory<T>::ExtractOptions( const OptionParser& options,
     lCols = (size_t)ldims[1];
 
     // determine which device to use
-    // We would really prefer this to be done in main() but 
+    // We would really prefer this to be done in main() but
     // since BuildStencil is a virtual function, we cannot change its
     // signature, and OptionParser provides no way to override an
     // option's value after it is set during parsing.

@@ -80,9 +80,9 @@ CopyRect( __global VALTYPE* dest,
 
 
 
-__kernel 
-void 
-StencilKernel( __global VALTYPE* data, 
+__kernel
+void
+StencilKernel( __global VALTYPE* data,
                 __global VALTYPE* newData,
                 const int alignment,
                 VALTYPE wCenter,
@@ -167,7 +167,7 @@ StencilKernel( __global VALTYPE* data,
         VALTYPE diagonalValueSum = sh[neidx] + sh[seidx] + sh[nwidx] + sh[swidx];
 
         newData[ToFlatHaloedIdx(gRow + i, gCol, gRowWidth)] = wCenter * centerValue +
-                wCardinal * cardinalValueSum + 
+                wCardinal * cardinalValueSum +
                 wDiagonal * diagonalValueSum;
     }
 }

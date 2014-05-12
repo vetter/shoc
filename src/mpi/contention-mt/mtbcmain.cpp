@@ -69,14 +69,14 @@ int rc;
 
 // Modifications:
 //    Jeremy Meredith, Fri Dec  3 16:30:31 EST 2010
-//    Use the "passes" argument instead of hardcoding to 4 passes, and 
+//    Use the "passes" argument instead of hardcoding to 4 passes, and
 //    increase the default to 10.  Changed the way collection of
 //    the summary results worked to extract only the desired results.
 //    Added reporting of GPU download latency.
 //
 int main(int argc, char *argv[])
 {
-    int numdev=0, totalnumdev=0, numtasks, dest, source, rc, 
+    int numdev=0, totalnumdev=0, numtasks, dest, source, rc,
         mypair=0, count, tag=2, mynoderank,myclusterrank,nodenprocs;
     int *grp1,i;
     int mygrprank,grpnumtasks;
@@ -84,13 +84,13 @@ int main(int argc, char *argv[])
     MPI_Comm new_comm,nlrcomm;
     ResultDatabase rdbwupmpi, rdbseqmpi, rdbsimmpi;
     OptionParser op;
-    ParallelResultDatabase prdbseqgpu, prdbsimgpu, prdbsimmpi, prdbseqmpi; 
+    ParallelResultDatabase prdbseqgpu, prdbsimgpu, prdbsimmpi, prdbseqmpi;
     bool amGPUTask = false;
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
     MPI_Comm_rank(MPI_COMM_WORLD, &mympirank);
-    MPI_Comm_group(MPI_COMM_WORLD, &orig_group); 
+    MPI_Comm_group(MPI_COMM_WORLD, &orig_group);
 
     //Add shared options to the parser
     op.addOption("device", OPT_VECINT, "0", "specify device(s) to run on", 'd');
@@ -105,17 +105,17 @@ int main(int argc, char *argv[])
        'i');
     op.addOption("fullInfoDevices", OPT_BOOL, "", "show full info for available devices");
     op.addOption("MPIminmsg", OPT_INT, "0", "specify minimum MPI message size");
-    op.addOption("MPImaxmsg", OPT_INT, "16384", 
+    op.addOption("MPImaxmsg", OPT_INT, "16384",
                     "specify maximum MPI message size");
-    op.addOption("MPIiter", OPT_INT, "1000", 
+    op.addOption("MPIiter", OPT_INT, "1000",
                     "specify number of MPI benchmark iterations for each size");
     op.addOption("platform", OPT_INT, "0", "specify platform for device selection", 'y');
-            
+
     if (!op.parse(argc, argv))
     {
         if (mympirank == 0)
             op.usage();
-        MPI_Finalize(); 
+        MPI_Finalize();
         return 0;
     }
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
     {
         if(mympirank==0)
             cout<<"This test needs an even number of nodes"<<endl;
-        MPI_Finalize();	
+        MPI_Finalize();
         exit(0);
     }
     int nodealr = NI.nodeALR();
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     if ( devsPerNode > nodenprocs)
         devsPerNode = nodenprocs;
     numdev = (mynoderank == 0) ? devsPerNode : 0;
-    MPI_Allreduce(&numdev, &totalnumdev, 1, MPI_INT, MPI_SUM, 
+    MPI_Allreduce(&numdev, &totalnumdev, 1, MPI_INT, MPI_SUM,
                     MPI_COMM_WORLD);
     numdev = devsPerNode;
 
@@ -167,16 +167,16 @@ int main(int argc, char *argv[])
     {
         if (mympirank ==0)
             MPI_Send(&numdev, sizeof(int), MPI_CHAR, 1, 112, nlrcomm);
-        else 
+        else
         {
             MPI_Status reqstat;
 	    MPI_Recv(&beginoffset, sizeof(int), MPI_CHAR, myclusterrank-1,
-			    112, nlrcomm ,&reqstat); 
+			    112, nlrcomm ,&reqstat);
 	    if (myclusterrank < numnodes-1)
             {
                 beginoffset+=numdev;
 		MPI_Send(&beginoffset,sizeof(int), MPI_CHAR, myclusterrank+1,
-				112, nlrcomm); 
+				112, nlrcomm);
 		beginoffset-=numdev;
             }
         }
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
         grpnumtasks=totalnumdev;
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, grp1, totalnumdev, MPI_INT, MPI_SUM, 
+    MPI_Allreduce(MPI_IN_PLACE, grp1, totalnumdev, MPI_INT, MPI_SUM,
                     MPI_COMM_WORLD);
     MPI_Group_incl(orig_group, totalnumdev, grp1, &new_group);
     MPI_Comm_create(MPI_COMM_WORLD, new_group, &new_comm);
@@ -240,9 +240,9 @@ int main(int argc, char *argv[])
 			    112, MPI_COMM_WORLD);
         }
     }
-    MPI_Bcast(myinplist,(nodenprocs-1),MPI_INT,0,smpcomm); 
-    if ( mynoderank!=0 ) 
-        mypair = myinplist[mynoderank-1]; 
+    MPI_Bcast(myinplist,(nodenprocs-1),MPI_INT,0,smpcomm);
+    if ( mynoderank!=0 )
+        mypair = myinplist[mynoderank-1];
 
     // ensure we are all synchronized before starting test
     MPI_Barrier(MPI_COMM_WORLD);
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
     MPITest(op, rdbwupmpi,numtasks,mympirank,mypair,MPI_COMM_WORLD );
 
     //next, individual run for MPI Benchmark
-    for ( i=0; i<npasses; i++ ) 
+    for ( i=0; i<npasses; i++ )
         MPITest(op, rdbseqmpi, numtasks,mympirank,mypair,MPI_COMM_WORLD );
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -337,13 +337,13 @@ int main(int argc, char *argv[])
         for (i=0; i<prelatency.size(); i++)
         {
             cout<<msgsize<<"\t";
-            msgsize = (msgsize ? msgsize * 2 : msgsize + 1); 
+            msgsize = (msgsize ? msgsize * 2 : msgsize + 1);
         }
 
         cout << endl <<"BASELATENCY\t";
         for (i=0; i<prelatency.size(); i++)
             cout<<setiosflags(ios::fixed) << setprecision(2)<<prelatency[i].GetMean() << "\t";
-            
+
         cout << endl <<"CONTLATENCY\t";
         for (i=0; i<postlatency.size(); i++)
             cout<<setiosflags(ios::fixed) << setprecision(2)<<postlatency[i].GetMean() << "\t";
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if ( amGPUTask && mympirank==0) 
+    if ( amGPUTask && mympirank==0)
     {
         vector<ResultDatabase::Result> prespeed    = prdbseqgpu.GetResultsForTest("DownloadSpeed(mean)");
         vector<ResultDatabase::Result> postspeed   = prdbsimgpu.GetResultsForTest("DownloadSpeed(mean)");
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
         cout<<endl;
     }
 
-    if ( amGPUTask && mympirank==0) 
+    if ( amGPUTask && mympirank==0)
     {
         vector<ResultDatabase::Result> pregpulat  = prdbseqgpu.GetResultsForTest("DownloadLatencyEstimate(mean)");
         vector<ResultDatabase::Result> postgpulat = prdbsimgpu.GetResultsForTest("DownloadLatencyEstimate(mean)");

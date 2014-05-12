@@ -30,8 +30,8 @@ using namespace std;
 // Returns:  nothing
 //
 // ****************************************************************************
-void 
-addBenchmarkSpecOptions(OptionParser &op) 
+void
+addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("MB", OPT_INT, "0", "data size (in megabytes)");
     op.addOption("use-native", OPT_BOOL, "false", "call native (HW) versions of sin/cos");
@@ -60,13 +60,14 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // ****************************************************************************
 
-template <class T2> void runTest(const string& name, cl_device_id id, 
+template <class T2> void runTest(const string& name, cl_device_id id,
                                  cl_context ctx, cl_command_queue queue,
                                  ResultDatabase &resultDB, OptionParser& op);
-template <class T2> void dump(OptionParser& op);
+template <class T2> void dump(OptionParser& op, cl_device_id id,
+                              cl_context ctx, cl_command_queue queue);
 
 static void
-fillResultDB(const string& name, const string& reason, OptionParser &op, 
+fillResultDB(const string& name, const string& reason, OptionParser &op,
              ResultDatabase& resultDB)
 {
     // resultDB requires neg entry for every possible result
@@ -83,37 +84,31 @@ fillResultDB(const string& name, const string& reason, OptionParser &op,
 
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     if (getMaxWorkGroupSize(dev) < 64) {
         cout << "FFT requires MaxWorkGroupSize of at least 64" << endl;
         fillResultDB("SP-FFT", "MaxWorkGroupSize<64", op, resultDB);
         fillResultDB("DP-FFT", "MaxWorkGroupSize<64", op, resultDB);
         return;
     }
-    
+
     bool has_dp = checkExtension(dev, "cl_khr_fp64") ||
         checkExtension(dev, "cl_amd_fp64");
 
     if (op.getOptionBool("dump-sp")) {
-        dump<cplxflt>(op);
+        dump<cplxflt>(op, dev, ctx, queue);
     }
     else if (op.getOptionBool("dump-dp")) {
         if (!has_dp) {
             cout << "dump-dp: no double precision support!\n";
             return;
         }
-        dump<cplxdbl>(op);
+        dump<cplxdbl>(op, dev, ctx, queue);
     }
     else {
         // Always run single precision test
@@ -154,14 +149,13 @@ RunBenchmark(cl::Device& devcpp,
 //   Added PCIe timings.  Added size index bounds check.
 //
 // ****************************************************************************
-
 template <class T2> inline bool dp(void);
 template <> inline bool dp<cplxflt>(void) { return false; }
 template <> inline bool dp<cplxdbl>(void) { return true; }
 
 template <class T2>
-void runTest(const string& name, 
-             cl_device_id id, 
+void runTest(const string& name,
+             cl_device_id id,
              cl_context ctx,
              cl_command_queue queue,
              ResultDatabase &resultDB,
@@ -174,11 +168,11 @@ void runTest(const string& name,
 
     if (op.getOptionInt("MB") == 0) {
         int probSizes[4] = { 1, 8, 96, 256 };
-	int sizeIndex = op.getOptionInt("size")-1;
-	if (sizeIndex < 0 || sizeIndex >= 4) {
-	    cerr << "Invalid size index specified\n";
-	    exit(-1);
-	}
+    int sizeIndex = op.getOptionInt("size")-1;
+    if (sizeIndex < 0 || sizeIndex >= 4) {
+        cerr << "Invalid size index specified\n";
+        exit(-1);
+    }
         bytes = probSizes[sizeIndex];
     } else {
         bytes = op.getOptionInt("MB");
@@ -187,18 +181,13 @@ void runTest(const string& name,
     bytes *= 1024 * 1024;
 
     int passes = op.getOptionInt("passes");
-
-    fftDev = id;
-    fftCtx = ctx;
-    fftQueue = queue;
-
     bool do_dp = dp<T2>();
-    init(op, do_dp);
-    
-#if 0
-    bytes = findAvailBytes(fftDev);
-    fprintf(stderr, "findAvailBytes()=%lu\n", bytes);
-#endif
+
+    cl_program fftProg;
+    cl_kernel fftKrnl, ifftKrnl, chkKrnl;
+
+    init(op, do_dp, id, ctx, queue, fftProg, fftKrnl,
+        ifftKrnl, chkKrnl);
 
     // now determine how much available memory will be used
     int half_n_ffts = bytes / (512*sizeof(T2)*2);
@@ -209,8 +198,8 @@ void runTest(const string& name,
 
     // allocate host memory
     T2 *source, *result;
-    allocHostBuffer((void**)&source, used_bytes);
-    allocHostBuffer((void**)&result, used_bytes);
+    allocHostBuffer((void**)&source, used_bytes, ctx, queue);
+    allocHostBuffer((void**)&result, used_bytes, ctx, queue);
 
     // init host memory...
     for (i = 0; i < half_n_cmplx; i++) {
@@ -221,32 +210,40 @@ void runTest(const string& name,
     }
 
     // alloc device memory
-    allocDeviceBuffer(&work, used_bytes);
-    allocDeviceBuffer(&chk, sizeof(cl_int));
+    allocDeviceBuffer(&work, used_bytes, ctx, queue);
+    allocDeviceBuffer(&chk, sizeof(cl_int), ctx, queue);
 
     // copy to device, and record transfer time
     cl_int chk_init = 0;
-    copyToDevice(chk, &chk_init, sizeof(cl_int));
+    copyToDevice(chk, &chk_init, sizeof(cl_int), queue);
     clFinish(queue);
 
     // (warm up)
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
     clFinish(queue);
 
-    // (measure)
+    // (measure h->d)
     int pcie_TH = Timer::Start();
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
     clFinish(queue);
     double transfer_time = Timer::Stop(pcie_TH, "PCIe Transfer Time");
+
+    // (measure d->h)
+    pcie_TH = Timer::Start();
+    copyFromDevice(source, work, used_bytes, queue);
+    clFinish(queue);
+    transfer_time += Timer::Stop(pcie_TH, "PCIe Transfer Time");
 
     const char *sizeStr;
     stringstream ss;
     ss << "N=" << (long)N;
     sizeStr = strdup(ss.str().c_str());
-    
+
+    Event fftEvent("FFT");
     for (int k=0; k<passes; k++) {
+
         // time fft kernel
-        forward(work, n_ffts);
+        transform(work, n_ffts, fftEvent, fftKrnl, queue);
         fftEvent.FillTimingInfo();
         double nsec = (double)fftEvent.SubmitEndRuntime();
         double fftsz = 512;
@@ -258,24 +255,27 @@ void runTest(const string& name,
         resultDB.AddResult(name+"_Parity", sizeStr, "N", transfer_time*1e9f / nsec);
 
         // time ifft kernel
-        inverse(work, n_ffts);
-        ifftEvent.FillTimingInfo();
-        nsec = (double)ifftEvent.SubmitEndRuntime();
+        transform(work, n_ffts, fftEvent, ifftKrnl, queue);
+        fftEvent.FillTimingInfo();
+        nsec = (double)fftEvent.SubmitEndRuntime();
         Gflops = n_ffts*(5*fftsz*log2(fftsz))/nsec;
         gflopsPCIe = n_ffts*(5*fftsz*log2(fftsz)) /
                 (transfer_time*1e9f + nsec);
         resultDB.AddResult(name+"-INV", sizeStr, "GFLOPS", Gflops);
         resultDB.AddResult(name+"-INV_PCIe", sizeStr, "GFLOPS", gflopsPCIe);
-        resultDB.AddResult(name+"-INV_Parity", sizeStr, "N", transfer_time*1e9f / nsec);
+        resultDB.AddResult(name+"-INV_Parity", sizeStr, "N",
+            transfer_time*1e9f / nsec);
         // check kernel
-        int failed = check(work, chk, half_n_ffts, half_n_cmplx);
-        cout << "pass " << k << ((failed) ? ": failed\n" : ": passed\n");
+        int failed = check(work, chk, half_n_ffts, half_n_cmplx,
+            chkKrnl, queue);
+        cout << "Test " << ((failed) ? "Failed\n" : "Passed\n");
     }
-    
-    freeDeviceBuffer(work);
-    freeDeviceBuffer(chk);
-    freeHostBuffer(source);
-    freeHostBuffer(result);
+
+    freeDeviceBuffer(work, ctx, queue);
+    freeDeviceBuffer(chk, ctx, queue);
+    freeHostBuffer(source, ctx, queue);
+    freeHostBuffer(result, ctx, queue);
+    deinit(queue, fftProg, fftKrnl, ifftKrnl, chkKrnl);
 }
 
 
@@ -283,7 +283,7 @@ void runTest(const string& name,
 // Function: dump
 //
 // Purpose:
-//   Dump result array to stdout after FFT and IFFT.  For correctness 
+//   Dump result array to stdout after FFT and IFFT.  For correctness
 //   checking.
 //
 // Arguments:
@@ -297,9 +297,9 @@ void runTest(const string& name,
 // Modifications:
 //
 // ****************************************************************************
-template <class T2> 
-void dump(OptionParser& op)
-{	
+template <class T2> void dump(OptionParser& op, cl_device_id id,
+                              cl_context ctx, cl_command_queue queue)
+{
     int i;
     void* work;
     T2* source, * result;
@@ -307,11 +307,11 @@ void dump(OptionParser& op)
 
     if (op.getOptionInt("MB") == 0) {
         int probSizes[4] = { 1, 8, 96, 256 };
-	int sizeIndex = op.getOptionInt("size")-1;
-	if (sizeIndex < 0 || sizeIndex >= 4) {
-	    cerr << "Invalid size index specified\n";
-	    exit(-1);
-	}
+    int sizeIndex = op.getOptionInt("size")-1;
+    if (sizeIndex < 0 || sizeIndex >= 4) {
+        cerr << "Invalid size index specified\n";
+        exit(-1);
+    }
         bytes = probSizes[sizeIndex];
     } else {
         bytes = op.getOptionInt("MB");
@@ -321,7 +321,11 @@ void dump(OptionParser& op)
     bytes *= 1024 * 1024;
 
     bool do_dp = dp<T2>();
-    init(op, do_dp);
+    cl_program fftProg;
+    cl_kernel fftKrnl, ifftKrnl, chkKrnl;
+
+    init(op, do_dp, id, ctx, queue, fftProg, fftKrnl,
+        ifftKrnl, chkKrnl);
 
     // now determine how much available memory will be used
     int half_n_ffts = bytes / (512*sizeof(T2)*2);
@@ -329,12 +333,12 @@ void dump(OptionParser& op)
     int half_n_cmplx = half_n_ffts * 512;
     unsigned long used_bytes = half_n_cmplx * 2 * sizeof(T2);
     double N = half_n_cmplx*2;
-    
+
     fprintf(stderr, "used_bytes=%lu, N=%g\n", used_bytes, N);
 
     // allocate host and device memory
-    allocHostBuffer((void**)&source, used_bytes);
-    allocHostBuffer((void**)&result, used_bytes);
+    allocHostBuffer((void**)&source, used_bytes, ctx, queue);
+    allocHostBuffer((void**)&result, used_bytes, ctx, queue);
 
     // init host memory...
     for (i = 0; i < half_n_cmplx; i++) {
@@ -345,32 +349,33 @@ void dump(OptionParser& op)
     }
 
     // alloc device memory
-    allocDeviceBuffer(&work, used_bytes);
+    allocDeviceBuffer(&work, used_bytes, ctx, queue);
 
-    copyToDevice(work, source, used_bytes);
+    copyToDevice(work, source, used_bytes, queue);
 
+    Event fftEvent("fft");
     fprintf(stdout, "INITIAL:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", source[i].x, source[i].y);
     }
-    
-    forward(work, n_ffts);
-    copyFromDevice(result, work, used_bytes);
-        
+
+    transform(work, n_ffts, fftEvent, fftKrnl, queue);
+    copyFromDevice(result, work, used_bytes, queue);
+
     fprintf(stdout, "FORWARD:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);
     }
-    
-    inverse(work, n_ffts);
-    copyFromDevice(result, work, used_bytes);
-        
+
+    transform(work, n_ffts, fftEvent, ifftKrnl, queue);
+    copyFromDevice(result, work, used_bytes, queue);
+
     fprintf(stdout, "\nINVERSE:\n");
     for (i = 0; i < N; i++) {
         fprintf(stdout, "(%g, %g)\n", result[i].x, result[i].y);
     }
 
-    freeDeviceBuffer(work);
-    freeHostBuffer(source);
-    freeHostBuffer(result);
+    freeDeviceBuffer(work, ctx, queue);
+    freeHostBuffer(source, ctx, queue);
+    freeHostBuffer(result, ctx, queue);
 }

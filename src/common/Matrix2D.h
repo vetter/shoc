@@ -8,6 +8,9 @@
 #include "config.h"
 #endif
 
+#include "PMSMemMgr.h"
+
+
 // ****************************************************************************
 // Class:  Matrix2D
 //
@@ -27,6 +30,8 @@ public:
     typedef T* const restrict* const restrict ConstDataPtr;
 
 private:
+    static PMSMemMgr<T>* pmsmm;
+
     size_t nRows;
     size_t nColumns;
     size_t pad;
@@ -37,9 +42,9 @@ private:
 
     static size_t FindNumPaddedColumns( size_t nColumns, size_t pad )
     {
-        return nColumns + 
+        return nColumns +
                  ((nColumns % pad == 0) ?
-                    0 : 
+                    0 :
                     (pad - (nColumns % pad)));
     }
 
@@ -47,7 +52,7 @@ private:
     {
         nPaddedColumns =  FindNumPaddedColumns( nColumns, pad );
 
-        flatData = new T[nRows * nPaddedColumns];
+        flatData = pmsmm->AllocHostBuffer( nRows * nPaddedColumns );
         data = new T*[nRows];
 
         for( size_t i = 0; i < nRows; i++ )
@@ -65,6 +70,10 @@ public:
         flatData( NULL ),
         data( NULL )
     {
+        if( pmsmm == NULL )
+        {
+            pmsmm = new DefaultPMSMemMgr<T>;
+        }
         Init();
     }
 
@@ -73,9 +82,12 @@ public:
         delete[] data;
         data = NULL;
 
-        delete[] flatData;
+        pmsmm->ReleaseHostBuffer( flatData );
         flatData = NULL;
     }
+
+
+    static void SetAllocator( PMSMemMgr<T>* _mgr )   { pmsmm = _mgr; }
 
 
     void Reset( size_t _nRows, size_t _nColumns )
@@ -83,7 +95,7 @@ public:
         if( (_nRows != nRows) || (_nColumns != nColumns) )
         {
             delete[] data;
-            delete[] flatData;
+            pmsmm->ReleaseHostBuffer( flatData );
 
             nRows = _nRows;
             nColumns = _nColumns;
@@ -100,7 +112,7 @@ public:
     {
         return data;
     }
-    
+
     FlatDataPtr GetFlatData( void )
     {
         return flatData;

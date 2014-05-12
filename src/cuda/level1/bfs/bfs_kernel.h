@@ -65,7 +65,7 @@ __global__ void Reset_kernel_parameters(unsigned int *frontier_length);
 
 __global__ void Frontier_copy(
 	unsigned int *frontier,
-	unsigned int *frontier2, 
+	unsigned int *frontier2,
 	unsigned int *frontier_length);
 
 __global__ void BFS_kernel_one_block_spill(

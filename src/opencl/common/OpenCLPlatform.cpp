@@ -16,14 +16,14 @@ const int SHOC::OpenCLPlatform::MAGIC_KEY_OPENCL_PLATFORM = 0x5a9ef20c;
 // ****************************************************************************
 // Method: OpenCLPlatform::OpenCLPlatform
 //
-// Purpose: 
+// Purpose:
 //   Constructor. Creates a new empty OpenCL platform.
 //
 // Arguments:
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -38,16 +38,16 @@ OpenCLPlatform::OpenCLPlatform () : Platform<OpenCLDeviceInfo>()
 // ****************************************************************************
 // Method: OpenCLPlatform::OpenCLPlatform
 //
-// Purpose: 
-//   Constructor. Creates a new OpenCL platform representation for the 
+// Purpose:
+//   Constructor. Creates a new OpenCL platform representation for the
 //   specified patform ID.
 //
 // Arguments:
 //   clPlatform: the platform to be created
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -55,46 +55,83 @@ OpenCLPlatform::OpenCLPlatform () : Platform<OpenCLDeviceInfo>()
 // Modifications:
 //
 // ****************************************************************************
-OpenCLPlatform::OpenCLPlatform (cl::Platform &clPlatform) : 
+
+std::string
+OpenCLPlatform::LookupInfo( cl_platform_id platformID, 
+                            cl_platform_info paramName )
+{
+    cl_int err;
+
+    size_t nBytesNeeded = 0;
+    err = clGetPlatformInfo(platformID,
+                            paramName,
+                            NULL,
+                            NULL,
+                            &nBytesNeeded);
+    CL_CHECK_ERROR(err);
+    char* paramValue = new char[nBytesNeeded+1];
+    err = clGetPlatformInfo(platformID,
+                            paramName,
+                            nBytesNeeded+1,
+                            paramValue,
+                            NULL);
+
+    std::string ret( paramValue );
+    delete[] paramValue;
+
+    return ret;
+}
+
+
+OpenCLPlatform::OpenCLPlatform (cl_platform_id platformID) :
            Platform<OpenCLDeviceInfo>()
 {
     int err;
-    platformName = clPlatform.getInfo<CL_PLATFORM_NAME>();
-    platformVendor = clPlatform.getInfo<CL_PLATFORM_VENDOR>();
-    platformVersion = clPlatform.getInfo<CL_PLATFORM_VERSION>();
-    platformExtensions = clPlatform.getInfo<CL_PLATFORM_EXTENSIONS>();
+
+    platformName = LookupInfo(platformID, CL_PLATFORM_NAME);
+    platformVendor = LookupInfo(platformID, CL_PLATFORM_VENDOR);
+    platformVersion = LookupInfo(platformID, CL_PLATFORM_VERSION);
+    platformExtensions = LookupInfo(platformID, CL_PLATFORM_EXTENSIONS);
 
     // query devices
-    std::vector<cl::Device> devs;
-    err = clPlatform.getDevices( CL_DEVICE_TYPE_ALL, &devs );
-    // I should not print an error message here if no devices are present.
-    // I will just report that there are zero devices.
-//    CL_CHECK_ERROR( err );
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs( platformID,
+                            CL_DEVICE_TYPE_ALL,
+                            0,
+                            NULL,
+                            &nDevices );
+    CL_CHECK_ERROR(err);
 
-    for( vector<cl::Device>::iterator diter = devs.begin();
-        diter != devs.end();
-        diter++ )
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs( platformID,
+                            CL_DEVICE_TYPE_ALL,
+                            nDevices,
+                            devIDs,
+                            NULL );
+    CL_CHECK_ERROR(err);
+
+    for( unsigned int i = 0; i < nDevices; ++i )
     {
-        OpenCLDeviceInfo* openclDevice = new OpenCLDeviceInfo( (*diter)() );
-        devices.push_back( openclDevice );
-        ++ deviceCount;
+        devices.push_back( new OpenCLDeviceInfo( devIDs[i] ) );
     }
+
+    delete[] devIDs;
 }
 
 
 // ****************************************************************************
 // Method: OpenCLPlatform::OpenCLPlatform
 //
-// Purpose: 
+// Purpose:
 //   Copy constructor. Creates a new OpenCL platform which is an exact
 //   copy of the specified platform.
 //
 // Arguments:
 //   ocp: the platform to be duplicated
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -114,7 +151,7 @@ OpenCLPlatform::OpenCLPlatform (const OpenCLPlatform &ocp) :
 // ****************************************************************************
 // Method: OpenCLPlatform::operator=
 //
-// Purpose: 
+// Purpose:
 //   Copy operator. Copies the content of the specified platform into
 //   this platform instance.
 //
@@ -123,7 +160,7 @@ OpenCLPlatform::OpenCLPlatform (const OpenCLPlatform &ocp) :
 //
 // Returns:  a reference to this platform object
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -131,7 +168,7 @@ OpenCLPlatform::OpenCLPlatform (const OpenCLPlatform &ocp) :
 // Modifications:
 //
 // ****************************************************************************
-OpenCLPlatform& 
+OpenCLPlatform&
 OpenCLPlatform::operator= (const OpenCLPlatform &ocp)
 {
     this->Platform<OpenCLDeviceInfo>::operator= (ocp);
@@ -146,15 +183,15 @@ OpenCLPlatform::operator= (const OpenCLPlatform &ocp)
 // ****************************************************************************
 // Method: OpenCLPlatform::Print
 //
-// Purpose: 
+// Purpose:
 //   Pretty print the content of this platform.
 //
 // Arguments:
 //   os: the output stream where the writing is done
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -175,17 +212,17 @@ OpenCLPlatform::Print (ostream &os) const
 // ****************************************************************************
 // Method: OpenCLPlatform::writeObject
 //
-// Purpose: 
+// Purpose:
 //   Implements the serialization method of the SerializableObject
 //   abstract class
 //
 // Arguments:
-//   oss: the output string stream where the serialized representation 
+//   oss: the output string stream where the serialized representation
 //        is written
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -193,7 +230,7 @@ OpenCLPlatform::Print (ostream &os) const
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLPlatform::writeObject(ostringstream &oss) const
 {
     oss << " " << MAGIC_KEY_OPENCL_PLATFORM << "\n";
@@ -207,17 +244,17 @@ OpenCLPlatform::writeObject(ostringstream &oss) const
 // ****************************************************************************
 // Method: OpenCLPlatform::readObject
 //
-// Purpose: 
+// Purpose:
 //   Implements the unserialization method of the SerializableObject
 //   abstract class
 //
 // Arguments:
-//   iss: the input string stream from where the serialized representation 
+//   iss: the input string stream from where the serialized representation
 //        is read
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -225,19 +262,19 @@ OpenCLPlatform::writeObject(ostringstream &oss) const
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLPlatform::readObject(istringstream &iss)
 {
     int receivedKey = 0;
-    
+
     iss >> receivedKey;
     if (receivedKey != MAGIC_KEY_OPENCL_PLATFORM)  // wrong magic key
     {
-        cerr << "Wrong magic key received " << receivedKey 
+        cerr << "Wrong magic key received " << receivedKey
              << " while unserializing an OpenCLPlatform object." << endl;
         exit (-2);
     }
-    
+
     string dummy;
     getline (iss, dummy);  // read the newline before the first string value
     getline (iss, platformName);
@@ -250,7 +287,7 @@ OpenCLPlatform::readObject(istringstream &iss)
 // ****************************************************************************
 // Method: OpenCLPlatform::operator<
 //
-// Purpose: 
+// Purpose:
 //   Less operator: compares two OpenCL platform objects based on
 //   an assumed ordering.
 //
@@ -260,7 +297,7 @@ OpenCLPlatform::readObject(istringstream &iss)
 // Returns: true - if this platform precedes the specified platform
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -268,7 +305,7 @@ OpenCLPlatform::readObject(istringstream &iss)
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLPlatform::operator< (const OpenCLPlatform &ocp) const
 {
     if (platformName < ocp.platformName)
@@ -293,7 +330,7 @@ OpenCLPlatform::operator< (const OpenCLPlatform &ocp) const
 // ****************************************************************************
 // Method: OpenCLPlatform::operator>
 //
-// Purpose: 
+// Purpose:
 //   Greater operator: compares two OpenCL platform objects based on
 //   an assumed ordering.
 //
@@ -303,7 +340,7 @@ OpenCLPlatform::operator< (const OpenCLPlatform &ocp) const
 // Returns: true - if this platform succeeds the specified platform
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -311,7 +348,7 @@ OpenCLPlatform::operator< (const OpenCLPlatform &ocp) const
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLPlatform::operator> (const OpenCLPlatform &ocp) const
 {
     if (platformName > ocp.platformName)
@@ -336,7 +373,7 @@ OpenCLPlatform::operator> (const OpenCLPlatform &ocp) const
 // ****************************************************************************
 // Method: OpenCLPlatform::operator==
 //
-// Purpose: 
+// Purpose:
 //   Equality operator: compares two OpenCL platform objects based on
 //   an assumed ordering.
 //
@@ -346,7 +383,7 @@ OpenCLPlatform::operator> (const OpenCLPlatform &ocp) const
 // Returns: true - if this platform is equal to the specified platform
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: September 22, 2009
@@ -354,7 +391,7 @@ OpenCLPlatform::operator> (const OpenCLPlatform &ocp) const
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLPlatform::operator== (const OpenCLPlatform &ocp) const
 {
     if (platformName != ocp.platformName)

@@ -7,9 +7,9 @@ template<class T>
 class OpenCLStencilFactory : public CommonOpenCLStencilFactory<T>
 {
 public:
-    OpenCLStencilFactory( cl::Device& _dev,
-                            cl::Context& _ctx,
-                            cl::CommandQueue& _queue )
+    OpenCLStencilFactory( cl_device_id _dev,
+                            cl_context _ctx,
+                            cl_command_queue _queue )
       : CommonOpenCLStencilFactory<T>( "OpenCLStencil", _dev, _ctx, _queue )
     {
         // nothing else to do

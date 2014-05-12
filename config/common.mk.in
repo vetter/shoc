@@ -29,13 +29,13 @@ OCL_LIBS        = -lSHOCCommonOpenCL -lSHOCCommon @OPENCL_LIBS@
 
 NVCC            = @NVCC@
 CUDA_CXX        = @NVCC@
-CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/include
+CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/common
 CUDA_LDFLAGS	= -L$(top_builddir)/src/cuda/common
-CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/include
+CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/common
 
 USE_CUDA        = @USE_CUDA@
 ifeq ($(USE_CUDA),yes)
-CUDA_LIBS       := -lSHOCCommon $(shell @NVCC@ -dryrun bogus.cu 2>&1 | grep LIBRARIES | sed 's/^.*LIBRARIES=//')
+CUDA_LIBS		:= -lSHOCCommon $(shell $(top_srcdir)/config/find_cuda_libs.sh @NVCC@)
 else
 CUDA_LIBS       =
 endif

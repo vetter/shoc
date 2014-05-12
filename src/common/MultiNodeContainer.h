@@ -19,8 +19,8 @@
 //   A generic container for aggregating and storing different node
 //   configurations represented by objects of type NodeContainer.
 //
-// Notes:     The template parameter type must have well defined 
-//   comparison operators '<', '>' and '==', and implement the 
+// Notes:     The template parameter type must have well defined
+//   comparison operators '<', '>' and '==', and implement the
 //   SerializableObject interface.
 //
 // Programmer: Gabriel Marin
@@ -61,18 +61,18 @@ namespace SHOC {
                 return (n1 < n2);
             }
         };
-        
-        typedef std::map <NodeContainer, NodeIDList, 
+
+        typedef std::map <NodeContainer, NodeIDList,
                CompareNodeContainers<NodeContainer> > NodeConfigurationMap;
         NodeConfigurationMap configs;
         string workbuf;
-        
+
         static const int MAGIC_KEY_MULTI_NODE_CONTAINER;
 
 #ifdef PARALLEL
-        // getMergeData and processMergeData are pure virtual functions 
+        // getMergeData and processMergeData are pure virtual functions
         // of the class ParallelTreeMerge. They act as callbacks before
-        // and after each merge step for the sender and the receiver 
+        // and after each merge step for the sender and the receiver
         // processes respectively
         virtual const char* getMergeData (int *dsize, int _key = 0)
         {
@@ -82,8 +82,8 @@ namespace SHOC {
             if (dsize!=0) *dsize = workbuf.size()+1;
             return (workbuf.c_str());
         }
-        
-        virtual void processMergeData (const char *_data, int size, 
+
+        virtual void processMergeData (const char *_data, int size,
                      int _key = 0)
         {
             string stemp (_data);
@@ -93,12 +93,12 @@ namespace SHOC {
             this->merge (tempContainer);
         }
 #endif
-    
+
     public:
         MultiNodeContainer ()
         {
         }
-        
+
         // Copy constructor
         MultiNodeContainer (NodeContainer &ndc)
         {
@@ -106,13 +106,13 @@ namespace SHOC {
             nlist.push_back (ndc.getNodeName ());
             configs.insert (typename NodeConfigurationMap::value_type (ndc, nlist));
         }
-        
+
         // destructor
         ~MultiNodeContainer ()
         {
             configs.clear();
         }
-        
+
         // add a new node configuration to this object
         void addNodeConfiguration (NodeContainer &ndc)
         {
@@ -127,7 +127,7 @@ namespace SHOC {
                 nit->second.push_back (ndc.getNodeName ());
             }
         }
-        
+
         // merge two MultiNodeContainers, placing the result into this
         // container.
         void merge (MultiNodeContainer<NodeContainer> &mnc)
@@ -162,14 +162,14 @@ namespace SHOC {
                 {
                     if (j%3 == 0)
                         os << "\n";
-                    else 
+                    else
                         os << "  ";
                     os << setiosflags(ios::left) << setw(25) << (*lit);
                 }
                 os << "\n}\n\n";
             }
         }
-        
+
         // implements the serialization method of the SerializableObject
         // abstract class
         virtual void writeObject (ostringstream &oss) const
@@ -182,7 +182,7 @@ namespace SHOC {
             for ( ; mit!=configs.end() ; ++mit)
             {
                 mit->first.writeObject (oss);
-               
+
                 // now write the Node ID List. It is not a class, so I have to
                 // inline the code here
                 int numHosts = mit->second.size();
@@ -193,48 +193,48 @@ namespace SHOC {
                     oss << (*lit) << "\n";
             }
         }
-        
+
         // implements the un-serialization method of the SerializableObject
         // abstract class
         virtual void readObject (istringstream &iss)
         {
             int i, j;
             int receivedKey = 0;
-            
+
             iss >> receivedKey;
             if (receivedKey != MAGIC_KEY_MULTI_NODE_CONTAINER)  // wrong magic key
             {
-                cerr << "Wrong magic key received " << receivedKey 
+                cerr << "Wrong magic key received " << receivedKey
                      << " while unserializing a MultiNodeContainer object." << endl;
                 exit (-2);
             }
-            
+
             int numConfigs;
             iss >> numConfigs;
             string dummy;
             getline (iss, dummy);  // read the newline before the first string value
-            
-            // before reading the new configs, I have to deallocate any 
+
+            // before reading the new configs, I have to deallocate any
             // prior configs
             configs.clear();
-            
+
             for (i=0 ; i<numConfigs ; ++i)
             {
                 NodeIDList nlist;
                 NodeContainer nc(false);
                 nc.readObject (iss);
-                
+
                 int numHosts;
                 iss >> receivedKey;
                 if (receivedKey != MAGIC_KEY_NODE_ID_LIST)  // wrong magic key
                 {
-                    cerr << "Wrong magic key received " << receivedKey 
+                    cerr << "Wrong magic key received " << receivedKey
                          << " while unserializing a NodeIDList object." << endl;
                     exit (-2);
                 }
                 iss >> numHosts;
                 getline (iss, dummy);  // read the newline before the first string value
-                
+
                 for (j=0 ; j<numHosts ; ++j) {
                     iss >> dummy;
                     nlist.push_back (dummy);
@@ -243,7 +243,7 @@ namespace SHOC {
             }
         }
     };
-    
+
     template <typename NodeContainer>
     const int MultiNodeContainer<NodeContainer>::MAGIC_KEY_MULTI_NODE_CONTAINER = 0x5b071e23;
 };

@@ -16,10 +16,10 @@ AM_CPPFLAGS = $(CUDA_INC)
 serialcudadir = $(bindir)/Serial/CUDA
 
 # What programs should be installed to that destination?
-serialcuda_PROGRAMS = SGEMM
+serialcuda_PROGRAMS = GEMM
 
 # How to build those programs?
-SGEMM_SOURCES = SGEMM.cpp \
+GEMM_SOURCES = GEMM.cpp \
                 main.cpp
-SGEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
+GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
 

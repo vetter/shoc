@@ -3,9 +3,6 @@
 #include <sstream>
 #include <algorithm>
 #include <stdlib.h>
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "Stencil.h"
 #include "OpenCLStencil.h"
 #include "InvalidArgValue.h"
@@ -19,9 +16,9 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
                     T wDiagonal,
                     size_t _lRows,
                     size_t _lCols,
-                    cl::Device& _dev,
-                    cl::Context& _ctx,
-                    cl::CommandQueue& _queue )
+                    cl_device_id _dev,
+                    cl_context _ctx,
+                    cl_command_queue _queue )
   : Stencil<T>( wCenter, wCardinal, wDiagonal ),
     lRows( _lRows ),
     lCols( _lCols ),
@@ -32,9 +29,9 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
     // determine our value type (as a string)
     std::string precision;
 #if READY
-    // use RTTI to determine type? 
+    // use RTTI to determine type?
 #else
-    // avoid using RTTI unless we have to - 
+    // avoid using RTTI unless we have to -
     // instead, use an ad hoc approach to determining whether
     // we are working with floats or doubles
     if( sizeof(T) == sizeof(float) )
@@ -43,11 +40,11 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
     }
     else if( sizeof(T) == sizeof(double) )
     {
-        if( checkExtension( device(), "cl_khr_fp64" ) )
+        if( checkExtension( device, "cl_khr_fp64" ) )
         {
             precision = "K_DOUBLE_PRECISION";
         }
-        else if( checkExtension( device(), "cl_amd_fp64" ) )
+        else if( checkExtension( device, "cl_amd_fp64" ) )
         {
             precision = "AMD_DOUBLE_PRECISION";
         }
@@ -63,32 +60,157 @@ OpenCLStencil<T>::OpenCLStencil( T wCenter,
 #endif // READY
 
     // associate our OpenCL kernel source with a Program
-    cl::Program::Sources source( 1,
-        std::make_pair(cl_source_stencil2d,strlen(cl_source_stencil2d)) );
-    cl::Program prog( context, source );
+    cl_int clErr;
+    cl_program prog = clCreateProgramWithSource( context,
+                                                1,
+                                                &cl_source_stencil2d,
+                                                NULL,
+                                                &clErr );
+    CL_CHECK_ERROR(clErr);
+
     std::ostringstream buildOptions;
-    buildOptions << "-DLROWS=" << lRows 
+    buildOptions << "-DLROWS=" << lRows
                 << " -DLCOLS=" << lCols
                 << " -D" << precision;
+
     try
     {
-        prog.build( context.getInfo<CL_CONTEXT_DEVICES>(), buildOptions.str().c_str() );
+        clErr = clBuildProgram( prog,
+                                1,
+                                &device,
+                                buildOptions.str().c_str(),
+                                NULL,
+                                NULL );
+        CL_CHECK_ERROR(clErr);
     }
     catch( ... )
     {
         // the build failed - why?
+        std::string msg = "build failed";
+        size_t nBytesNeeded = 0;
+        clErr = clGetProgramBuildInfo( prog,
+                                        device,
+                                        CL_PROGRAM_BUILD_LOG,
+                                        0,
+                                        NULL,
+                                        &nBytesNeeded );
+        if( clErr == CL_SUCCESS )
+        {
+            char* buildLog = new char[nBytesNeeded+1];
+            clErr = clGetProgramBuildInfo( prog,
+                                            device,
+                                            CL_PROGRAM_BUILD_LOG,
+                                            nBytesNeeded+1,
+                                            buildLog,
+                                            NULL );
+            if( clErr == CL_SUCCESS )
+            {
+                msg = buildLog;
+            }
+            delete[] buildLog;
+        }
+
         std::cerr << "Failed to build OpenCL program.  Build log:\n"
-            << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>( device )
+            << msg
             << std::endl;
 
         throw;
     }
 
-    kernel = cl::Kernel( prog, "StencilKernel" );
-    copyRectKernel = cl::Kernel( prog, "CopyRect" );
+    kernel = clCreateKernel( prog, "StencilKernel", &clErr );
+    CL_CHECK_ERROR(clErr);
+    copyRectKernel = clCreateKernel( prog, "CopyRect", &clErr );
+    CL_CHECK_ERROR(clErr);
 }
 
 
+
+template<class T>
+void
+OpenCLStencil<T>::SetCopyRectKernelArgs( cl_mem dest,
+                                            int destOffset,
+                                            int destPitch,
+                                            cl_mem src,
+                                            int srcOffset,
+                                            int srcPitch,
+                                            int width,
+                                            int height )
+{
+    int clErr;
+
+    clErr = clSetKernelArg(copyRectKernel, 0, sizeof(cl_mem), &dest );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 1, sizeof(int), &destOffset );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 2, sizeof(int), &destPitch );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 3, sizeof(cl_mem), &src );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 4, sizeof(int), &srcOffset );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 5, sizeof(int), &srcPitch );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 6, sizeof(int), &width );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(copyRectKernel, 7, sizeof(int), &height );
+    CL_CHECK_ERROR(clErr);
+}
+
+
+template<class T>
+void
+OpenCLStencil<T>::SetStencilKernelArgs( cl_mem currData,
+                                        cl_mem newData,
+                                        int alignment,
+                                        T wCenter,
+                                        T wCardinal,
+                                        T wDiagonal,
+                                        size_t localDataSize )
+{
+    cl_int clErr;
+
+    clErr = clSetKernelArg(kernel, 0, sizeof(cl_mem), &currData );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 1, sizeof(cl_mem), &newData );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 2, sizeof(int), &alignment );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 3, sizeof(T), &wCenter );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 4, sizeof(T), &wCardinal );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 5, sizeof(T), &wDiagonal );
+    CL_CHECK_ERROR(clErr);
+
+    clErr = clSetKernelArg(kernel, 6, localDataSize, NULL );
+    CL_CHECK_ERROR(clErr);
+}
+
+
+template<class T>
+void
+OpenCLStencil<T>::ClearWaitEvents( std::vector<cl_event>& waitEvents )
+{
+    for( std::vector<cl_event>::iterator iter = waitEvents.begin();
+            iter != waitEvents.end();
+            ++iter )
+    {
+        clReleaseEvent( *iter );
+    }
+    waitEvents.clear();
+}
 
 
 
@@ -96,100 +218,134 @@ template<class T>
 void
 OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
-    std::vector<cl::Event> waitEvents;
+    std::vector<cl_event> waitEvents;
 
     // determine local workgroup size
     // assumes mtx has been padded with halo of width >= 1
     //
     // Since each GPU thread is responsible for a strip of data
-    // from the original, our index space is scaled smaller 
+    // from the original, our index space is scaled smaller
     // in one dimension relative to the actual data
     assert( ((mtx.GetNumRows() - 2) % lRows) == 0 );
 
     // create buffers for our data on the device
-    cl::Buffer dataBuf1( context, CL_MEM_READ_WRITE, mtx.GetDataSize() );
-    cl::Buffer dataBuf2( context, CL_MEM_READ_WRITE, mtx.GetDataSize() );
-    cl::Buffer* currData = &dataBuf1;
-    cl::Buffer* newData = &dataBuf2;
+    cl_int clErr = 0;
+    cl_mem dataBuf1 = clCreateBuffer( context,
+                            CL_MEM_READ_WRITE,
+                            mtx.GetDataSize(),
+                            NULL,
+                            &clErr );
+    CL_CHECK_ERROR(clErr);
+    cl_mem dataBuf2 = clCreateBuffer( context,
+                            CL_MEM_READ_WRITE,
+                            mtx.GetDataSize(),
+                            NULL,
+                            &clErr );
+    CL_CHECK_ERROR(clErr);
+    cl_mem* currData = &dataBuf1;
+    cl_mem* newData = &dataBuf2;
 
     // copy the initial matrix values onto the device
-    cl::Event writeEvt;
-    queue.enqueueWriteBuffer( *currData,
-                                CL_FALSE,    // blocking
-                                0,          // offset
-                                mtx.GetDataSize(),
-                                mtx.GetFlatData(),
-                                NULL,       // wait on no earlier events
-                                &writeEvt );    // save completion event
+    cl_event writeEvt;
+    clErr = clEnqueueWriteBuffer( queue,
+                                    *currData,
+                                    CL_FALSE,   //blocking
+                                    0,          // offset
+                                    mtx.GetDataSize(),  // cb
+                                    mtx.GetFlatData(),
+                                    0,          // wait on no earlier events
+                                    NULL,
+                                    &writeEvt );    // save completion event
+    CL_CHECK_ERROR(clErr);
     waitEvents.push_back( writeEvt );
+
 
     // copy the halo from the initial buffer into the second buffer
     // Note: when doing local iterations, these values do not change
     // but they can change in the MPI version after an inter-process
     // halo exchange.
     //
-    // copy the sides with contiguous data, ensuring push of initial data 
+    // copy the sides with contiguous data, ensuring push of initial data
     // to device has completed
     size_t rowExtent = mtx.GetNumPaddedColumns() * sizeof(T);
-    queue.enqueueCopyBuffer( *currData,
-                                *newData,
-                                0,
-                                0,
-                                rowExtent,
-                                &waitEvents,
-                                NULL );
-    queue.enqueueCopyBuffer( *currData,
-                                *newData,
-                                (mtx.GetNumRows() - 1) * rowExtent,
-                                (mtx.GetNumRows() - 1) * rowExtent,
-                                rowExtent,
-                                NULL,
-                                NULL );
+    clErr = clEnqueueCopyBuffer( queue,
+                                    *currData,
+                                    *newData,
+                                    0,
+                                    0,
+                                    rowExtent,
+                                    waitEvents.size(),
+                                    waitEvents.empty() ? NULL : &waitEvents.front(),
+                                    NULL );
+    CL_CHECK_ERROR(clErr);
+    ClearWaitEvents( waitEvents );
+
+    clErr = clEnqueueCopyBuffer( queue,
+                                    *currData,
+                                    *newData,
+                                    (mtx.GetNumRows() - 1) * rowExtent,
+                                    (mtx.GetNumRows() - 1) * rowExtent,
+                                    rowExtent,
+                                    0,
+                                    NULL,
+                                    NULL );
 
     // copy the non-contiguous data
-    // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that 
+    // NOTE: OpenCL 1.1 provides a function clEnqueueCopyBufferRect that
     // seems like it would be useful here.  For OpenCL 1.0 compatibility,
     // we use a custom kernel that copies the non-contiguous data.
-    waitEvents.clear();
-    copyRectKernel.setArg( 0, *newData ); // dest
-    copyRectKernel.setArg( 1, 0 ); // dest offset
-    copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
-    copyRectKernel.setArg( 3, *currData ); // src
-    copyRectKernel.setArg( 4, 0 ); // src offset
-    copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
-    copyRectKernel.setArg( 6, 1 ); // width
-    copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
+    SetCopyRectKernelArgs( *newData,  // dest
+                            0,  // dest offset
+                            (int)mtx.GetNumPaddedColumns(),  // dest pitch
+                            *currData,  // src
+                            0,  // src offset
+                            (int)mtx.GetNumPaddedColumns(),  // src pitch
+                            1,  // width
+                            (int)mtx.GetNumRows() );  // height
 
-    cl::Event cwEvent;
-    queue.enqueueNDRangeKernel( copyRectKernel,
-        cl::NullRange,
-        cl::NDRange( mtx.GetNumRows() ),
-        cl::NullRange,
-        NULL,
-        &cwEvent );
+    cl_event cwEvent;
+    size_t global_work_size = mtx.GetNumRows();
+    clErr = clEnqueueNDRangeKernel( queue,
+                                    copyRectKernel,
+                                    1,      // work dimensions
+                                    NULL,   // global work offset - use all 0s
+                                    &global_work_size,  // global work size
+                                    NULL,   // local work size - impl defined
+                                    0,      // number of events to wait on
+                                    NULL,   // events to wait on
+                                    &cwEvent ); // completion event
+    CL_CHECK_ERROR(clErr);
     waitEvents.push_back( cwEvent );
 
-    copyRectKernel.setArg( 0, *newData ); // dest
-    copyRectKernel.setArg( 1, (int)(mtx.GetNumColumns() - 1) ); // dest offset
-    copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
-    copyRectKernel.setArg( 3, *currData ); // src
-    copyRectKernel.setArg( 4, (int)(mtx.GetNumColumns() - 1) ); // src offset
-    copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
-    copyRectKernel.setArg( 6, 1 ); // width
-    copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
-    cl::Event ceEvent;
-    queue.enqueueNDRangeKernel( copyRectKernel,
-        cl::NullRange,
-        cl::NDRange( mtx.GetNumRows() ),
-        cl::NullRange,
-        NULL,
-        &ceEvent );
+    SetCopyRectKernelArgs( *newData,  // dest
+                            (int)(mtx.GetNumColumns() - 1),  // dest offset
+                            (int)mtx.GetNumPaddedColumns(),  // dest pitch
+                            *currData,  // src
+                            (int)(mtx.GetNumColumns() - 1),  // src offset
+                            (int)mtx.GetNumPaddedColumns(),  // src pitch
+                            1,  // width
+                            (int)mtx.GetNumRows());  // height
+
+    cl_event ceEvent;
+    clErr = clEnqueueNDRangeKernel( queue,
+                                    copyRectKernel,
+                                    1,      // work dimensions
+                                    NULL,   // global work offset - use all 0s
+                                    &global_work_size,  // global work size
+                                    NULL,   // local work size - impl defined
+                                    0,      // number of events to wait on
+                                    NULL,   // events to wait on
+                                    &ceEvent ); // completion event
+    CL_CHECK_ERROR(clErr);
     waitEvents.push_back( ceEvent );
 
-    cl::Event::waitForEvents( waitEvents );
+    clErr = clWaitForEvents( waitEvents.size(),
+                        waitEvents.empty() ? NULL : &waitEvents.front() );
+    CL_CHECK_ERROR(clErr);
+    ClearWaitEvents( waitEvents );
+
 
     // do the stencil iterations
-    waitEvents.clear();
     for( int iter = 0; iter < nIters; iter++ )
     {
         this->DoPreIterationWork( *currData,
@@ -198,59 +354,102 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
                                     iter,
                                     queue );
 
-        // we would like to use event dependency list as specified 
-        // in the OpenCL spec and in the C++ binding API, 
+        // we would like to use event dependency list as specified
+        // in the OpenCL spec and in the C++ binding API,
         // allowing the OpenCL runtime to manage dependencies on these
-        // kernel invocations, but the C++ binding API 
+        // kernel invocations, but the C++ binding API
         // silently (!) ignores the events vector.
         //
         // Instead, we go back all the way to host code to wait
         // for one iteration to finish before enqueuing the next.
-        // We have one optimization for the final iteration - 
+        // We have one optimization for the final iteration -
         // in that case we enqueue the read buffer command and
         // make it dependent on the completion of the last iteration.
         //
         size_t localDataSize = (lRows + 2) * (lCols + 2) * sizeof(T);
 
-        // We would like to use a C++ functor approach, but
-        // the KernelFunctor from the earlier OpenCL C++ bindings 
-        // has disappeared and anecdotal evidence suggests that
-        // the make_kernel approach in the OpenCL 1.2-related C++ bindings
-        // might not be stable a stable API.
-        // So we stick with the verbose setArg/enqueueNDRangeKernel approach.
-        kernel.setArg( 0, *currData );
-        kernel.setArg( 1, *newData );
-        kernel.setArg( 2, (cl_int)(mtx.GetPad()) );
-        kernel.setArg( 3, this->wCenter );
-        kernel.setArg( 4, this->wCardinal );
-        kernel.setArg( 5, this->wDiagonal );
-        kernel.setArg( 6, cl::__local( localDataSize ) );
+        SetStencilKernelArgs( *currData,
+                                *newData,
+                                (cl_int)(mtx.GetPad()),
+                                this->wCenter,
+                                this->wCardinal,
+                                this->wDiagonal,
+                                localDataSize );
 
-        cl::Event evt;
-        queue.enqueueNDRangeKernel( kernel,
-            cl::NullRange,
-            cl::NDRange( (mtx.GetNumRows() - 2) / lRows, mtx.GetNumColumns() - 2 ),
-            cl::NDRange( 1, lCols ), 
-            NULL,
-            &evt );
+        cl_event mainKernelEvt;
+        std::vector<size_t> gWorkDims(2, 0);
+        gWorkDims[0] = (mtx.GetNumRows() - 2) / lRows;
+        gWorkDims[1] = mtx.GetNumColumns() - 2;
+        std::vector<size_t> lWorkDims(2, 0);
+        lWorkDims[0] = 1;
+        lWorkDims[1] = lCols;
+        clErr = clEnqueueNDRangeKernel( queue,
+                                kernel,
+                                gWorkDims.size(),   // number of work dimensions
+                                NULL,               // global work offset - use all 0s
+                                &gWorkDims.front(),  // global work dimensions
+                                &lWorkDims.front(),  // local work dimensions
+                                0,      // number of events to wait on
+                                NULL,   // events to wait on
+                                &mainKernelEvt ); // completion event
+        CL_CHECK_ERROR(clErr);
 
         if( iter == nIters-1 )
         {
             // last iteration - put the event in the dependency list
             // to be used by the read buffer command
-            waitEvents.push_back( evt );
+            waitEvents.push_back( mainKernelEvt );
         }
         else
         {
             // Not the last iteration - more iterations to follow.
             // wait for this iteration to complete.
-            evt.wait();
+#if READY
+            cl_command_queue clqueue;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_COMMAND_QUEUE,
+                        sizeof(clqueue),
+                        &clqueue,
+                        NULL);
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "queue=" << queue << ", clqueue=" << clqueue << std::endl;
+
+            cl_context clctxt;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_CONTEXT,
+                        sizeof(clctxt),
+                        &clctxt,
+                        NULL);
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "ctx=" << context << ", clctxt=" << clctxt << std::endl;
+            cl_command_type clct;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_COMMAND_TYPE,
+                        sizeof(clct),
+                        &clct,
+                        NULL );
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "command type=" << clct << std::endl;
+            cl_int cles;
+            clErr = clGetEventInfo(mainKernelEvt,
+                        CL_EVENT_COMMAND_EXECUTION_STATUS,
+                        sizeof(cles),
+                        &cles,
+                        NULL);
+            CL_CHECK_ERROR(clErr);
+            std::cerr << "execution status=" << cles << std::endl;
+
+#endif // READY
+
+            clErr = clWaitForEvents( 1, &mainKernelEvt );
+            CL_CHECK_ERROR(clErr);
+            ClearWaitEvents( waitEvents );
         }
 
         // switch to put new data into other buffer
         if( currData == &dataBuf1 )
         {
-            currData = &dataBuf2;            
+            currData = &dataBuf2;
             newData = &dataBuf1;
         }
         else
@@ -261,22 +460,30 @@ OpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
     }
 
     // read final data off the device
-    queue.enqueueReadBuffer( *currData,
-                                CL_TRUE,    // blocking
-                                0,          // offset
-                                mtx.GetDataSize(),
-                                mtx.GetFlatData(),
-                                &waitEvents );
+    clErr = clEnqueueReadBuffer( queue,
+                                    *currData,
+                                    CL_TRUE,    // blocking
+                                    0,          // offset
+                                    mtx.GetDataSize(),  // number of bytes
+                                    mtx.GetFlatData(),  // store location
+                                    waitEvents.size(),  // number of events to wait on
+                                    waitEvents.empty() ? NULL : &waitEvents.front(), // events to wait on
+                                    NULL ); // completion event
+    CL_CHECK_ERROR(clErr);
+    ClearWaitEvents( waitEvents );
+
+    clReleaseMemObject( dataBuf1 );
+    clReleaseMemObject( dataBuf2 );
 }
 
 
 template<class T>
 void
-OpenCLStencil<T>::DoPreIterationWork( cl::Buffer& buf,
-                                    cl::Buffer& altBuf,
+OpenCLStencil<T>::DoPreIterationWork( cl_mem buf,
+                                    cl_mem altBuf,
                                     Matrix2D<T>& mtx,
                                     unsigned int iter,
-                                    cl::CommandQueue& queue )
+                                    cl_command_queue queue )
 {
     // in single process version, nothing for us to do
 }

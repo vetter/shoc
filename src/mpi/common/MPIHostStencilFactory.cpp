@@ -16,9 +16,9 @@ MPIHostStencilFactory<T>::BuildStencil( const OptionParser& opts )
     // get our options
     std::vector<long long> mpiDims = opts.getOptionVecInt( "msize" );
     long nItersPerExchange = opts.getOptionInt( "iters-per-exchange" );
-    
+
     return new MPIHostStencil<T>( wCenter,
-                                wCardinal, 
+                                wCardinal,
                                 wDiagonal,
                                 (size_t)mpiDims[0],
                                 (size_t)mpiDims[1],
@@ -36,7 +36,7 @@ MPIHostStencilFactory<T>::AddOptions( OptionParser& opts ) const
 
 
 template<class T>
-void 
+void
 MPIHostStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
 {
     // let base class check its options

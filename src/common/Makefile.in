@@ -51,7 +51,8 @@ libSHOCCommon_a_AR = $(AR) $(ARFLAGS)
 libSHOCCommon_a_LIBADD =
 am_libSHOCCommon_a_OBJECTS = CTimer.$(OBJEXT) ResultDatabase.$(OBJEXT) \
 	OptionParser.$(OBJEXT) Option.$(OBJEXT) Timer.$(OBJEXT) \
-	ProgressBar.$(OBJEXT) InvalidArgValue.$(OBJEXT)
+	ProgressBar.$(OBJEXT) InvalidArgValue.$(OBJEXT) \
+	Matrix2DStatics.$(OBJEXT)
 libSHOCCommon_a_OBJECTS = $(am_libSHOCCommon_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
@@ -195,7 +196,8 @@ libSHOCCommon_a_SOURCES = CTimer.cpp \
 	Option.cpp \
 	Timer.cpp \
 	ProgressBar.cpp \
-	InvalidArgValue.cpp
+	InvalidArgValue.cpp \
+	Matrix2DStatics.cpp
 
 all: all-am
 
@@ -247,6 +249,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CTimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/InvalidArgValue.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Matrix2DStatics.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Option.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/OptionParser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ProgressBar.Po@am__quote@

@@ -25,22 +25,22 @@ class OptionParser
   private:
     typedef std::map<std::string, Option> OptionMap;
 
-    OptionMap optionMap; 
+    OptionMap optionMap;
     map<char, string>   shortLetterMap;
 
     bool helpRequested;
 
   public:
-  
+
     OptionParser();
     void addOption(const string &longName,
                    OptionType type,
                    const string &defaultValue,
-                   const string &helpText = "No help specified", 
+                   const string &helpText = "No help specified",
                    char shortLetter = '\0');
-    
+
     void print() const;
-    
+
     //Returns false on failure, true on success
     bool parse(int argc, const char *const argv[]);
     bool parse(const vector<string> &args);
@@ -51,7 +51,7 @@ class OptionParser
     float       getOptionFloat(const string &name) const;
     bool        getOptionBool(const string &name) const;
     string      getOptionString(const string &name) const;
-    
+
     vector<long long>     getOptionVecInt(const string &name) const;
     vector<float>         getOptionVecFloat(const string &name) const;
     vector<string>        getOptionVecString(const string &name) const;

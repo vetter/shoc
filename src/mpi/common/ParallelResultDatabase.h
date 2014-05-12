@@ -69,7 +69,7 @@ class ParallelResultDatabase : public ResultDatabase
             const Result &r = db.GetResults()[i];
 
             // We tag any missing values (e.g. from non-double-precision
-            // supporting cards) with FLT_MAX. 
+            // supporting cards) with FLT_MAX.
             bool hadMissingValues = r.HadAnyFLTMAXValues();
 
             // Propagate missing value tag to what gets collected in parallel.
@@ -159,7 +159,7 @@ class ParallelResultDatabase : public ResultDatabase
                 double thresholdIQR = outlierThresholds[pass];
                 double nextThresholdIQR = (pass < nOutlierThresholds-1) ?
                                                  outlierThresholds[pass+1] : 0;
-                for (int j=0; j<r.value.size(); j++)        
+                for (int j=0; j<r.value.size(); j++)
                 {
                     double v = r.value[j];
                     if (v < allProcsQ1 - thresholdIQR * allProcsIQR)

@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 
         // Get args
         OptionParser op;
-       
+
         //Add shared options to the parser
         op.addOption("device", OPT_VECINT, "0",
                 "specify device(s) to run on", 'd');
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 #endif
             return (op.HelpRequested() ? 0 : 1);
         }
-        
+
         bool verbose = op.getOptionBool("verbose");
         bool infoDev = op.getOptionBool("infoDevices");
 #ifdef _WIN32

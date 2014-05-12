@@ -33,7 +33,7 @@
 //    returns a handle to a timer.  Pass this handle, and a description,
 //    into the timer Stop routine.  Timers can nest and output will
 //    be displayed in a tree format.
-//    
+//
 //    Externally, Timer represents time in units of seconds.
 //
 //  Programmer:  Jeremy Meredith

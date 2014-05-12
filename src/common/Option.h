@@ -19,9 +19,9 @@ enum OptionType {OPT_FLOAT, OPT_INT, OPT_STRING, OPT_BOOL,
 //
 // ****************************************************************************
 class Option {
-  
+
   public:
-   
+
    string longName;
    char   shortLetter;
    string defaultValue;

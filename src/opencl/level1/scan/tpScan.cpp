@@ -72,18 +72,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_scan;
 
 void
-RunBenchmark(cl::Device& devcpp,
-             cl::Context& ctxcpp,
-             cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+             cl_context ctx,
+             cl_command_queue queue,
              ResultDatabase &resultDB,
              OptionParser &op)
 {
-    // Convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     // Collect basic MPI information
     int size, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -118,12 +112,12 @@ RunBenchmark(cl::Device& devcpp,
         // doesn't support DP, submit FLT_MAX (this is handled as no result by
         // ResultDB.
         int passes = op.getOptionInt("passes");
-        for (int k = 0; k < passes; k++) 
+        for (int k = 0; k < passes; k++)
         {
             resultDB.AddResult("TPScan-DP-Kernel" , atts, "GB/s", FLT_MAX);
-            resultDB.AddResult("TPScan-DP-Kernel+PCIe" , atts, "GB/s", 
+            resultDB.AddResult("TPScan-DP-Kernel+PCIe" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult("TPScan-DP-MPI_ExScan" , atts, "GB/s", 
+            resultDB.AddResult("TPScan-DP-MPI_ExScan" , atts, "GB/s",
                 FLT_MAX);
             resultDB.AddResult("TPScan-DP-Overall" , atts, "GB/s", FLT_MAX);
         }
@@ -143,8 +137,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
     // Program Setup
-    cl_program prog = clCreateProgramWithSource(ctx, 
-                                                1, 
+    cl_program prog = clCreateProgramWithSource(ctx,
+                                                1,
                                                 &cl_source_scan,
                                                 NULL,
                                                 &err);
@@ -152,7 +146,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     // Before proceeding, make sure the kernel code compiles and
     // all kernels are valid.
-    if (mpi_rank == 0) 
+    if (mpi_rank == 0)
     {
         cout << "Compiling scan kernels." << endl;
     }
@@ -179,7 +173,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     cl_kernel top_scan = clCreateKernel(prog, "top_scan", &err);
     CL_CHECK_ERROR(err);
-    
+
     cl_kernel bottom_scan = clCreateKernel(prog, "bottom_scan", &err);
     CL_CHECK_ERROR(err);
 
@@ -191,14 +185,14 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         char atts[1024] = "GSize_Not_Supported";
         // resultDB requires neg entry for every possible result
         int passes = op.getOptionInt("passes");
-        for (int k = 0; k < passes; k++) 
+        for (int k = 0; k < passes; k++)
         {
             resultDB.AddResult(testName+"-Kernel" , atts, "GB/s", FLT_MAX);
-            resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s", 
+            resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s", 
+            resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult(testName+"-Overall" , atts, "GB/s", FLT_MAX);         
+            resultDB.AddResult(testName+"-Overall" , atts, "GB/s", FLT_MAX);
         }
         return;
     }
@@ -220,7 +214,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     T* h_idata = (T*)clEnqueueMapBuffer(queue, h_i, true,
             CL_MAP_READ|CL_MAP_WRITE, 0, bytes, 0, NULL, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate pinned host memory for output data (h_odata)
     cl_mem h_o = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
             bytes, NULL, &err);
@@ -229,7 +223,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
             CL_MAP_READ|CL_MAP_WRITE, 0, bytes, 0, NULL, NULL, &err);
     CL_CHECK_ERROR(err);
 
-    
+
     // Initialize host memory
     if (mpi_rank == 0)
     {
@@ -244,20 +238,20 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     // Allocate device memory for input array
     cl_mem d_idata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate device memory for output array
     cl_mem d_odata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
 
     // Number of local work items per group
     const size_t local_wsize  = 256;
-    
+
     // Number of local work groups and total work items
     const size_t num_work_groups = 64;
     const size_t global_wsize = local_wsize * num_work_groups;
 
     // Allocate device memory for local work group intermediate sums
-    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
             num_work_groups * sizeof(T), NULL, &err);
     CL_CHECK_ERROR(err);
 
@@ -266,7 +260,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         num_work_groups * sizeof(T), NULL, &err);
     CL_CHECK_ERROR(err);
     T* h_isums = (T*)clEnqueueMapBuffer(queue, h_b, true,
-        CL_MAP_READ|CL_MAP_WRITE, 0, num_work_groups * sizeof(T), 
+        CL_MAP_READ|CL_MAP_WRITE, 0, num_work_groups * sizeof(T),
         0, NULL, NULL, &err);
     CL_CHECK_ERROR(err);
 
@@ -279,7 +273,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(reduce, 3, local_wsize * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-                        
+
     // Set the kernel arguments for the top-level scan
     err = clSetKernelArg(top_scan, 0, sizeof(cl_mem), (void*)&d_isums);
     CL_CHECK_ERROR(err);
@@ -299,11 +293,11 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(bottom_scan, 4, local_wsize * 2 * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-    
+
     // Repeat the test multiple times to get a good measurement
     int passes = op.getOptionInt("passes");
 
-    if (mpi_rank == 0) 
+    if (mpi_rank == 0)
     {
         cout << "Running benchmark with size " << size << endl;
     }
@@ -320,7 +314,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
         pcie_time += (double)evTransfer.StartEndRuntime() / 1e9;
-        
+
         // This code uses a reduce-then-scan strategy.
         // The major steps of the algorithm are:
         // 1. Local reduction on a node
@@ -329,25 +323,25 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         //    from the global exclusive scan
         Event ev_reduce("Reduction Kernel");
         err = clEnqueueNDRangeKernel(queue, reduce, 1, NULL,
-                    &global_wsize, &local_wsize, 0, NULL, 
+                    &global_wsize, &local_wsize, 0, NULL,
                     &ev_reduce.CLEvent());
         err = clFinish(queue);
         ev_reduce.FillTimingInfo();
         kernel_time += (double)ev_reduce.StartEndRuntime() * 1e-9;
-        
+
         // Next step is to copy the reduced blocks back to the host,
         // sum them, and perform the MPI exlcusive (top level) scan.
-        err = clEnqueueReadBuffer(queue, d_isums, true, 0, 
+        err = clEnqueueReadBuffer(queue, d_isums, true, 0,
                 num_work_groups*sizeof(T), h_isums, 0,
                 NULL, &evTransfer.CLEvent());
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
         pcie_time += (double)evTransfer.StartEndRuntime() * 1e-9;
-        
+
         // Start the timer for MPI Scan
         int globscan_th = Timer::Start();
         T reduced=0., scanned=0.;
-        
+
         // To get the true sum for this node, we have to add up
         // the block sums before MPI scanning.
         for (int i = 0; i < num_work_groups; i++)
@@ -356,7 +350,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         }
 
         // Next step is an exclusive scan across MPI ranks.
-        // Then a local scan seeded with the result from MPI. 
+        // Then a local scan seeded with the result from MPI.
         globalExscan(&reduced, &scanned);
         mpi_time += Timer::Stop(globscan_th, "Global Scan");
 
@@ -370,8 +364,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
         pcie_time += (double)evTransfer.StartEndRuntime() * 1e-9;
-        
-        Event ev_scan("Scan Kernel");        
+
+        Event ev_scan("Scan Kernel");
         err = clEnqueueNDRangeKernel(queue, top_scan, 1, NULL,
                 &local_wsize, &local_wsize, 0, NULL, &ev_scan.CLEvent());
         err = clFinish(queue);
@@ -382,13 +376,13 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         // Finally, a bottom-level scan is performed by each block
         // that is seeded with the scanned value in block sums
         err = clEnqueueNDRangeKernel(queue, bottom_scan, 1, NULL,
-                    &global_wsize, &local_wsize, 0, NULL, 
+                    &global_wsize, &local_wsize, 0, NULL,
                     &ev_scan.CLEvent());
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
         ev_scan.FillTimingInfo();
-        kernel_time += ((double)ev_scan.StartEndRuntime() * 1.e-9);       
-       
+        kernel_time += ((double)ev_scan.StartEndRuntime() * 1.e-9);
+
         // Read data back for correctness check
         err = clEnqueueReadBuffer(queue, d_odata, true, 0, bytes, h_odata,
                 0, NULL, &evTransfer.CLEvent());
@@ -401,8 +395,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
             if (h_odata[size-1] != (mpi_size * size) / 2)
             {
                 cout << "Test Failed\n";
-            } 
-            else 
+            }
+            else
             {
                 cout << "Test Passed\n";
             }
@@ -410,16 +404,16 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
         char atts[1024];
         sprintf(atts, "%d items", size);
-        double global_gb = (double)(mpi_size * size * sizeof(T)) / 
+        double global_gb = (double)(mpi_size * size * sizeof(T)) /
             (1000. * 1000. * 1000.);
 
-        resultDB.AddResult(testName+"-Kernel" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-Kernel" , atts, "GB/s",
                 global_gb / kernel_time);
-        resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s",
                 global_gb / (kernel_time + pcie_time));
-        resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s",
                 (mpi_size * sizeof(T) *1e-9) / mpi_time);
-        resultDB.AddResult(testName+"-Overall" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-Overall" , atts, "GB/s",
                 global_gb / (kernel_time + pcie_time + mpi_time));
     }
 
@@ -444,7 +438,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clReleaseMemObject(h_b);
     CL_CHECK_ERROR(err);
-    
+
     err = clReleaseProgram(prog);
     CL_CHECK_ERROR(err);
     err = clReleaseKernel(reduce);

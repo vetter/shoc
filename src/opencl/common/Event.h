@@ -18,7 +18,7 @@
 class Event
 {
   public:
-    /// Value to use for specifying to query all OpenCL kernel 
+    /// Value to use for specifying to query all OpenCL kernel
     // events asssociated with this Event.
     static const int ALL_EVENTS;
 

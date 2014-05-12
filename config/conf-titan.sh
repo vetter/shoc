@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# As of 5/2012, Titan is a Cray XK6 with NVIDIA X2090s, one per node.
-# Eventually, Titan should have NVIDIA Kepler GPUs.
+# Titan is a Cray XK7 with NVIDIA K20X (Kepler) GPUs, one per node.
 
 # In the following, we are building with the Cray compiler drivers (named
 # cc for C, CC for C++).  These drivers know how to find CUDA and OpenCL, 
@@ -14,6 +13,12 @@
 # Thus, we must trick configure into thinking we are cross compiling.  The
 # --host flag is how we indicate we are cross compiling.
 
+# A typical build might look like:
+# $ module swap PrgEnv-pgi PrgEnv-gnu
+# $ module load craype-accel-nvidia35
+# $ sh ./config/conf-titan.sh
+# $ make
+
 # We explicitly pass MPICXX variable because the SHOC configure script
 # only tries more common MPI C++ compiler names like mpicxx.
 
@@ -22,9 +27,6 @@
 # We do this mainly to reduce the amount of time it takes to build SHOC,
 # though it has some beneficial effect on the final sizes of the executables
 # compared to the default.
-# Note that we are passing code=sm_20, which builds a binary for Fermi
-# GPUs with compute capability 2.0.  If we wanted the build to produce
-# forward compatible PTX, we could replace code=sm_20 with code=compute_20.
 # 
 
 
@@ -32,7 +34,7 @@ CC=cc \
 CXX=CC \
 MPICXX=CC \
 sh ./configure \
-CUDA_CPPFLAGS="-gencode=arch=compute_20,code=sm_20" \
+CUDA_CPPFLAGS="-gencode=arch=compute_35,code=sm_35" \
 --host=x86_64-unknown-linux-gnu \
 --with-opencl \
 --with-cuda \

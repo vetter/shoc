@@ -63,7 +63,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 void
 RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 {
-    
+
     int size, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -85,8 +85,8 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             cout << "Starting double precision tests\n";
         }
         RunTest<double,double4>("TPScan-DP", resultDB, op);
-    } 
-    else 
+    }
+    else
     {
         char atts[1024] = "DP_Not_Supported";
         cout << "Warning, rank " << rank << "'s device does not support DP\n";
@@ -94,12 +94,12 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         // doesn't support DP, submit FLT_MAX (this is handled as no result by
         // ResultDB.
         int passes = op.getOptionInt("passes");
-        for (int k = 0; k < passes; k++) 
+        for (int k = 0; k < passes; k++)
         {
             resultDB.AddResult("TPScan-DP-Kernel" , atts, "GB/s", FLT_MAX);
-            resultDB.AddResult("TPScan-DP-Kernel+PCIe" , atts, "GB/s", 
+            resultDB.AddResult("TPScan-DP-Kernel+PCIe" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult("TPScan-DP-MPI_ExScan" , atts, "GB/s", 
+            resultDB.AddResult("TPScan-DP-MPI_ExScan" , atts, "GB/s",
                 FLT_MAX);
             resultDB.AddResult("TPScan-DP-Overall" , atts, "GB/s", FLT_MAX);
         }
@@ -109,16 +109,16 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 template <class T, class vecT>
 void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 {
-    
+
     int mpi_size, mpi_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    
+
     int prob_sizes[4] = { 1, 8, 32, 64 };
     int size_class = op.getOptionInt("size");
     assert(size_class > 0 && size_class < 5);
     int size = prob_sizes[size_class-1];
-    
+
     // Convert to MB
     size = (size * 1024 * 1024) / sizeof(T);
     // create input data on CPU
@@ -132,10 +132,10 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     // Allocate Host Memory
     T* h_idata, *h_block_sums, *h_odata;
     CUDA_SAFE_CALL(cudaMallocHost((void**) &h_idata, bytes));
-    CUDA_SAFE_CALL(cudaMallocHost((void**) &h_block_sums, 
+    CUDA_SAFE_CALL(cudaMallocHost((void**) &h_block_sums,
                 num_blocks * sizeof(T)));
     CUDA_SAFE_CALL(cudaMallocHost((void**) &h_odata, bytes));
-    
+
     // Allocate Device Data
     T* d_idata, *d_block_sums, *d_odata;
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_idata, bytes));
@@ -143,7 +143,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_odata, bytes));
 
     // Initialize host memory
-    if (mpi_rank == 0) 
+    if (mpi_rank == 0)
     {
         cout << "Initializing host memory." << endl;
     }
@@ -153,7 +153,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         h_idata[i] = i % 2; // Fill with some pattern
         h_odata[i] = -1;
     }
-    
+
     int passes = op.getOptionInt("passes");
     int iters = op.getOptionInt("iterations");
     cudaEvent_t start, stop;
@@ -167,7 +167,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         CUDA_SAFE_CALL(cudaEventCreate(&start));
         CUDA_SAFE_CALL(cudaEventCreate(&stop));
         MPI_Barrier(MPI_COMM_WORLD); // Sync processes at beginning of pass
-        
+
         CUDA_SAFE_CALL(cudaEventRecord(start, 0));
         for (int m = 0; m < iters; m++)
         {
@@ -176,7 +176,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         }
         cudaEventRecord(stop, 0);
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-        
+
         // Get elapsed time of input PCIe transfer
         float temp;
         cudaEventElapsedTime(&temp, start, stop);
@@ -191,12 +191,12 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         CUDA_SAFE_CALL(cudaEventRecord(start, 0));
         for (int j = 0; j < iters; j++)
         {
-            LaunchReduceKernel<T>( num_blocks, 
-                                   num_threads, 
+            LaunchReduceKernel<T>( num_blocks,
+                                   num_threads,
                                    smem_size,
-                                   d_idata, 
-                                   d_block_sums, 
-                                   size );          
+                                   d_idata,
+                                   d_block_sums,
+                                   size );
         }
         CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
@@ -216,7 +216,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&temp, start, stop);
         pcie_time += (temp / (double)iters) * 1.e-3;
-        
+
         int globscan_th = Timer::Start();
         T reduced=0., scanned=0.;
         // To get the true sum for this node, we have to add up
@@ -227,13 +227,13 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         }
 
         // Next step is an exclusive scan across MPI ranks.
-        // Then a local scan seeded with the result from MPI. 
+        // Then a local scan seeded with the result from MPI.
         for (int j = 0; j < iters; j++)
         {
             globalExscan(&reduced, &scanned);
         }
         mpi_time += Timer::Stop(globscan_th, "Global Scan") / iters;
-        
+
         // Now, scanned contains all the information we need from other nodes
         // Next step is to perform the local top level (i.e. across blocks) scan,
         // but seed it with the "scanned", the sum of elems on all lower ranks.
@@ -249,14 +249,14 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         // Device block sums has been seeded, perform the top level scan,
         // then the bottom level scan.
         CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-        LaunchTopScanKernel( 1, 
-                             num_threads, 
+        LaunchTopScanKernel( 1,
+                             num_threads,
                              smem_size*2,
                              d_block_sums,
                              num_blocks );
 
-        LaunchBottomScanKernel<T, vecT, 256>( num_blocks, 
-                                              num_threads, 
+        LaunchBottomScanKernel<T, vecT, 256>( num_blocks,
+                                              num_threads,
                                               smem_size * 2,
                                               d_idata,
                                               d_odata,
@@ -266,39 +266,39 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
         cudaEventElapsedTime(&temp, start, stop);
         kernel_time += temp * 1.e-3;
-        
+
         // Lightweight correctness check -- won't apply
         // if data is not initialized to i%2 above
         if (mpi_rank == mpi_size-1)
         {
-            CUDA_SAFE_CALL(cudaMemcpy(&(h_odata[size-1]), 
+            CUDA_SAFE_CALL(cudaMemcpy(&(h_odata[size-1]),
                                       &(d_odata[size-1]),
                 sizeof(T), cudaMemcpyDeviceToHost));
-            
+
             if (h_odata[size-1] != (mpi_size * size) / 2)
             {
                 cout << "Test Failed\n";
-            } 
-            else 
+            }
+            else
             {
                 cout << "Test Passed\n";
             }
         }
-        
+
         char atts[1024];
         sprintf(atts, "%d items", size);
         double global_gb = (double)(mpi_size * size * sizeof(T)) / 1e9;
-        
-        resultDB.AddResult(testName+"-Kernel" , atts, "GB/s", 
+
+        resultDB.AddResult(testName+"-Kernel" , atts, "GB/s",
                 global_gb / kernel_time);
-        resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-Kernel+PCIe" , atts, "GB/s",
                 global_gb / (kernel_time + pcie_time));
-        resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-MPI_ExScan" , atts, "GB/s",
                 (mpi_size * sizeof(T) *1e-9) / mpi_time);
-        resultDB.AddResult(testName+"-Overall" , atts, "GB/s", 
+        resultDB.AddResult(testName+"-Overall" , atts, "GB/s",
                 global_gb / (kernel_time + pcie_time + mpi_time));
     }
-    
+
     // Clean up host data
     CUDA_SAFE_CALL(cudaFreeHost(h_idata));
     CUDA_SAFE_CALL(cudaFreeHost(h_odata));
