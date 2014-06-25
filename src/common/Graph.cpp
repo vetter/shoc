@@ -13,7 +13,7 @@
 Graph::Graph()
 {
     num_verts=0;
-    num_edges=0; 
+    num_edges=0;
     max_degree=0;
     adj_list_length=0;
     edge_offsets=NULL;
@@ -57,24 +57,24 @@ void Graph::LoadMetisGraph(const char *filename)
     assert(fp);
 	char charBuf[MAX_LINE_LENGTH];
 	const char delimiters[]=" \n";
-	char *temp_token=NULL; 
-    
+	char *temp_token=NULL;
+
     while(1)
     {
         fgets(charBuf,MAX_LINE_LENGTH,fp);
-        temp_token = strtok (charBuf, delimiters); 
-        
+        temp_token = strtok (charBuf, delimiters);
+
         if(temp_token==NULL)
-            continue; 
+            continue;
 
         else if(temp_token[0]=='%')
-            continue; 
-        
+            continue;
+
         else
             break;
 
     }
-  
+
     assert(isdigit(temp_token[0]));
 	num_verts  = atoi(temp_token);
 	temp_token = strtok (NULL, delimiters);
@@ -95,7 +95,7 @@ void Graph::LoadMetisGraph(const char *filename)
             return;
         }
     }
-    
+
     if(edge_offsets==NULL)
     {
         if_delete_arrays=true;
@@ -112,7 +112,7 @@ void Graph::LoadMetisGraph(const char *filename)
 		fgets(charBuf,MAX_LINE_LENGTH,fp);
 
 		temp_token=strtok(charBuf,delimiters);
-        
+
 		if(temp_token==NULL)
 		{
 			edge_offsets[index-1]=offset;
@@ -136,7 +136,7 @@ void Graph::LoadMetisGraph(const char *filename)
 		    cost=atoi(temp_token);
             edge_costs[offset]=cost;
         }
-        
+
 		//temp_value=(index-1)*(num_verts)+(vert-1);
 		offset++;
 		while(temp_token=(strtok(NULL,delimiters)))
@@ -160,9 +160,9 @@ void Graph::LoadMetisGraph(const char *filename)
         if(max_degree < offset-edge_offsets[index-1])
             max_degree=offset-edge_offsets[index-1];
 	}
-    
+
     adj_list_length=offset;
-    
+
 	//Add length of the adjacency list to last position
 	edge_offsets[num_verts]=offset;
     adj_list_length=offset;
@@ -241,7 +241,7 @@ unsigned int *Graph::GetEdgeCosts()
 {
     return edge_costs;
 }
-    
+
 unsigned int **Graph::GetEdgeOffsetsPtr()
 {
     return &edge_offsets;
@@ -353,7 +353,7 @@ unsigned int * Graph::GetVertexLengths(
 	for(int i=0;i<num_verts;i++)
 		cost[i]=UINT_MAX;
 
-	cost[source]=0;	
+	cost[source]=0;
 	unsigned int nid;
 	unsigned int next,offset;
 	int n;

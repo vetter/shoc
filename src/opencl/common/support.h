@@ -6,12 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if defined(__cplusplus)
-#define __CL_ENABLE_EXCEPTIONS
-#include "shoc_compat_cas.h"
-#include "cl.hpp"
-#endif /* __cplusplus */
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/opencl.h>
+#else
+#include <CL/opencl.h>
+#endif
 
 // ****************************************************************************
 // File:  support.h
@@ -74,19 +73,38 @@ inline const char *CLErrorString(cl_int err)
       case CL_INVALID_GL_OBJECT:               return "CL_INVALID_GL_OBJECT";               // break;
       case CL_INVALID_BUFFER_SIZE:             return "CL_INVALID_BUFFER_SIZE";             // break;
       case CL_INVALID_MIP_LEVEL:               return "CL_INVALID_MIP_LEVEL";               // break;
+      case CL_INVALID_GLOBAL_WORK_SIZE:        return "CL_INVALID_GLOBAL_WORK_SIZE";        // break;
+      case CL_INVALID_PROPERTY:                return "CL_INVALID_PROPERTY";                // break;
       default:                                 return "UNKNOWN";                            // break;
   }
 }
 
+#if defined(USE_CL_EXCEPTIONS)
+
+#define CL_CHECK_ERROR(err) \
+    { \
+        if(err != CL_SUCCESS) \
+        { \
+            std::ostringstream msgstr; \
+            msgstr << __FILE__ << ':' << __LINE__ << ": " \
+                << CLErrorString(err); \
+            throw SHOC_OpenCLException(err, msgstr.str()); \
+        } \
+    }
+
+#else // defined(USE_CL_EXCEPTIONS)
+
 #define CL_CHECK_ERROR(err) \
     {                       \
         if (err != CL_SUCCESS)                  \
-            std::cerr << "Error: "              \
-                      << CLErrorString(err)     \
-                      << " in " << __FILE__     \
-                      << " line " << __LINE__   \
-                      << std::endl;             \
+        { \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " << CLErrorString(err) << std::endl; \
+            exit(1); \
+        } \
     }
+#endif // defined(USE_CL_EXCEPTIONS)
+
+
 
 inline std::string DeviceTypeToString(cl_device_type type)
 {
@@ -136,7 +154,7 @@ inline std::string QueuePropsToString(cl_bitfield type)
 // Method:  getMaxWorkGroupSize
 //
 // Purpose:
-//   Finds the maximum valid work group size for the specified kernel and 
+//   Finds the maximum valid work group size for the specified kernel and
 //   OpenCL context.
 //
 // Arguments:
@@ -327,7 +345,7 @@ oclGetFirstDev(cl_context cxMainContext)
 // Method:  dumpPTXCode
 //
 // Purpose:
-//   
+//
 //
 // Arguments:
 //   ctx          context
@@ -339,14 +357,14 @@ oclGetFirstDev(cl_context cxMainContext)
 //
 // ****************************************************************************
 inline bool
-dumpPTXCode (cl_context ctx, cl_program prog, const char *name) 
+dumpPTXCode (cl_context ctx, cl_program prog, const char *name)
 {
     std::cout << "Dumping the PTX code" << std::endl;
     size_t ptx_length;
-    char* ptx_code;   
+    char* ptx_code;
     char buf[64];
     oclGetProgBinary (prog, oclGetFirstDev(ctx), &ptx_code, &ptx_length);
-        
+
     FILE* ptxFile = NULL;
     sprintf (buf, "%.59s.ptx", name);
 #ifdef WIN32
@@ -370,53 +388,54 @@ dumpPTXCode (cl_context ctx, cl_program prog, const char *name)
 // Purpose: returns maximum number of bytes *allocatable* (likely less than
 //          device memory size) on the device.
 //
-// Arguments: 
+// Arguments:
 //   device   id of the device
 //
 // Programmer:  Collin McCurdy
 // Creation:    June 8, 2010
 //
 // ****************************************************************************
-inline unsigned long 
-findAvailBytes(cl_device_id device)
-{
-    cl_ulong avail_bytes;
-
-    clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-                    sizeof(cl_ulong), &avail_bytes, NULL);
-    
-    return avail_bytes;
-}
-
 inline
-unsigned long 
-findAvailBytes( const cl::Device& dev )
+unsigned long
+findAvailBytes( cl_device_id devID )
 {
-    cl_ulong avail_bytes = dev.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
-    
+    cl_int err;
+
+    cl_ulong avail_bytes = 0;
+    err = clGetDeviceInfo( devID,
+                            CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+                            sizeof(avail_bytes),
+                            &avail_bytes,
+                            NULL );
+    CL_CHECK_ERROR(err);
+
     return avail_bytes;
 }
 
-
-inline bool
-checkExtension(const cl_device_id devID, const std::string& ext)
-{
-    char extensions[1024];
-    size_t retSize = 0;
-    int err = clGetDeviceInfo(devID, CL_DEVICE_EXTENSIONS, sizeof(extensions),
-            extensions, &retSize);
-
-    std::string extString = extensions;
-
-    return (extString.find(ext) != std::string::npos);
-
-}
 
 inline
 bool
-checkExtension( const cl::Device& dev, const std::string& ext )
+checkExtension( cl_device_id devID, const std::string& ext )
 {
-    std::string extString = dev.getInfo<CL_DEVICE_EXTENSIONS>();
+    cl_int err;
+
+    size_t nBytesNeeded = 0;
+    err = clGetDeviceInfo( devID,
+                        CL_DEVICE_EXTENSIONS,
+                        NULL,
+                        NULL,
+                        &nBytesNeeded );
+    CL_CHECK_ERROR(err);
+    char* extensions = new char[nBytesNeeded+1];
+    err = clGetDeviceInfo( devID,
+                        CL_DEVICE_EXTENSIONS,
+                        nBytesNeeded + 1,
+                        extensions,
+                        NULL );
+
+    std::string extString = extensions;
+    delete[] extensions;
+
     return (extString.find(ext) != std::string::npos);
 }
 

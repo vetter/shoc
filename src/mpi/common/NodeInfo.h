@@ -59,7 +59,7 @@ class NodeInfo
 
 
 inline
-NodeInfo::NodeInfo(MPI_Comm comm) 
+NodeInfo::NodeInfo(MPI_Comm comm)
 {
     char **hostnamelist,*name;
     int rank, numprocs;
@@ -107,8 +107,8 @@ NodeInfo::NodeInfo(MPI_Comm comm)
     {
         cout<<"Malloc failed for SMP/MAP info"<<endl;exit(1);
     }
- 
-    /*populate the smp and node info*/ 
+
+    /*populate the smp and node info*/
     if(rank == 0){
         numnodes = 0;
         char *b_name = (char *)malloc(sizeof(char)*MAX_HOSTNAME);
@@ -124,7 +124,7 @@ NodeInfo::NodeInfo(MPI_Comm comm)
                         hostnamelist[k+1][0]='\0';
                         nodelist[k+1]=numnodes;
                     }
-                    k++; 
+                    k++;
                 }
                 numnodes++;
             }
@@ -159,9 +159,9 @@ NodeInfo::NodeInfo(MPI_Comm comm)
 
 
 inline
-void NodeInfo::print() 
+void NodeInfo::print()
 {
-    if (noderank == 0)  
+    if (noderank == 0)
     {
         cout << "Printing Node Information" << endl;
         cout << "nodeNprocs = " << nodenprocs<<endl;
@@ -177,7 +177,7 @@ void NodeInfo::print()
 
 #if 0
 int main(int argc,char *argv[])
-{ 
+{
     int numtasks, rank, dest, source, rc, count, tag=1, noderank;
     char inmsg, outmsg='x';
     MPI_Init(&argc,&argv);

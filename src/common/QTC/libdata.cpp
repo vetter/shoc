@@ -11,6 +11,7 @@
 #include "QTC/qtc_common.h"
 #include "QTC/libdata.h"
 #include "qtclib.h"
+#include "PMSMemMgmt.h"
 
 #define MAX_WIDTH  20.0
 #define MAX_HEIGHT 20.0
@@ -68,7 +69,6 @@ int read_BLAST_data(float **rslt_mtrx,
     if(maxN>0){
         N = maxN;
     }
-    //allocHostBuffer((void **)&dist_mtrx, N*N*sizeof(float));
 
     /* new */
     if( useFullLayout ){
@@ -76,8 +76,8 @@ int read_BLAST_data(float **rslt_mtrx,
     }else{
         bound = D;
     }
-    allocHostBuffer((void **)&dist_mtrx, N*bound*sizeof(float));
-    allocHostBuffer((void **)&index_mtrx, N*D*sizeof(int));
+    dist_mtrx = pmsAllocHostBuffer<float>(N*bound);
+    index_mtrx = pmsAllocHostBuffer<int>(N*D);
 
     // Initialize the distances to something huge.
     for(int i=0; i<N; i++){
@@ -267,8 +267,8 @@ float *generate_synthetic_data(float **rslt_mtrx,
     }else{
         bound = D;
     }
-    allocHostBuffer((void **)&dist_mtrx, N*bound*sizeof(float));
-    allocHostBuffer((void **)&index_mtrx, N*D*sizeof(int));
+    dist_mtrx = pmsAllocHostBuffer<float>(N*bound);
+    index_mtrx = pmsAllocHostBuffer<int>(N*D);
 
     // Initialize the distances to something huge.
     for(int i=0; i<N; i++){

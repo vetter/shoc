@@ -1,1 +1,1 @@
-SUBDIRS=bfs fft sgemm stencil2d md reduction scan sort spmv triad
+SUBDIRS=bfs fft gemm stencil2d md reduction scan sort spmv triad

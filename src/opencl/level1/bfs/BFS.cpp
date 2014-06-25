@@ -33,15 +33,15 @@
 //
 // ****************************************************************************
 void addBenchmarkSpecOptions(OptionParser &op)
-{   
-    op.addOption("graph_file", OPT_STRING, "random", "name of graph file"); 
+{
+    op.addOption("graph_file", OPT_STRING, "random", "name of graph file");
     op.addOption("degree", OPT_INT, "2", "average degree of nodes");
     op.addOption("algo", OPT_INT, "1", "1-IIIT BFS 2-UIUC BFS ");
-    op.addOption("dump-pl", OPT_BOOL, "false", 
+    op.addOption("dump-pl", OPT_BOOL, "false",
             "enable dump of path lengths to file");
     op.addOption("source_vertex", OPT_INT, "0",
             "vertex to start the traversal from");
-    op.addOption("global-barrier", OPT_BOOL, "false", 
+    op.addOption("global-barrier", OPT_BOOL, "false",
             "enable the use of global barrier in UIUC BFS");
 }
 
@@ -50,12 +50,12 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //
 // Purpose:
 //   Get the kernel configuration so that we have one thread mapped to one
-//   vertex in the frontier. 
+//   vertex in the frontier.
 //
 // Arguments:
-//   gws: global work size 
-//   lws: local work size 
-//   maxThreadsPerCore: the max work group size for specified device 
+//   gws: global work size
+//   lws: local work size
+//   maxThreadsPerCore: the max work group size for specified device
 //   numVerts: number of vertices in the graph
 //
 // Returns:  nothing
@@ -72,21 +72,21 @@ void GetWorkSize(size_t *gws, size_t *lws, size_t maxThreadsPerCore,
     int temp;
     gws[0]=(size_t)numVerts;
     temp=(int)ceil((float)gws[0]/(float)maxThreadsPerCore);
-    gws[0]=temp*maxThreadsPerCore;  
-    lws[0]=maxThreadsPerCore;   
+    gws[0]=temp*maxThreadsPerCore;
+    lws[0]=maxThreadsPerCore;
 }
 
 // ****************************************************************************
-// Function: verify_results 
+// Function: verify_results
 //
 // Purpose:
-//  Verify BFS results by comparing the output path lengths from cpu and gpu 
-//  traversals 
+//  Verify BFS results by comparing the output path lengths from cpu and gpu
+//  traversals
 //
 // Arguments:
-//   cpu_cost: path lengths calculated on cpu 
-//   gpu_cost: path lengths calculated on gpu 
-//   numVerts: number of vertices in the given graph 
+//   cpu_cost: path lengths calculated on cpu
+//   gpu_cost: path lengths calculated on gpu
+//   numVerts: number of vertices in the given graph
 //   out_path_lengths: specify if path lengths should be dumped to files
 //
 // Returns:  nothing
@@ -107,11 +107,11 @@ cl_uint verify_results(cl_uint *cpu_cost, cl_uint *gpu_cost, cl_uint numVerts,
     {
         if (gpu_cost[i]!=cpu_cost[i])
         {
-            unmatched_nodes++;  
+            unmatched_nodes++;
         }
     }
 
-    //if user wants to write path lengths to file 
+    //if user wants to write path lengths to file
     if (out_path_lengths)
     {
         std::ofstream bfs_out_cpu("bfs_out_cpu.txt");
@@ -134,7 +134,7 @@ cl_uint verify_results(cl_uint *cpu_cost, cl_uint *gpu_cost, cl_uint numVerts,
     return unmatched_nodes;
 }
 
-extern const char *cl_source_bfs_iiit; 
+extern const char *cl_source_bfs_iiit;
 
 // ****************************************************************************
 // Function: RunTest1
@@ -144,20 +144,20 @@ extern const char *cl_source_bfs_iiit;
 //
 // Arguments:
 //   device: opencl device to run test on
-//   context: the opencl context 
+//   context: the opencl context
 //   queue: the opencl command queue
-//   resultDB: the benchmark stores its results in this ResultDatabase 
+//   resultDB: the benchmark stores its results in this ResultDatabase
 //   op: the options parser / parameter database
 //   G: input graph
 //
 // Returns:  nothing
-// Programmer: Aditya Sarwade 
+// Programmer: Aditya Sarwade
 // Creation: June 16, 2011
 //
 // Modifications:
 //
 // ****************************************************************************
-void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue, 
+void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         ResultDatabase& resultDB, OptionParser& op, Graph *G)
 {
     typedef cl_uint frontier_type;
@@ -205,7 +205,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
             sizeof(frontier_type)*numVerts,NULL,&err_code);
     CL_CHECK_ERROR(err_code);
 
-    frontier_type *frontier = (frontier_type *)clEnqueueMapBuffer(queue, h_f, 
+    frontier_type *frontier = (frontier_type *)clEnqueueMapBuffer(queue, h_f,
             true, CL_MAP_READ|CL_MAP_WRITE, 0,
             sizeof(frontier_type)*numVerts,
             0, NULL, NULL, &err_code);
@@ -272,7 +272,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
 
     //Transfer edge_offsets and edge_list to GPU
     err_code = clEnqueueWriteBuffer(queue, d_edgeArray, CL_TRUE, 0,
-            (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL, 
+            (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL,
             &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
     err_code = clFinish(queue);
@@ -291,7 +291,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
 
     //Transfer frontier to GPU
     err_code = clEnqueueWriteBuffer(queue, d_frontier, CL_TRUE, 0,
-            numVerts*sizeof(frontier_type), (void *)frontier,0, 
+            numVerts*sizeof(frontier_type), (void *)frontier,0,
             NULL, &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
     err_code = clFinish(queue);
@@ -364,7 +364,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         }
 
         //flag set when there are nodes to be traversed.
-        int flag=1; 
+        int flag=1;
         //Initialize timers
         double totalKernelTime=0;
 
@@ -374,7 +374,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         //iteration count
         cl_uint iters=0;
         //start CPU Timer to measure total time taken to complete benchmark
-        int cpu_bfs_timer = Timer::Start(); 
+        int cpu_bfs_timer = Timer::Start();
         //while there are nodes to traverse
         //flag is set if nodes exist in frontier
         while (flag)
@@ -386,8 +386,8 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
 
             err_code=clSetKernelArg(kernel1,6,sizeof(cl_uint),(void *)&iters);
             CL_CHECK_ERROR(err_code);
- 
-            //Call kernel1 
+
+            //Call kernel1
             err_code=clEnqueueNDRangeKernel(queue,kernel1,1,NULL,
                     &global_work_size,&local_work_size,0,NULL,
                     &evKernel.CLEvent());
@@ -426,7 +426,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         for(int i=0;i<numVerts;i++)
         {
             if(costArray[i]!=UINT_MAX)
-                numVisited++;   
+                numVisited++;
         }
 
         bool dump_paths=op.getOptionBool("dump-pl");
@@ -438,7 +438,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         float gbytes=
             sizeof(frontier_type)*numVerts*2+   //2 frontiers
             sizeof(cost_type)*numVerts+         //cost array
-            sizeof(cl_uint)*(numVerts+1)+       //edgeArray 
+            sizeof(cl_uint)*(numVerts+1)+       //edgeArray
             sizeof(cl_uint)*adj_list_length;    //edgeArrayAux
         gbytes/=(1000. * 1000. * 1000.);
 
@@ -447,8 +447,8 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         sprintf(atts,"v:%d_e:%d ",numVerts,adj_list_length);
         if(unmatched_verts==0)
         {
-            totalKernelTime *= 1.e-9;  
-            totalTransferTime *= 1.e-9;  
+            totalKernelTime *= 1.e-9;
+            totalTransferTime *= 1.e-9;
             resultDB.AddResult("BFS_total",atts,"s",result_time);
             resultDB.AddResult("BFS_kernel_time",atts,"s",totalKernelTime);
             resultDB.AddResult("BFS",atts,"GB/s",gbytes/totalKernelTime);
@@ -461,7 +461,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
             resultDB.AddResult("BFS_visited_vertices", atts, "N",numVisited);
 
         }
-        else 
+        else
         {
             resultDB.AddResult("BFS_total",atts,"s",FLT_MAX);
             resultDB.AddResult("BFS_kernel_time",atts,"s",FLT_MAX);
@@ -476,11 +476,11 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
         std::cout<<"Test ";
         if(unmatched_verts==0)
         {
-            std::cout<<" Passed\n"; 
+            std::cout<<"Passed\n";
         }
         else
         {
-            std::cout<<" Failed\n"; 
+            std::cout<<"Failed\n";
             return;
         }
     }
@@ -498,7 +498,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
     CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(h_f);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(h_cost);
     CL_CHECK_ERROR(err_code);
@@ -520,7 +520,7 @@ void RunTest1(cl_device_id device, cl_context context, cl_command_queue queue,
 
 }
 
-extern const char *cl_source_bfs_uiuc_spill; 
+extern const char *cl_source_bfs_uiuc_spill;
 // ****************************************************************************
 // Function: RunTest2
 //
@@ -529,14 +529,14 @@ extern const char *cl_source_bfs_uiuc_spill;
 //
 // Arguments:
 //   device: opencl device to run test on
-//   context: the opencl context 
+//   context: the opencl context
 //   queue: the opencl command queue
-//   resultDB: the benchmark stores its results in this ResultDatabase 
+//   resultDB: the benchmark stores its results in this ResultDatabase
 //   op: the options parser / parameter database
 //   G: input graph
 //
 // Returns:  nothing
-// Programmer: Aditya Sarwade 
+// Programmer: Aditya Sarwade
 // Creation: June 16, 2011
 //
 // Modifications:
@@ -545,7 +545,7 @@ extern const char *cl_source_bfs_uiuc_spill;
 void RunTest2(
         cl_device_id device,
         cl_context context,
-        cl_command_queue queue, 
+        cl_command_queue queue,
         ResultDatabase& resultDB,
         OptionParser& op,
         Graph *G)
@@ -599,7 +599,7 @@ void RunTest2(
             sizeof(frontier_type)*(numVerts),NULL,&err_code);
     CL_CHECK_ERROR(err_code);
 
-    frontier_type *frontier = (frontier_type *)clEnqueueMapBuffer(queue, h_f, 
+    frontier_type *frontier = (frontier_type *)clEnqueueMapBuffer(queue, h_f,
             true, CL_MAP_READ|CL_MAP_WRITE, 0,
             sizeof(frontier_type)*(numVerts),
             0, NULL, NULL, &err_code);
@@ -684,7 +684,7 @@ void RunTest2(
             numVerts*sizeof(frontier_type),NULL,&err_code);
     CL_CHECK_ERROR(err_code);
 
-    //allocate GPU memory for visited 
+    //allocate GPU memory for visited
     d_visited=clCreateBuffer(context,CL_MEM_READ_WRITE,
             numVerts* sizeof(visited_type),NULL,&err_code);
     CL_CHECK_ERROR(err_code);
@@ -694,7 +694,7 @@ void RunTest2(
             sizeof(cl_uint),NULL,&err_code);
     CL_CHECK_ERROR(err_code);
 
-    //allocate GPU memory for mutex variables and 
+    //allocate GPU memory for mutex variables and
     //intermediate frontier length variables
     d_g_mutex=clCreateBuffer(context,CL_MEM_READ_WRITE,
             sizeof(cl_uint),NULL,&err_code);
@@ -723,7 +723,7 @@ void RunTest2(
 
     //Transfer adjacency list to GPU
     err_code = clEnqueueWriteBuffer(queue, d_edgeArray, CL_TRUE, 0,
-            (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL, 
+            (numVerts+1)*sizeof(cl_uint), (void *)edgeArray,0, NULL,
             &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
     err_code = clFinish(queue);
@@ -742,7 +742,7 @@ void RunTest2(
 
     //Transfer frontiers to GPU
     err_code = clEnqueueWriteBuffer(queue, d_frontier, CL_TRUE, 0,
-            numVerts*sizeof(frontier_type), (void *)frontier,0, 
+            numVerts*sizeof(frontier_type), (void *)frontier,0,
             NULL, &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
     err_code = clFinish(queue);
@@ -751,7 +751,7 @@ void RunTest2(
     inputTransferTime += evTransfer.StartEndRuntime();
 
     err_code = clEnqueueWriteBuffer(queue, d_t_frontier, CL_TRUE, 0,
-            sizeof(frontier_type)*numVerts, (void *)frontier,0, 
+            sizeof(frontier_type)*numVerts, (void *)frontier,0,
             NULL, &evTransfer.CLEvent());
     CL_CHECK_ERROR(err_code);
     err_code = clFinish(queue);
@@ -789,7 +789,7 @@ void RunTest2(
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
 
-    //Create kernel functions 
+    //Create kernel functions
     cl_kernel kernel_op_1=clCreateKernel(program,"BFS_kernel_one_block",
         &err_code);
     CL_CHECK_ERROR(err_code);
@@ -826,7 +826,7 @@ void RunTest2(
 
     size_temp=getMaxWorkGroupSize(context, kernel_op_fcopy);
     if(maxWorkItemsPerGroup>size_temp)
-        maxWorkItemsPerGroup=size_temp;       
+        maxWorkItemsPerGroup=size_temp;
 
     GetWorkSize(&global_work_size,&local_work_size,maxWorkItemsPerGroup,
             numVerts);
@@ -834,7 +834,7 @@ void RunTest2(
     //calculate the usable shared memory
     size_t max_local_mem =getLocalMemSize(device);
     max_local_mem = max_local_mem - sizeof(cl_uint)*3;
-   
+
     cl_uint max_q_size=(max_local_mem/sizeof(cl_uint));
     //index for kernel parameters
     int p=-1;
@@ -931,7 +931,7 @@ void RunTest2(
     p=-1;
     err_code=clSetKernelArg(kernel_op_3,++p,sizeof(cl_mem),(void *)&d_frontier);
     CL_CHECK_ERROR(err_code);
-    err_code=clSetKernelArg(kernel_op_3,++p,sizeof(cl_uint),    
+    err_code=clSetKernelArg(kernel_op_3,++p,sizeof(cl_uint),
             (void *)&frontier_length);
     CL_CHECK_ERROR(err_code);
     err_code=clSetKernelArg(kernel_op_3,++p,sizeof(cl_mem),
@@ -1044,7 +1044,7 @@ void RunTest2(
             CL_CHECK_ERROR(err_code);
 
             err_code = clEnqueueWriteBuffer(queue, d_visited, CL_TRUE, 0,
-                    numVerts*sizeof(visited_type), (void *)visited, 
+                    numVerts*sizeof(visited_type), (void *)visited,
                     0,NULL,NULL);
             CL_CHECK_ERROR(err_code);
 
@@ -1066,7 +1066,7 @@ void RunTest2(
         //specify the kernel configuration parameters
         size_t gws=0,lws=0;
         //start CPU Timer to measure total time taken to complete benchmark
-        int cpu_bfs_timer = Timer::Start(); 
+        int cpu_bfs_timer = Timer::Start();
         //while there are nodes to traverse
         while (frontier_length>0)
         {
@@ -1082,7 +1082,7 @@ void RunTest2(
             evKernel.FillTimingInfo();
             totalKernelTime += evKernel.StartEndRuntime();
 
-            //kernel for frontier length within one block 
+            //kernel for frontier length within one block
             if (frontier_length<maxWorkItemsPerGroup)
             {
                 err_code=clSetKernelArg(kernel_op_1,1,sizeof(cl_uint),
@@ -1165,7 +1165,7 @@ void RunTest2(
         for (int i=0;i<numVerts;i++)
         {
             if(costArray[i]!=UINT_MAX)
-                numVisited++;   
+                numVisited++;
         }
 
         bool dump_paths=op.getOptionBool("dump-pl");
@@ -1177,7 +1177,7 @@ void RunTest2(
             sizeof(frontier_type)*numVerts*2+  //2 frontiers
             sizeof(cost_type)*numVerts+        //cost array
             sizeof(visited_type)*numVerts+     //visited mask array
-            sizeof(cl_uint)*(numVerts+1)+      //edgeArray 
+            sizeof(cl_uint)*(numVerts+1)+      //edgeArray
             sizeof(cl_uint)*adj_list_length;   //edgeArrayAux
 
         gbytes/=(1000. * 1000. * 1000.);
@@ -1187,8 +1187,8 @@ void RunTest2(
         sprintf(atts,"v:%d_e:%d",numVerts,adj_list_length);
         if (unmatched_verts==0)
         {
-            totalKernelTime *= 1.e-9;  
-            totalTransferTime *= 1.e-9;  
+            totalKernelTime *= 1.e-9;
+            totalTransferTime *= 1.e-9;
             resultDB.AddResult("BFS_total",atts,"s",result_time);
             resultDB.AddResult("BFS_kernel_time",atts,"s",totalKernelTime);
             resultDB.AddResult("BFS",atts,"GB/s",gbytes/totalKernelTime);
@@ -1200,7 +1200,7 @@ void RunTest2(
                     numEdges/result_time);
             resultDB.AddResult("BFS_visited_vertices", atts, "N",numVisited);
         }
-        else 
+        else
         {
             resultDB.AddResult("BFS_total",atts,"s",FLT_MAX);
             resultDB.AddResult("BFS_kernel_time",atts,"s",FLT_MAX);
@@ -1212,14 +1212,14 @@ void RunTest2(
             return;
         }
 
-        std::cout<<"Test ";   
+        std::cout<<"Test ";
         if(unmatched_verts==0)
         {
-            std::cout<<"Passed\n"; 
+            std::cout<<"Passed\n";
         }
         else
         {
-            std::cout<<"Failed\n"; 
+            std::cout<<"Failed\n";
             return;
         }
     }
@@ -1252,13 +1252,13 @@ void RunTest2(
     CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(h_cost);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(h_f);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(h_v);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     err_code=clReleaseMemObject(d_frontier);
     CL_CHECK_ERROR(err_code);
@@ -1306,33 +1306,27 @@ void RunTest2(
 //
 // Arguments:
 //   devcpp: opencl device
-//   ctxcpp: the opencl context 
+//   ctxcpp: the opencl context
 //   queuecpp: the opencl command queue
 //   resultDB: results from the benchmark are stored in this db
 //   op: the options parser / parameter database
 //
 // Returns:  nothing
-// Programmer: Aditya Sarwade 
+// Programmer: Aditya Sarwade
 // Creation: June 16, 2011
 //
 // Modifications:
 //
 // ****************************************************************************
-void RunBenchmark(
-        cl::Device& devcpp, 
-        cl::Context& ctxcpp, 
-        cl::CommandQueue& queuecpp,
-        ResultDatabase &resultDB, 
+void RunBenchmark(cl_device_id device,
+        cl_context context,
+        cl_command_queue queue,
+        ResultDatabase &resultDB,
         OptionParser &op)
 {
-    //Get device context and command queue
-    cl_device_id device = devcpp();
-    cl_context context = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     //adjacency list variables
     cl_mem h_edge,h_edgeAux;
-    //number of vertices and edges in graph 
+    //number of vertices and edges in graph
     cl_uint numVerts=0,numEdges=0;
     //variable to get error code
     cl_int err_code;
@@ -1351,7 +1345,7 @@ void RunBenchmark(
     //Load simple k-way tree or from a file
     if (inFileName == "random")
     {
-        //Load simple k-way tree 
+        //Load simple k-way tree
         //prob size specifies number of vertices
         cl_uint prob_sizes[4] = { 1000,10000,100000,1000000 };
         numVerts = prob_sizes[op.getOptionInt("size")-1];
@@ -1386,7 +1380,7 @@ void RunBenchmark(
         //Generate simple tree
         G->GenerateSimpleKWayGraph(numVerts,avg_degree);
     }
-    else    
+    else
     {
         //Read number of vertices and edges from first line of graph
         FILE *fp=fopen(inFileName.c_str(),"r");
@@ -1394,17 +1388,17 @@ void RunBenchmark(
         {
             std::cout<<"\nFile not found!!!";
             return;
-        } 
+        }
         const char delimiters[]=" \n";
         char charBuf[MAX_LINE_LENGTH];
         fgets(charBuf,MAX_LINE_LENGTH,fp);
-        char *temp_token = strtok (charBuf, delimiters); 
+        char *temp_token = strtok (charBuf, delimiters);
 
         while(temp_token[0]=='%')
         {
             fgets(charBuf,MAX_LINE_LENGTH,fp);
-            temp_token = strtok (charBuf, delimiters); 
-        }        
+            temp_token = strtok (charBuf, delimiters);
+        }
         numVerts=atoi(temp_token);
         temp_token = strtok (NULL, delimiters);
         numEdges=atoi(temp_token);
@@ -1442,7 +1436,7 @@ void RunBenchmark(
     std::cout<<"Vertices: "<<G->GetNumVertices() << endl;
     std::cout<<"Edges: "<<G->GetNumEdges() << endl;
     int algo = op.getOptionInt("algo");
-    //Run the test according to specified method 
+    //Run the test according to specified method
     switch(algo)
     {
         case 1:
@@ -1457,16 +1451,16 @@ void RunBenchmark(
     err_code=clEnqueueUnmapMemObject(queue, h_edge, *edge_ptr1, 0, NULL, NULL);
     CL_CHECK_ERROR(err_code);
 
-    err_code=clEnqueueUnmapMemObject(queue, h_edgeAux, *edge_ptr2, 
+    err_code=clEnqueueUnmapMemObject(queue, h_edgeAux, *edge_ptr2,
             0, NULL, NULL);
     CL_CHECK_ERROR(err_code);
 
 
     clReleaseMemObject(h_edge);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     clReleaseMemObject(h_edgeAux);
-    CL_CHECK_ERROR(err_code);   
+    CL_CHECK_ERROR(err_code);
 
     delete G;
 }

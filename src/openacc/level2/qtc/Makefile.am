@@ -11,6 +11,7 @@ VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common:$(srcdir)/../
 
 AM_LDFLAGS = $(OPENACC_LDFLAGS)
 AM_CFLAGS	= $(OPENACC_CFLAGS)
+AM_CPPFLAGS = $(OPENACC_CPPFLAGS) -I$(srcdir)
 
 # what is the destination for programs built from this directory?
 serialopenaccdir = $(bindir)/Serial/OpenACC

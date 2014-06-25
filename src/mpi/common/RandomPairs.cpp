@@ -15,21 +15,21 @@ int mpi_error_code;
 // ****************************************************************************
 // Function: RandomPairs
 //
-// Purpose: 
+// Purpose:
 //   Collective method that pics a random, unique, pair each time called
 //
 // Arguments:
 //   arg1 : self rank
 //   arg2 : total mpi ranks
 //
-// Returns: 
+// Returns:
 //   the rank of the pair process
 //
 // Programmer: Vinod Tipparaju
 // Creation:   August 12, 2009
 //
-// TODO: 
-// 
+// TODO:
+//
 // Modifications:
 // 2010-02-24 - rothpc - converted to use permutation of ranks to assign pairs
 //
@@ -55,10 +55,10 @@ int RandomPairs(int myrank, int numranks, MPI_Comm new_comm)
     // (we're using a Fisher-Yates shuffle, aka Knuth shuffle)
     for( i = (numranks - 1); i > 0; i-- )
     {
-        // randomly select an element in [0,i]        
+        // randomly select an element in [0,i]
         int ridx = (int)(i * ((double)(rand()) / RAND_MAX));
         assert( (ridx >= 0) && (ridx <= i) );
-        
+
         // swap selected element with element at index i
         int tmp = ranks[ridx];
         ranks[ridx] = ranks[i];
@@ -81,7 +81,7 @@ int RandomPairs(int myrank, int numranks, MPI_Comm new_comm)
             }
             else if( (i % 2) != 0 )
             {
-                // My rank was found at an odd index - 
+                // My rank was found at an odd index -
                 // my pair is the rank before mine
                 mypair = ranks[i-1];
             }
@@ -130,5 +130,5 @@ int RandomPairs(int myrank, int numranks, MPI_Comm new_comm)
     delete[] ranks;
 
     return mypair;
-}    
+}
 

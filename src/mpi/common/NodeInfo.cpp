@@ -9,7 +9,7 @@
 using namespace std;
 
 int main(int argc,char *argv[])
-{ 
+{
     int numtasks, rank, dest, source, rc, count, tag=1, noderank;
     char inmsg, outmsg='x';
     MPI_Init(&argc,&argv);

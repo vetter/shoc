@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <cassert>
 #include "MPIOpenCLStencil.h"
+#include "support.h"
 
 
 
@@ -15,9 +16,9 @@ MPIOpenCLStencil<T>::MPIOpenCLStencil( T _wCenter,
                                     size_t _mpiGridRows,
                                     size_t _mpiGridCols,
                                     unsigned int _nItersPerHaloExchange,
-                                    cl::Device& _dev,
-                                    cl::Context& _ctx,
-                                    cl::CommandQueue& _queue,
+                                    cl_device_id _dev,
+                                    cl_context _ctx,
+                                    cl_command_queue _queue,
                                     bool _dumpData )
   : OpenCLStencil<T>( _wCenter,
                     _wCardinal,
@@ -34,7 +35,7 @@ MPIOpenCLStencil<T>::MPIOpenCLStencil( T _wCenter,
     eData( NULL ),
     wData( NULL )
 {
-    if( dumpData )      
+    if( dumpData )
     {
         std::ostringstream fnamestr;
         fnamestr << "ocl." << std::setw( 4 ) << std::setfill('0') << this->GetCommWorldRank();
@@ -51,7 +52,7 @@ MPIOpenCLStencil<T>::~MPIOpenCLStencil( void )
 
 
 template<class T>
-void 
+void
 MPIOpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
     if( this->ParticipatingInProgram() )
@@ -89,12 +90,14 @@ MPIOpenCLStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 
 template<class T>
 void
-MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
-                                        cl::Buffer& altBuf,
+MPIOpenCLStencil<T>::DoPreIterationWork( cl_mem currBuf,
+                                        cl_mem altBuf,
                                         Matrix2D<T>& mtx,
                                         unsigned int iter,
-                                        cl::CommandQueue& queue )
+                                        cl_command_queue queue )
 {
+    cl_int clErr;
+
     // do the halo exchange at desired frequency
     // note that we *do not* do the halo exchange here before the
     // first iteration, because we did it already (before we first
@@ -102,15 +105,15 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
     unsigned int haloWidth = this->GetNumberIterationsPerHaloExchange();
     if( (iter > 0) && (iter % haloWidth) == 0 )
     {
-        unsigned int nRows = mtx.GetNumRows();
-        unsigned int nCols = mtx.GetNumColumns();
+        size_t nRows = mtx.GetNumRows();
+        size_t nCols = mtx.GetNumColumns();
         unsigned int nPaddedCols = mtx.GetNumPaddedColumns();
         T* flatData = mtx.GetFlatData();
-        std::vector<cl::Event> waitEvents;
-        cl::Event nEvent;
-        cl::Event sEvent;
-        cl::Event eEvent;
-        cl::Event wEvent;
+        std::vector<cl_event> waitEvents;
+        cl_event nEvent;
+        cl_event sEvent;
+        cl_event eEvent;
+        cl_event wEvent;
 
 
         size_t nsDataItemCount = haloWidth * nPaddedCols;
@@ -120,100 +123,133 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
 
         // read current data off device
         // OpenCL 1.0 does not have a strided read, so we need to get
-        // the non-contiguous halo sides into contiguous buffers 
+        // the non-contiguous halo sides into contiguous buffers
         // before reading into our host buffers
-        cl::Buffer contigEBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
-        cl::Buffer contigWBuf( queue.getInfo<CL_QUEUE_CONTEXT>(), CL_MEM_READ_WRITE, ewDataSize );
+        cl_mem contigEBuf = clCreateBuffer( this->GetContext(),
+                                            CL_MEM_READ_WRITE,
+                                            ewDataSize,
+                                            NULL,
+                                            &clErr );
+        CL_CHECK_ERROR(clErr);
+        cl_mem contigWBuf = clCreateBuffer( this->GetContext(),
+                                            CL_MEM_READ_WRITE,
+                                            ewDataSize,
+                                            NULL,
+                                            &clErr );
+        CL_CHECK_ERROR(clErr);
 
         if( this->HaveNorthNeighbor() )
         {
             // north data is contiguous - copy directly into matrix
-            queue.enqueueReadBuffer( currBuf,
-                                        CL_FALSE,    // blocking
-                                        haloWidth * nPaddedCols * sizeof(T),          // offset
+            clErr = clEnqueueReadBuffer(queue,
+                                        currBuf,
+                                        CL_FALSE,   // is it blocking
+                                        haloWidth * nPaddedCols * sizeof(T),    // offset
                                         nsDataSize, // size
-                                        flatData + (haloWidth * nPaddedCols),
-                                        NULL,
-                                        &nEvent );
+                                        flatData + (haloWidth * nPaddedCols),   // dest
+                                        0,      // num events to wait on
+                                        NULL,   // events to wait on
+                                        &nEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
 
         if( this->HaveSouthNeighbor() )
         {
             // south data is contiguous - copy directly into matrix
-            queue.enqueueReadBuffer( currBuf,
-                                        CL_FALSE,    // blocking
+            clErr = clEnqueueReadBuffer(queue,
+                                        currBuf,
+                                        CL_FALSE,    // is it blocking?
                                         (nRows - 2 * haloWidth) * nPaddedCols * sizeof(T),    //offset
                                         nsDataSize,
                                         flatData + ((nRows - 2*haloWidth) * nPaddedCols),
-                                        NULL,
-                                        &sEvent );
+                                        0,      // num events to wait on
+                                        NULL,   // events to wait on
+                                        &sEvent);  // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
 
         if( this->HaveEastNeighbor() )
         {
-            // east data is non-contigous - 
+            // east data is non-contigous -
             // make it contiguous on the device
-            this->copyRectKernel.setArg( 0, contigEBuf ); // dest
-            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)haloWidth ); // dest pitch
-            this->copyRectKernel.setArg( 3, currBuf ); // src
-            this->copyRectKernel.setArg( 4, (int)(nCols - 2 * haloWidth) ); // src offset
-            this->copyRectKernel.setArg( 5, (int)nPaddedCols ); // src pitch
-            this->copyRectKernel.setArg( 6, (int)haloWidth );  // width
-            this->copyRectKernel.setArg( 7, (int)nRows ); // height
-            cl::Event ceEvent;
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &ceEvent );
+            this->SetCopyRectKernelArgs( contigEBuf, // dest
+                                    (int)0, // dest offset
+                                    (int)haloWidth, // dest pitch
+                                    currBuf, // src
+                                    (int)(nCols - 2 * haloWidth), // src offset
+                                    (int)nPaddedCols, // src pitch
+                                    (int)haloWidth,  // width
+                                    (int)nRows ); // height
+
+            cl_event ceEvent;
+            clErr = clEnqueueNDRangeKernel(queue,
+                                            this->copyRectKernel,
+                                            1,  // number of work dimensions
+                                            NULL,   // global work offset - use all 0s
+                                            &nRows, // global work size
+                                            NULL,   // local work size - impl defined
+                                            0,  // num events to wait on
+                                            NULL,   // events to wait on
+                                            &ceEvent);  // completion event
+            CL_CHECK_ERROR(clErr);
 
             // copy data into contiguous array on host
-            std::vector<cl::Event> ceEvents;
+            std::vector<cl_event> ceEvents;
             ceEvents.push_back( ceEvent );
-            queue.enqueueReadBuffer( contigEBuf,
-                                        CL_FALSE,    // blocking
+            clErr = clEnqueueReadBuffer(queue,
+                                        contigEBuf,
+                                        CL_FALSE,   // is it blocking?
                                         0,          // offset
                                         ewDataSize, // size
                                         eData,
-                                        &ceEvents,
-                                        &eEvent );
+                                        ceEvents.size(),    // num events to wait on
+                                        ceEvents.empty() ? NULL : &ceEvents.front(),   // events to wait on
+                                        &eEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
 
         if( this->HaveWestNeighbor() )
         {
-            // west data is non-contiguous - 
+            // west data is non-contiguous -
             // make it contiguous on the device,
-            this->copyRectKernel.setArg( 0, contigWBuf );  // dest
-            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)haloWidth ); // dest pitch
-            this->copyRectKernel.setArg( 3, currBuf ); // src
-            this->copyRectKernel.setArg( 4, (int)haloWidth ); // src offset
-            this->copyRectKernel.setArg( 5, (int)nPaddedCols ); // src pitch
-            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
-            this->copyRectKernel.setArg( 7, (int)nRows ); // height
-            cl::Event cwEvent;
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &cwEvent );
+            this->SetCopyRectKernelArgs( contigWBuf,  // dest
+                                    (int)0, // dest offset
+                                    (int)haloWidth, // dest pitch
+                                    currBuf, // src
+                                    (int)haloWidth, // src offset
+                                    (int)nPaddedCols, // src pitch
+                                    (int)haloWidth, // width
+                                    (int)nRows ); // height
+
+            cl_event cwEvent;
+            clErr = clEnqueueNDRangeKernel(queue,
+                                            this->copyRectKernel,
+                                            1,  // number of work dimensions
+                                            NULL,   // global work offset - use all 0s
+                                            &nRows, // global work size
+                                            NULL,   // local work size - impl defined
+                                            0,      // num events to wait on
+                                            NULL,   // events to wait on
+                                            &cwEvent);  // completion event
+            CL_CHECK_ERROR(clErr);
 
             // copy into a contiguous array on the host
-            std::vector<cl::Event> cwEvents;
+            std::vector<cl_event> cwEvents;
             cwEvents.push_back( cwEvent );
-            queue.enqueueReadBuffer( contigWBuf,
-                                        CL_FALSE,    // blocking
+            clErr = clEnqueueReadBuffer(queue,
+                                        contigWBuf,
+                                        CL_FALSE,   // is it blocking?
                                         0,          // offset
                                         ewDataSize, // size
-                                        wData,
-                                        &cwEvents,
-                                        &wEvent );
+                                        wData,      // host location
+                                        cwEvents.size(),    // num events to wait on
+                                        cwEvents.empty() ? NULL : &cwEvents.front(),   // events to wait on
+                                        &wEvent );  // completion event
+
+            CL_CHECK_ERROR(clErr);                                            
             waitEvents.push_back( wEvent );
         }
 
@@ -221,8 +257,9 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         // wait for all reads from device to complete
         if( !waitEvents.empty() )
         {
-            cl::Event::waitForEvents( waitEvents );
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         // put east/west data into correct position in matrix
@@ -233,8 +270,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // east side
-                    flatData[r*nPaddedCols + 
-                                (nCols - 2*haloWidth) + hc] = 
+                    flatData[r*nPaddedCols +
+                                (nCols - 2*haloWidth) + hc] =
                             eData[r*haloWidth + hc];
                 }
             }
@@ -246,8 +283,8 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // west side
-                    flatData[r*nPaddedCols + 
-                                haloWidth + hc] = 
+                    flatData[r*nPaddedCols +
+                                haloWidth + hc] =
                             wData[r*haloWidth + hc];
                 }
             }
@@ -266,24 +303,30 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         // push updated data back onto device in contiguous buffers
         if( this->HaveNorthNeighbor() )
         {
-            queue.enqueueWriteBuffer( currBuf,
-                                            CL_FALSE,    // blocking
-                                            0,  // offset
+            clErr = clEnqueueWriteBuffer(queue,
+                                            currBuf,
+                                            CL_FALSE,   // is it blocking?
+                                            0,          // offset
                                             nsDataSize, // size
-                                            flatData,
-                                            NULL,
-                                            &nEvent );
+                                            flatData,   // host location
+                                            0,  // num events to wait on
+                                            NULL,   // events to wait on
+                                            &nEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
         if( this->HaveSouthNeighbor() )
         {
-            queue.enqueueWriteBuffer( currBuf,
-                                            CL_FALSE,    // blocking
+            clErr = clEnqueueWriteBuffer(queue,
+                                            currBuf,
+                                            CL_FALSE,   // is it blocking?
                                             (nRows - haloWidth) * nPaddedCols * sizeof(T),    //offset
-                                            nsDataSize,
-                                            flatData + ((nRows - haloWidth) * nPaddedCols),
-                                            NULL,
-                                            &sEvent );
+                                            nsDataSize, // size
+                                            flatData + ((nRows - haloWidth) * nPaddedCols), // host location
+                                            0,      // num events to wait on
+                                            NULL,   // events to wait on
+                                            &sEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
 
@@ -295,19 +338,22 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
                 for( unsigned int hc = 0; hc < haloWidth; hc++ )
                 {
                     // east side
-                    eData[r*haloWidth + hc] = 
+                    eData[r*haloWidth + hc] =
                         flatData[r*nPaddedCols + (nCols - haloWidth) + hc];
                 }
             }
 
             // push up to device
-            queue.enqueueWriteBuffer( contigEBuf,
-                                            CL_FALSE,    // blocking
-                                            0,          // offset
-                                            ewDataSize, // size
-                                            eData,
-                                            NULL,
-                                            &eEvent );
+            clErr = clEnqueueWriteBuffer(queue,
+                                        contigEBuf,
+                                        CL_FALSE,    // is it blocking?
+                                        0,          // offset
+                                        ewDataSize, // size
+                                        eData,  // host location
+                                        0,      // num events to wait on
+                                        NULL,   // events to wait on
+                                        &eEvent );  // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
 
@@ -324,61 +370,77 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
             }
 
             // push up to device
-            queue.enqueueWriteBuffer( contigWBuf,
-                                            CL_FALSE,    // blocking
-                                            0,          // offset
-                                            ewDataSize, // size
-                                            wData,
-                                            NULL,
-                                            &wEvent );
+            clErr = clEnqueueWriteBuffer(queue,
+                                        contigWBuf,
+                                        CL_FALSE,    // is it blocking?
+                                        0,          // offset
+                                        ewDataSize, // size
+                                        wData,      // host location
+                                        0,          // num events to wait on
+                                        NULL,       // events to wait on
+                                        &wEvent );  // completion event
+
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            cl::Event::waitForEvents( waitEvents );
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         if( this->HaveEastNeighbor() )
         {
-            this->copyRectKernel.setArg( 0, currBuf ); // dest
-            this->copyRectKernel.setArg( 1, (int)(nCols - haloWidth) ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)nPaddedCols ); // dest pitch
-            this->copyRectKernel.setArg( 3, contigEBuf ); // src
-            this->copyRectKernel.setArg( 4, (int)0 ); // src offset
-            this->copyRectKernel.setArg( 5, (int)haloWidth ); // src pitch
-            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
-            this->copyRectKernel.setArg( 7, (int)nRows ); // height
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &eEvent );
+            this->SetCopyRectKernelArgs( currBuf, // dest
+                                    (int)(nCols - haloWidth), // dest offset
+                                    (int)nPaddedCols, // dest pitch
+                                    contigEBuf, // src
+                                    (int)0, // src offset
+                                    (int)haloWidth, // src pitch
+                                    (int)haloWidth, // width
+                                    (int)nRows ); // height
+
+            clErr = clEnqueueNDRangeKernel(queue,
+                                        this->copyRectKernel,
+                                        1,  // num work dimensions
+                                        NULL,   // global work offset - use all 0s
+                                        &nRows, // global work size
+                                        NULL,   // local work size
+                                        0,      // number of events to wait on
+                                        NULL,   // events to wait on
+                                        &eEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
         {
-            this->copyRectKernel.setArg( 0, currBuf ); // dest
-            this->copyRectKernel.setArg( 1, (int)0 ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)nPaddedCols ); // dest pitch
-            this->copyRectKernel.setArg( 3, contigWBuf ); // src
-            this->copyRectKernel.setArg( 4, (int)0 ); // src offset
-            this->copyRectKernel.setArg( 5, (int)haloWidth ); // src pitch
-            this->copyRectKernel.setArg( 6, (int)haloWidth ); // width
-            this->copyRectKernel.setArg( 7, (int)nRows ); // height
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &wEvent );
+            this->SetCopyRectKernelArgs( currBuf, // dest
+                                    (int)0, // dest offset
+                                    (int)nPaddedCols, // dest pitch
+                                    contigWBuf, // src
+                                    (int)0, // src offset
+                                    (int)haloWidth, // src pitch
+                                    (int)haloWidth, // width
+                                    (int)nRows ); // height
+
+            clErr = clEnqueueNDRangeKernel(queue,
+                                        this->copyRectKernel,
+                                        1,  // num work dimensions
+                                        NULL,   // global work offset - use all 0s
+                                        &nRows, // global work size
+                                        NULL,   // local work size
+                                        0,      // number of events to wait on
+                                        NULL,   // events to wait on
+                                        &wEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            cl::Event::waitForEvents( waitEvents );
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
 
         // we may have changed the local halo values on the device
@@ -388,67 +450,89 @@ MPIOpenCLStencil<T>::DoPreIterationWork( cl::Buffer& currBuf,
         size_t rowExtent = mtx.GetNumPaddedColumns() * sizeof(T);
         if( this->HaveNorthNeighbor() )
         {
-            queue.enqueueCopyBuffer( currBuf,
-                                        altBuf,
-                                        0,
-                                        0,
-                                        rowExtent,
-                                        NULL,
-                                        &nEvent );
+            clErr = clEnqueueCopyBuffer(queue,
+                                        currBuf,    // src buffer
+                                        altBuf,     // dest buffer
+                                        0,          // src offset
+                                        0,          // dest offset
+                                        rowExtent,  // nbytes to copy
+                                        0,          // num events to wait on
+                                        NULL,       // events to wait on
+                                        &nEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( nEvent );
         }
         if( this->HaveSouthNeighbor() )
         {
-            queue.enqueueCopyBuffer( currBuf,
-                                        altBuf,
-                                        (mtx.GetNumRows() - 1) * rowExtent,
-                                        (mtx.GetNumRows() - 1) * rowExtent,
-                                        rowExtent,
-                                        NULL,
-                                        &sEvent );
+            clErr = clEnqueueCopyBuffer(queue,
+                                        currBuf,    // src buffer
+                                        altBuf,     // dest buffer
+                                        (mtx.GetNumRows() - 1) * rowExtent, // src offset
+                                        (mtx.GetNumRows() - 1) * rowExtent, // dest offset
+                                        rowExtent,  // nbytes to copy
+                                        0,          // num events to wait on
+                                        NULL,       // events to wait on
+                                        &sEvent );  // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( sEvent );
         }
         if( this->HaveEastNeighbor() )
         {
-            this->copyRectKernel.setArg( 0, altBuf ); // dest
-            this->copyRectKernel.setArg( 1, (int)(mtx.GetNumColumns() - 1) ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
-            this->copyRectKernel.setArg( 3, currBuf ); // src
-            this->copyRectKernel.setArg( 4, (int)(mtx.GetNumColumns() - 1) ); // src offset
-            this->copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
-            this->copyRectKernel.setArg( 6, 1 ); // width
-            this->copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &eEvent );
+            this->SetCopyRectKernelArgs( altBuf, // dest
+                                    (int)(mtx.GetNumColumns() - 1), // dest offset
+                                    (int)mtx.GetNumPaddedColumns(), // dest pitch
+                                    currBuf, // src
+                                    (int)(mtx.GetNumColumns() - 1), // src offset
+                                    (int)mtx.GetNumPaddedColumns(), // src pitch
+                                    1, // width
+                                    (int)mtx.GetNumRows() ); // height
+
+            clErr = clEnqueueNDRangeKernel(queue,
+                                            this->copyRectKernel,
+                                            1,  // num work dims
+                                            NULL,   // global work offset - use all 0s
+                                            &nRows, // global work size
+                                            NULL,   // local work size - impl defined
+                                            0,      // num events to wait on
+                                            NULL,   // events to wait on
+                                            &eEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( eEvent );
         }
         if( this->HaveWestNeighbor() )
         {
-            this->copyRectKernel.setArg( 0, altBuf ); // dest
-            this->copyRectKernel.setArg( 1, 0 ); // dest offset
-            this->copyRectKernel.setArg( 2, (int)mtx.GetNumPaddedColumns() ); // dest pitch
-            this->copyRectKernel.setArg( 3, currBuf ); // src
-            this->copyRectKernel.setArg( 4, 0 ); // src offset
-            this->copyRectKernel.setArg( 5, (int)mtx.GetNumPaddedColumns() ); // src pitch
-            this->copyRectKernel.setArg( 6, 1 ); // width
-            this->copyRectKernel.setArg( 7, (int)mtx.GetNumRows() ); // height
-            queue.enqueueNDRangeKernel( this->copyRectKernel,
-                cl::NullRange,
-                cl::NDRange( nRows ),
-                cl::NullRange,
-                NULL,
-                &wEvent );
+            this->SetCopyRectKernelArgs( altBuf, // dest
+                                    0, // dest offset
+                                    (int)mtx.GetNumPaddedColumns(), // dest pitch
+                                    currBuf, // src
+                                    0, // src offset
+                                    (int)mtx.GetNumPaddedColumns(), // src pitch
+                                    1, // width
+                                    (int)mtx.GetNumRows() ); // height
+
+            clErr = clEnqueueNDRangeKernel(queue,
+                                            this->copyRectKernel,
+                                            1,  // num work dims
+                                            NULL,   // global work offset - use all 0s
+                                            &nRows, // global work size
+                                            NULL,   // local work size
+                                            0,      // num events to wait on
+                                            NULL,   // events to wait on
+                                            &wEvent);   // completion event
+            CL_CHECK_ERROR(clErr);
             waitEvents.push_back( wEvent );
         }
         if( !waitEvents.empty() )
         {
-            cl::Event::waitForEvents( waitEvents );
-            waitEvents.clear();
+            clErr = clWaitForEvents( waitEvents.size(), &waitEvents.front() );
+            CL_CHECK_ERROR(clErr);
+            this->ClearWaitEvents( waitEvents );
         }
+
+        clErr = clReleaseMemObject( contigEBuf );
+        CL_CHECK_ERROR(clErr);
+        clErr = clReleaseMemObject( contigWBuf );
+        CL_CHECK_ERROR(clErr);
     }
 }
 

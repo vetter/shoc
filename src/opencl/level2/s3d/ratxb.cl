@@ -78,7 +78,7 @@ ratxb_kernel(__global const real* T, __global const real* C, __global real* RF,
     real CTOT = 0.0f;
     real PR, PCOR, PRLOG, FCENT, FCLOG, XN;
     real CPRLOG, FLOG, FC, SQR;
-      
+
 #ifdef DOUBLE_PRECISION
     const real SMALL = CPREC(1.0e-200);
 #else
@@ -125,7 +125,7 @@ ratxb_kernel(__global const real* T, __global const real* C, __global real* RF,
     RF(121) = RF(121)*CTOT*C(14)*C(9);
     RB(121) = RB(121)*CTOT*C(20);
 
-    
+
     PR = RKLOW(13) * DIV(CTB_10, RF(126));
     PCOR = DIV(PR, (1.0 + PR));
     PRLOG = LOG10(MAX(PR,SMALL));

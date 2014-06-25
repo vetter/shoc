@@ -103,16 +103,11 @@ extern const char *cl_source_rdwdot9;
 extern const char *cl_source_rdwdot10;
 
 void
-RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp, 
-             cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+             cl_context ctx,
+             cl_command_queue queue,
              ResultDatabase &resultDB, OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     // Always run single precision test
     // OpenCL doesn't support templated kernels, so we have to use macros
     string spMacros = "-DSINGLE_PRECISION ";
@@ -160,7 +155,7 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
     int probSizes_DP[4] = { 16, 24, 32, 40};
     int *probSizes = (sizeof(T) == sizeof(double)) ? probSizes_DP : probSizes_SP;
     int size = probSizes[op.getOptionInt("size")-1];
-   
+
     // The number of grid points
     int n = size * size * size;
 
@@ -186,15 +181,15 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
     cl_mem d_rf, d_rb, d_rklow, d_c, d_a, d_eg, d_molwt;
 
     // Initialize host memory
-    for (i=0; i<n; i++) 
+    for (i=0; i<n; i++)
     {
         h_p[i] = 1.0132e6;
         h_t[i] = 1000.0;
     }
 
-    for (j=0; j<22; j++) 
+    for (j=0; j<22; j++)
     {
-        for (i=0; i<n; i++) 
+        for (i=0; i<n; i++)
         {
             h_y[(j*n)+i]= 0.0;
             if (j==14)
@@ -251,19 +246,19 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
     // Copy over input params
     long inputTransferTime = 0;
     Event evTransfer("PCIe Transfer");
-    
+
     clMemtoDevice(d_t, h_t, base);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
 
     clMemtoDevice(d_p, h_p, base);
     evTransfer.FillTimingInfo();
-    inputTransferTime += evTransfer.StartEndRuntime();    
+    inputTransferTime += evTransfer.StartEndRuntime();
 
     clMemtoDevice(d_y, h_y, n_species*base);
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
-    
+
     clMemtoDevice(d_molwt, h_molwt, n_species*sizeof(T));
     evTransfer.FillTimingInfo();
     inputTransferTime += evTransfer.StartEndRuntime();
@@ -330,7 +325,7 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
         CL_CHECK_ERROR(err);
 
         // RDSMH Kernels
-        cl_kernel rdsmh_kernel = clCreateKernel(rdsmh_prog, "rdsmh_kernel", 
+        cl_kernel rdsmh_kernel = clCreateKernel(rdsmh_prog, "rdsmh_kernel",
                 &err);
         CL_CHECK_ERROR(err);
 
@@ -340,41 +335,41 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
         cl_kernel ratt2_kernel = clCreateKernel(ratt2_prog, "ratt2_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt3_kernel = clCreateKernel(ratt3_prog, "ratt3_kernel", 
+        cl_kernel ratt3_kernel = clCreateKernel(ratt3_prog, "ratt3_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt4_kernel = clCreateKernel(ratt4_prog, "ratt4_kernel", 
+        cl_kernel ratt4_kernel = clCreateKernel(ratt4_prog, "ratt4_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt5_kernel = clCreateKernel(ratt5_prog, "ratt5_kernel", 
+        cl_kernel ratt5_kernel = clCreateKernel(ratt5_prog, "ratt5_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt6_kernel = clCreateKernel(ratt6_prog, "ratt6_kernel", 
+        cl_kernel ratt6_kernel = clCreateKernel(ratt6_prog, "ratt6_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt7_kernel = clCreateKernel(ratt7_prog, "ratt7_kernel", 
+        cl_kernel ratt7_kernel = clCreateKernel(ratt7_prog, "ratt7_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt8_kernel = clCreateKernel(ratt8_prog, "ratt8_kernel", 
+        cl_kernel ratt8_kernel = clCreateKernel(ratt8_prog, "ratt8_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt9_kernel = clCreateKernel(ratt9_prog, "ratt9_kernel", 
+        cl_kernel ratt9_kernel = clCreateKernel(ratt9_prog, "ratt9_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratt10_kernel = clCreateKernel(ratt10_prog, "ratt10_kernel", 
+        cl_kernel ratt10_kernel = clCreateKernel(ratt10_prog, "ratt10_kernel",
                 &err);
         CL_CHECK_ERROR(err);
 
         // RATX Kernels
         cl_kernel ratx_kernel = clCreateKernel(ratx_prog, "ratx_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratxb_kernel = clCreateKernel(ratxb_prog, "ratxb_kernel", 
+        cl_kernel ratxb_kernel = clCreateKernel(ratxb_prog, "ratxb_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratx2_kernel = clCreateKernel(ratx2_prog, "ratx2_kernel", 
+        cl_kernel ratx2_kernel = clCreateKernel(ratx2_prog, "ratx2_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel ratx4_kernel = clCreateKernel(ratx4_prog, "ratx4_kernel", 
+        cl_kernel ratx4_kernel = clCreateKernel(ratx4_prog, "ratx4_kernel",
                 &err);
         CL_CHECK_ERROR(err);
         cout << "done." << endl;
@@ -554,22 +549,22 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
         cl_kernel rdwdot_kernel = clCreateKernel(rdwdot_prog, "rdwdot_kernel",
                 &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot2_kernel = clCreateKernel(rdwdot2_prog, 
+        cl_kernel rdwdot2_kernel = clCreateKernel(rdwdot2_prog,
                 "rdwdot2_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot3_kernel = clCreateKernel(rdwdot3_prog, 
+        cl_kernel rdwdot3_kernel = clCreateKernel(rdwdot3_prog,
                 "rdwdot3_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot6_kernel = clCreateKernel(rdwdot6_prog, 
+        cl_kernel rdwdot6_kernel = clCreateKernel(rdwdot6_prog,
                 "rdwdot6_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot7_kernel = clCreateKernel(rdwdot7_prog, 
+        cl_kernel rdwdot7_kernel = clCreateKernel(rdwdot7_prog,
                 "rdwdot7_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot8_kernel = clCreateKernel(rdwdot8_prog, 
+        cl_kernel rdwdot8_kernel = clCreateKernel(rdwdot8_prog,
                 "rdwdot8_kernel", &err);
         CL_CHECK_ERROR(err);
-        cl_kernel rdwdot9_kernel = clCreateKernel(rdwdot9_prog, 
+        cl_kernel rdwdot9_kernel = clCreateKernel(rdwdot9_prog,
                 "rdwdot9_kernel", &err);
         CL_CHECK_ERROR(err);
         cl_kernel rdwdot10_kernel = clCreateKernel(rdwdot10_prog,
@@ -658,7 +653,7 @@ void RunTest(const string& testName, cl_device_id dev, cl_context ctx,
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
         evTransfer.FillTimingInfo();
-        double totalTransferTime = inputTransferTime + 
+        double totalTransferTime = inputTransferTime +
             evTransfer.StartEndRuntime();
         double gflops_pcie = (n*10000.) / (total + totalTransferTime);
 

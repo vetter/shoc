@@ -20,7 +20,7 @@ using std::cout;
 // Creation:    June 8, 2010
 //
 // ****************************************************************************
-inline unsigned long 
+inline unsigned long
 findAvailBytes(void)
 {
     int device;

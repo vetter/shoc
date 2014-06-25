@@ -155,19 +155,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_md;
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
-
     // Always run single precision test
     // OpenCL doesn't support templated kernels, so we have to use macros
     string spMacros = "-DSINGLE_PRECISION";
@@ -442,7 +435,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         long int numPairs = nAtom * maxNeighbors;
         long int nbytes = (3 * sizeof(T) * (1+numPairs)) + // position data
                           (3 * sizeof(T) * nAtom) + // force for each atom
-                          (sizeof(int) * numPairs); // neighbor list 
+                          (sizeof(int) * numPairs); // neighbor list
         double gbytes = (double)nbytes / (1000. * 1000. * 1000.);
         double seconds = total_time / 1.e9;
         resultDB.AddResult(testName+"-Bandwidth", atts, "GB/s", gbytes /

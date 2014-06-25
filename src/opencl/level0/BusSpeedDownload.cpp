@@ -16,18 +16,12 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //    Jeremy Meredith, Wed Dec  1 17:05:27 EST 2010
 //    Added calculation of latency estimate.
 //
-void RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+void RunBenchmark(cl_device_id id,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id id = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     bool verbose = op.getOptionBool("verbose");
     bool pinned = !op.getOptionBool("nopinned");
     int  npasses = op.getOptionInt("passes");
@@ -62,7 +56,7 @@ void RunBenchmark(cl::Device& devcpp,
     if (pinned)
     {
 	hostMemObj = clCreateBuffer(ctx,
-				    CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+				    CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 				    sizeof(float)*numMaxFloats, NULL, &err);
         if (err == CL_SUCCESS)
         {
@@ -83,7 +77,7 @@ void RunBenchmark(cl::Device& devcpp,
 	    }
 	    numMaxFloats = 1024 * (sizes[nSizes-1]) / 4;
 	    hostMemObj = clCreateBuffer(ctx,
-					CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+					CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 					sizeof(float)*numMaxFloats, NULL, &err);
             if (err == CL_SUCCESS)
             {
@@ -103,7 +97,7 @@ void RunBenchmark(cl::Device& devcpp,
 
     // Allocate some device memory
     if (verbose) cout << ">> allocating device mem\n";
-    cl_mem mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+    cl_mem mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                                  sizeof(float)*numMaxFloats, NULL, &err);
     while (err != CL_SUCCESS)
     {
@@ -116,7 +110,7 @@ void RunBenchmark(cl::Device& devcpp,
 	    return;
 	}
 	numMaxFloats = 1024 * (sizes[nSizes-1]) / 4;
-	mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+	mem1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
 			      sizeof(float)*numMaxFloats, NULL, &err);
     }
     if (verbose) cout << ">> filling device mem to force allocation\n";
@@ -128,7 +122,7 @@ void RunBenchmark(cl::Device& devcpp,
     if (verbose) cout << ">> waiting for download to finish\n";
     err = clWaitForEvents(1, &evDownloadPrime.CLEvent());
     CL_CHECK_ERROR(err);
-    
+
     // Three passes, forward and backward both
     for (int pass = 0; pass < npasses; pass++)
     {

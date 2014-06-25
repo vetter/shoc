@@ -104,7 +104,7 @@ private:
 protected:
     void DoHaloExchange( Matrix2D<T>& mtx );
     void DumpData( std::ostream& s,
-                    const Matrix2D<T>& adata, 
+                    const Matrix2D<T>& adata,
                     const char* desc );
 
 public:
@@ -113,7 +113,7 @@ public:
                         unsigned int _nItersPerHaloExchange )
       : MPI2DGridProgramBase( _mpiGridRows,
                                 _mpiGridCols,
-                                _nItersPerHaloExchange )    
+                                _nItersPerHaloExchange )
     {
         // nothing else to do
     }

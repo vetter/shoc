@@ -39,7 +39,7 @@ MPICUDAStencil<T>::MPICUDAStencil( T _wCenter,
 
 
 template<class T>
-void 
+void
 MPICUDAStencil<T>::operator()( Matrix2D<T>& mtx, unsigned int nIters )
 {
     if( this->ParticipatingInProgram() )
@@ -71,7 +71,7 @@ template<class T>
 void
 MPICUDAStencil<T>::DoPreIterationWork( T* currBuf,  // in device global memory
                                         T* altBuf,  // in device global memory
-                                        Matrix2D<T>& mtx, 
+                                        Matrix2D<T>& mtx,
                                         unsigned int iter )
 {
     // do the halo exchange at desired frequency
@@ -90,7 +90,7 @@ MPICUDAStencil<T>::DoPreIterationWork( T* currBuf,  // in device global memory
         size_t ewDataItemCount = haloWidth * nRows;
         size_t nsDataSize = nsDataItemCount * sizeof(T);
         size_t ewDataSize = ewDataItemCount * sizeof(T);
-        
+
         //
         // read current data off device
         // we only read halo, and only for sides where we have a neighbor
@@ -138,7 +138,7 @@ MPICUDAStencil<T>::DoPreIterationWork( T* currBuf,  // in device global memory
 
         }
 
-        
+
         //
         // do the actual halo exchange
         //

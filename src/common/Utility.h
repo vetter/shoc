@@ -56,7 +56,7 @@ inline std::string HumanReadable(long long value, long long *rounding=0)
 
 inline vector<string> SplitValues(const std::string &buff, char delim)
 {
-    vector<std::string> output;   
+    vector<std::string> output;
     std::string tmp="";
     for (size_t i=0; i<buff.length(); i++)
     {
@@ -64,13 +64,13 @@ inline vector<string> SplitValues(const std::string &buff, char delim)
        {
           if (!tmp.empty())
              output.push_back(tmp);
-          tmp = "";  
+          tmp = "";
        }
        else
        {
-          tmp += buff[i];  
-       }   
-    } 
+          tmp += buff[i];
+       }
+    }
     if (!tmp.empty())
        output.push_back(tmp);
 

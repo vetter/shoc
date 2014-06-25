@@ -34,8 +34,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-serialopencl_PROGRAMS = SGEMM$(EXEEXT)
-subdir = src/opencl/level1/sgemm
+serialcuda_PROGRAMS = GEMM$(EXEEXT)
+subdir = src/cuda/level1/gemm
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -45,13 +45,12 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(serialopencldir)"
-PROGRAMS = $(serialopencl_PROGRAMS)
-am_SGEMM_OBJECTS = SGEMM.$(OBJEXT) sgemmN_cl.$(OBJEXT) main.$(OBJEXT)
-SGEMM_OBJECTS = $(am_SGEMM_OBJECTS)
+am__installdirs = "$(DESTDIR)$(serialcudadir)"
+PROGRAMS = $(serialcuda_PROGRAMS)
+am_GEMM_OBJECTS = GEMM.$(OBJEXT) main.$(OBJEXT)
+GEMM_OBJECTS = $(am_GEMM_OBJECTS)
 am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
-SGEMM_DEPENDENCIES = $(am__DEPENDENCIES_2)
+GEMM_DEPENDENCIES = $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -61,8 +60,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(SGEMM_SOURCES)
-DIST_SOURCES = $(SGEMM_SOURCES)
+SOURCES = $(GEMM_SOURCES)
+DIST_SOURCES = $(GEMM_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -119,7 +118,7 @@ BIBTEX = @BIBTEX@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ $(OCL_CPPFLAGS)
+CPPFLAGS = @CPPFLAGS@
 CUDA_CPPFLAGS = @CUDA_CPPFLAGS@
 CUDA_INCDIR = @CUDA_INCDIR@
 CXX = @CXX@
@@ -230,18 +229,17 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @BUILD_MPI_TRUE@MAYBE_MPI = epmpi
 SUBDIRS = $(MAYBE_MPI)
-AM_LDFLAGS = $(OCL_LDFLAGS)
-L1LIBS = $(OCL_LIBS) $(LIBS)
+AM_LDFLAGS = $(CUDA_LDFLAGS)
+AM_CPPFLAGS = $(CUDA_INC)
 
-# what is the destination for programs built from this directory?
-serialopencldir = $(bindir)/Serial/OpenCL
+# What is the destination for programs built from this directory?
+serialcudadir = $(bindir)/Serial/CUDA
 
-# how to build those programs
-SGEMM_SOURCES = SGEMM.cpp \
-				sgemmN_cl.cpp \
+# How to build those programs?
+GEMM_SOURCES = GEMM.cpp \
                 main.cpp
 
-SGEMM_LDADD = $(L1LIBS)
+GEMM_LDADD = $(CUDA_LIBS) -lcublas $(LIBS)
 all: all-recursive
 
 .SUFFIXES:
@@ -255,9 +253,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/opencl/level1/sgemm/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/gemm/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/opencl/level1/sgemm/Makefile
+	  $(AUTOMAKE) --foreign src/cuda/level1/gemm/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -276,10 +274,10 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-serialopenclPROGRAMS: $(serialopencl_PROGRAMS)
+install-serialcudaPROGRAMS: $(serialcuda_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	test -z "$(serialopencldir)" || $(MKDIR_P) "$(DESTDIR)$(serialopencldir)"
-	@list='$(serialopencl_PROGRAMS)'; test -n "$(serialopencldir)" || list=; \
+	test -z "$(serialcudadir)" || $(MKDIR_P) "$(DESTDIR)$(serialcudadir)"
+	@list='$(serialcuda_PROGRAMS)'; test -n "$(serialcudadir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
 	while read p p1; do if test -f $$p; \
@@ -296,26 +294,26 @@ install-serialopenclPROGRAMS: $(serialopencl_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(serialopencldir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(serialopencldir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(serialcudadir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(serialcudadir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-serialopenclPROGRAMS:
+uninstall-serialcudaPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(serialopencl_PROGRAMS)'; test -n "$(serialopencldir)" || list=; \
+	@list='$(serialcuda_PROGRAMS)'; test -n "$(serialcudadir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' `; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(serialopencldir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(serialopencldir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(serialcudadir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(serialcudadir)" && rm -f $$files
 
-clean-serialopenclPROGRAMS:
-	-test -z "$(serialopencl_PROGRAMS)" || rm -f $(serialopencl_PROGRAMS)
-SGEMM$(EXEEXT): $(SGEMM_OBJECTS) $(SGEMM_DEPENDENCIES) 
-	@rm -f SGEMM$(EXEEXT)
-	$(CXXLINK) $(SGEMM_OBJECTS) $(SGEMM_LDADD) $(LIBS)
+clean-serialcudaPROGRAMS:
+	-test -z "$(serialcuda_PROGRAMS)" || rm -f $(serialcuda_PROGRAMS)
+GEMM$(EXEEXT): $(GEMM_OBJECTS) $(GEMM_DEPENDENCIES) 
+	@rm -f GEMM$(EXEEXT)
+	$(CXXLINK) $(GEMM_OBJECTS) $(GEMM_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -323,9 +321,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SGEMM.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GEMM.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sgemmN_cl.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -539,7 +536,7 @@ check: check-recursive
 all-am: Makefile $(PROGRAMS)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(serialopencldir)"; do \
+	for dir in "$(DESTDIR)$(serialcudadir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -569,7 +566,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-serialopenclPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-serialcudaPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
@@ -589,7 +586,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-serialopenclPROGRAMS
+install-data-am: install-serialcudaPROGRAMS
 
 install-dvi: install-dvi-recursive
 
@@ -634,25 +631,25 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-serialopenclPROGRAMS
+uninstall-am: uninstall-serialcudaPROGRAMS
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
 	install-am install-strip tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am check check-am clean clean-generic \
-	clean-serialopenclPROGRAMS ctags ctags-recursive distclean \
+	clean-serialcudaPROGRAMS ctags ctags-recursive distclean \
 	distclean-compile distclean-generic distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-pdf \
 	install-pdf-am install-ps install-ps-am \
-	install-serialopenclPROGRAMS install-strip installcheck \
+	install-serialcudaPROGRAMS install-strip installcheck \
 	installcheck-am installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-serialopenclPROGRAMS
+	uninstall uninstall-am uninstall-serialcudaPROGRAMS
 
 
 include $(top_builddir)/config/config.mk

@@ -71,7 +71,7 @@
 __kernel void
 ratt_kernel(__global const real* T, __global real* RF, real TCONV)
 {
-       
+
     const real TEMP = T[get_global_id(0)]*TCONV;
 
     const real ALOGT = LOG(TEMP);
