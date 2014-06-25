@@ -223,7 +223,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     for (int i = 0; i < size; i++)
     {
         h_idata[i] = i % 16; // Fill with some pattern
-        h_odata[i] = -1;
+        h_odata[i] = -1.0;
     }
 
     // The radix width in bits
