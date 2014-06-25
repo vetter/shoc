@@ -151,7 +151,7 @@ my @SerialBenchmarks = (
   ["dgemm_n_pcie",                \&findmax,     "DGEMM-N_PCIe"],
   ["dgemm_t_pcie",                \&findmax,     "DGEMM-T_PCIe"]
 ],
-[ "MD",                1, 1, 0, 0,
+[ "MD",                1, 1, 1, 0,
   ["md_sp_bw",                    \&findmax,     "MD-LJ-Bandwidth"],
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
