@@ -167,7 +167,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Add1<T>(hostMem, numFloats, realRepeats, 10.0, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        double flopCount = (double)numFloats * 1 * realRepeats * 240 * 1;
+        double flopCount = (double)numFloats * 1 * realRepeats * 1800 * 1;
         double t = kernelTime * 1.e9;
         double gflop = flopCount / (double)(t);
 
@@ -204,7 +204,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Add2<T>(hostMem, numFloats, realRepeats, 10.0, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 1 * realRepeats * 120 * 2;
+        flopCount = (double)numFloats * 1 * realRepeats * 900 * 2;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -241,7 +241,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Add4<T>(hostMem, numFloats, realRepeats, 10.0, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 1 * realRepeats * 60 * 4;
+        flopCount = (double)numFloats * 1 * realRepeats * 600 * 4;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -278,7 +278,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Add8<T>(hostMem, numFloats, realRepeats, 10.0, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 1 * realRepeats * 30 * 8;
+        flopCount = (double)numFloats * 1 * realRepeats * 300 * 8;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -315,7 +315,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Mul1<T>(hostMem, numFloats, realRepeats, 1.01, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 200 * 1;
+        flopCount = (double)numFloats * 2 * realRepeats * 1800 * 1;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -352,7 +352,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Mul2<T>(hostMem, numFloats, realRepeats, 1.01, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 100 * 2;
+        flopCount = (double)numFloats * 2 * realRepeats * 900 * 2;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -389,7 +389,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Mul4<T>(hostMem, numFloats, realRepeats, 1.01, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 50 * 4;
+        flopCount = (double)numFloats * 2 * realRepeats * 600 * 4;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -426,7 +426,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         Mul8<T>(hostMem, numFloats, realRepeats, 1.01, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 25 * 8;
+        flopCount = (double)numFloats * 2 * realRepeats * 300 * 8;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -464,7 +464,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MAdd1<T>(hostMem, numFloats, realRepeats, 10, 0.9899, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 240 * 1;
+        flopCount = (double)numFloats * 2 * realRepeats * 1800 * 1;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -501,7 +501,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MAdd2<T>(hostMem, numFloats, realRepeats, 10, 0.9899, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 120 * 2;
+        flopCount = (double)numFloats * 2 * realRepeats * 900 * 2;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -538,7 +538,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MAdd4<T>(hostMem, numFloats, realRepeats, 10, 0.9899, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 60 * 4;
+        flopCount = (double)numFloats * 2 * realRepeats * 600 * 4;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -575,7 +575,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MAdd8<T>(hostMem, numFloats, realRepeats, 10, 0.9899, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 2 * realRepeats * 30 * 8;
+        flopCount = (double)numFloats * 2 * realRepeats * 300 * 8;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -612,7 +612,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MulMAdd1<T>(hostMem, numFloats, realRepeats, 3.75, 0.355, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 3 * realRepeats * 160 * 1;
+        flopCount = (double)numFloats * 3 * realRepeats * 1800 * 1;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -649,7 +649,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MulMAdd2<T>(hostMem, numFloats, realRepeats, 3.75, 0.355, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 3 * realRepeats * 80 * 2;
+        flopCount = (double)numFloats * 3 * realRepeats * 900 * 2;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -686,7 +686,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MulMAdd4<T>(hostMem, numFloats, realRepeats, 3.75, 0.355, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 3 * realRepeats * 40 * 4;
+        flopCount = (double)numFloats * 3 * realRepeats * 600 * 4;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
@@ -723,7 +723,7 @@ RunTest(ResultDatabase &resultDB, int npasses, int verbose, int quiet,
         MulMAdd8<T>(hostMem, numFloats, realRepeats, 3.75, 0.355, &kernelTime, &transferTime); 
 
         // flopCount = numFloats(pixels) * flopCount/op * numLoopIters * unrollFactor * numStreams
-        flopCount = (double)numFloats * 3 * realRepeats * 20 * 8;
+        flopCount = (double)numFloats * 3 * realRepeats * 300 * 8;
         t = kernelTime * 1.e9;
         gflop = flopCount / (double)(t);
 
