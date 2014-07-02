@@ -6,14 +6,10 @@
 
 
 // Forward Declarations
-template <class T> inline void Add1(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Add2(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Add4(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Add8(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
+template <class T> inline void Add1(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Add2(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Add4(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Add8(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
 extern "C" void Add1Float(float *, int, int, float, double *, double *);
 extern "C" void Add1Double(double *, int, int, double, double *, double *);
 extern "C" void Add2Float(float *, int, int, float, double *, double *);
@@ -23,14 +19,10 @@ extern "C" void Add4Double(double *, int, int, double, double *, double *);
 extern "C" void Add8Float(float *, int, int, float, double *, double *);
 extern "C" void Add8Double(double *, int, int, double, double *, double *);
 
-template <class T> inline void Mul1(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Mul2(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Mul4(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
-template <class T> inline void Mul8(T *data, int numFloats, int nIters, T v, 
-                                    double *kTime, double *tTime);
+template <class T> inline void Mul1(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Mul2(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Mul4(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
+template <class T> inline void Mul8(T *data, int numFloats, int nIters, T v, double *kTime, double *tTime);
 extern "C" void Mul1Float(float *, int, int, float, double *, double *);
 extern "C" void Mul1Double(double *, int, int, double, double *, double *);
 extern "C" void Mul2Float(float *, int, int, float, double *, double *);
@@ -40,14 +32,10 @@ extern "C" void Mul4Double(double *, int, int, double, double *, double *);
 extern "C" void Mul8Float(float *, int, int, float, double *, double *);
 extern "C" void Mul8Double(double *, int, int, double, double *, double *);
 
-template <class T> inline void MAdd1(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MAdd2(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MAdd4(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MAdd8(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
+template <class T> inline void MAdd1(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MAdd2(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MAdd4(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MAdd8(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
 extern "C" void MAdd1Float(float *, int, int, float, float, double *, double *);
 extern "C" void MAdd1Double(double *, int, int, double, double, double *, double *);
 extern "C" void MAdd2Float(float *, int, int, float, float, double *, double *);
@@ -57,14 +45,10 @@ extern "C" void MAdd4Double(double *, int, int, double, double, double *, double
 extern "C" void MAdd8Float(float *, int, int, float, float, double *, double *);
 extern "C" void MAdd8Double(double *, int, int, double, double, double *, double *);
 
-template <class T> inline void MulMAdd1(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MulMAdd2(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MulMAdd4(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
-template <class T> inline void MulMAdd8(T *data, int numFloats, int nIters, T v, T v2,
-                                    double *kTime, double *tTime);
+template <class T> inline void MulMAdd1(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MulMAdd2(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MulMAdd4(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
+template <class T> inline void MulMAdd8(T *data, int numFloats, int nIters, T v, T v2, double *kTime, double *tTime);
 extern "C" void MulMAdd1Float(float *, int, int, float, float, double *, double *);
 extern "C" void MulMAdd1Double(double *, int, int, double, double, double *, double *);
 extern "C" void MulMAdd2Float(float *, int, int, float, float, double *, double *);
