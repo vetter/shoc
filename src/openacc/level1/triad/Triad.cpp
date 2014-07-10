@@ -10,7 +10,6 @@
 
 using namespace std;
 
-void cuda_allocate(float *, float *, float *, int);
 template <class T>
 void RunTest(const std::string& testName, ResultDatabase& resultDB, OptionParser& op);
 
@@ -186,13 +185,11 @@ void RunTest(const std::string& testName,
     //
 
     const bool verbose = opts.getOptionBool("verbose");
-    //const int nPasses = opts.getOptionInt("passes");
     int nPasses = 1;
 
     // 256k through 8M bytes
     const int nSizes = 9;
     const size_t blockSizes[] = { 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 }; //in kB
-    //const size_t blockSizes[] = { 640, 1280, 2560, 5120, 10240, 20480, 40960, 81920, 163840 }; //in kB
     unsigned int nItems = (blockSizes[nSizes-1] * 1024 ) / sizeof(T);
     unsigned int nItemsInBlock;
 
