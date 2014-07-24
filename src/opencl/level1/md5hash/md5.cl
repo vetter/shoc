@@ -150,6 +150,24 @@ inline void md5_2words(unsigned int *words, unsigned int len,
     digest[3] = h3;
 }
 
+// ****************************************************************************
+// Function:  IndexToKey
+//
+// Purpose:
+///   For a given index in the keyspace, find the actual key string
+///   which is at that index.
+//
+// Arguments:
+//   index         index in key space
+//   byteLength    number of bytes in a key
+//   valsPerByte   number of values each byte can take on
+//   vals          output key string
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
 inline void IndexToKey(unsigned int index, int byteLength, int valsPerByte,
                        unsigned char vals[8])
 {
@@ -179,6 +197,27 @@ inline void IndexToKey(unsigned int index, int byteLength, int valsPerByte,
 }
 
 
+// ****************************************************************************
+// Function:  FindKeyWithDigest_Kernel
+//
+// Purpose:
+///   Within each thread of a GPU, search part of the key space
+///   to find a key with the given digest.
+//
+// Arguments:
+//   searchDigest    the digest to search for
+//   keyspace        the size of the key space to search
+//   byteLength      number of bytes in a key
+//   valsPerByte     number of values each byte can take on
+//   foundIndex      output - the index of the found key (if found)
+//   foundKey        output - the string of the found key (if found)
+//   foundDigest     output - the digest of the found key (if found)
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
 __kernel void
 FindKeyWithDigest_Kernel(unsigned int searchDigest0,
                          unsigned int searchDigest1,

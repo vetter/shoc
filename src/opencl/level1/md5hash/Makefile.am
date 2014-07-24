@@ -1,6 +1,6 @@
-#if BUILD_MPI
-#    MAYBE_MPI = epmpi 
-#endif
+if BUILD_MPI
+    MAYBE_MPI = epmpi 
+endif
 SUBDIRS = $(MAYBE_MPI)
 
 include $(top_builddir)/config/config.mk
@@ -20,8 +20,6 @@ serialopencldir = $(bindir)/Serial/OpenCL
 serialopencl_PROGRAMS = MD5Hash
 
 # how to build those programs
-MD5Hash_SOURCES = MD5Hash.cpp \
-				md5_cl.cpp \
-                main.cpp
+MD5Hash_SOURCES = MD5Hash.cpp md5_cl.cpp main.cpp
 MD5Hash_LDADD   = $(L1LIBS)
 

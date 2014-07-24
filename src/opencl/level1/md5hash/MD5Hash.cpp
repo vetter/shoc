@@ -5,7 +5,9 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
+#include "Timer.h"
 #include "OpenCLDeviceInfo.h"
 #include "Event.h"
 #include "OptionParser.h"
@@ -167,6 +169,22 @@ inline void md5_2words(unsigned int *words, unsigned int len,
     digest[3] = h3;
 }
 
+// ****************************************************************************
+// Function:  FindKeyspaceSize
+//
+// Purpose:
+///   Multiply out the byteLength by valsPerByte to find the 
+///   total size of the key space, with error checking.
+//
+// Arguments:
+//   byteLength    number of bytes in a key
+//   valsPerByte   number of values each byte can take on
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
 int FindKeyspaceSize(int byteLength, int valsPerByte)
 {
     int keyspace = 1;
@@ -182,11 +200,29 @@ int FindKeyspaceSize(int byteLength, int valsPerByte)
     return keyspace;
 }
 
+// ****************************************************************************
+// Function:  IndexToKey
+//
+// Purpose:
+///   For a given index in the keyspace, find the actual key string
+///   which is at that index.
+//
+// Arguments:
+//   index         index in key space
+//   byteLength    number of bytes in a key
+//   valsPerByte   number of values each byte can take on
+//   vals          output key string
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
 void IndexToKey(unsigned int index, int byteLength, int valsPerByte,
                 unsigned char vals[8])
 {
-    // stupid hack to avoid CUDA compiler erroneously complaining
-    // about unaligned accesses (!) on older compute capabilities
+    // loop pointlessly unrolled to avoid CUDA compiler complaints
+    // about unaligned accesses (!?) on older compute capabilities
     vals[0] = index % valsPerByte;
     index /= valsPerByte;
 
@@ -214,6 +250,35 @@ void IndexToKey(unsigned int index, int byteLength, int valsPerByte,
 
 
 // ****************************************************************************
+// Function:  AsHex
+//
+// Purpose:
+///   For a given key string, return the raw hex string for its bytes.
+//
+// Arguments:
+//   vals       key string
+//   len        length of key string
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
+std::string AsHex(unsigned char *vals, int len)
+{
+    ostringstream out;
+    char tmp[256];
+    for (int i=0; i<len; ++i)
+    {
+        sprintf(tmp, "%2.2X", vals[i]);
+        out << tmp;
+    }
+    return out.str();
+}
+
+
+
+// ****************************************************************************
 // Function: addBenchmarkSpecOptions
 //
 // Purpose:
@@ -236,42 +301,24 @@ addBenchmarkSpecOptions(OptionParser &op)
 }
 
 // ****************************************************************************
-// Function: RunBenchmark
+// Function:  FindKeyWithDigest_CPU
 //
 // Purpose:
-//   Executes the MD5 Hash benchmark
+///   On the CPU, search the key space to find a key with the given digest.
 //
 // Arguments:
-//   dev: the opencl device id to use for the benchmark
-//   ctx: the opencl context to use for the benchmark
-//   queue: the opencl command queue to issue commands to
-//   resultDB: results from the benchmark are stored in this db
-//   op: the options parser / parameter database
+//   searchDigest    the digest to search for
+//   byteLength      number of bytes in a key
+//   valsPerByte     number of values each byte can take on
+//   foundIndex      output - the index of the found key (if found)
+//   foundKey        output - the string of the found key (if found)
+//   foundDigest     output - the digest of the found key (if found)
 //
-// Returns:  nothing
-//
-// Programmer: Jeremy Meredith
-// Creation: July 23, 2014
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
 //
 // Modifications:
-//
 // ****************************************************************************
-extern const char *cl_source_md5;
-
-
-std::string AsHex(uint8_t *vals, int len)
-{
-    ostringstream out;
-    char tmp[256];
-    for (int i=0; i<len; ++i)
-    {
-        sprintf(tmp, "%2.2X", vals[i]);
-        out << tmp;
-    }
-    return out.str();
-}
-
-
 double FindKeyWithDigest_CPU(const unsigned int searchDigest[4],
                              const int byteLength,
                              const int valsPerByte,
@@ -279,7 +326,7 @@ double FindKeyWithDigest_CPU(const unsigned int searchDigest[4],
                              unsigned char foundKey[8],
                              unsigned int foundDigest[4])
 {
-
+    int timer = Timer::Start();
 
     int keyspace = FindKeyspaceSize(byteLength, valsPerByte);
     for (int i=0; i<keyspace; i += valsPerByte)
@@ -313,9 +360,32 @@ double FindKeyWithDigest_CPU(const unsigned int searchDigest[4],
         }
     }
 
-    return 0;
+    double runtime = Timer::Stop(timer, "md5 runtime");
+    return runtime;
 }
 
+// ****************************************************************************
+// Function:  FindKeyWithDigest_GPU
+//
+// Purpose:
+///   On the GPU, search the key space to find a key with the given digest.
+//
+// Arguments:
+//   ctx             the opencl context to use for the benchmark
+//   queue           the opencl command queue to issue commands to
+//   prog            the opencl program containing the kernel
+//   searchDigest    the digest to search for
+//   byteLength      number of bytes in a key
+//   valsPerByte     number of values each byte can take on
+//   foundIndex      output - the index of the found key (if found)
+//   foundKey        output - the string of the found key (if found)
+//   foundDigest     output - the digest of the found key (if found)
+//
+// Programmer:  Jeremy Meredith
+// Creation:    July 23, 2014
+//
+// Modifications:
+// ****************************************************************************
 double FindKeyWithDigest_GPU(cl_context ctx,
                              cl_command_queue queue,
                              cl_program prog,
@@ -327,14 +397,17 @@ double FindKeyWithDigest_GPU(cl_context ctx,
                              unsigned int foundDigest[4])
 {
     int err;
-
     int keyspace = FindKeyspaceSize(byteLength, valsPerByte);
 
-    // Find the kernel
+    //
+    // find the kernel
+    //
     cl_kernel md5kernel = clCreateKernel(prog, "FindKeyWithDigest_Kernel", &err);
     CL_CHECK_ERROR(err);
 
-    // Create output buffers
+    //
+    // allocate output buffers
+    //
     cl_mem d_foundIndex = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                                          sizeof(int)*1, NULL, &err);
     CL_CHECK_ERROR(err);
@@ -347,7 +420,9 @@ double FindKeyWithDigest_GPU(cl_context ctx,
                                           sizeof(unsigned int)*4, NULL, &err);
     CL_CHECK_ERROR(err);
 
-    // Set arguments
+    //
+    // set arguments for the kernel
+    //
     err = clSetKernelArg(md5kernel, 0, sizeof(unsigned int), (void*)&searchDigest[0]);
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(md5kernel, 1, sizeof(unsigned int), (void*)&searchDigest[1]);
@@ -369,12 +444,18 @@ double FindKeyWithDigest_GPU(cl_context ctx,
     err = clSetKernelArg(md5kernel, 9, sizeof(cl_mem), (void*)&d_foundDigest);
     CL_CHECK_ERROR(err);
 
-    double nanosec = 0;
-    Event runtime("md5 kernel");
-
-    size_t nthreads = 512;
+    //
+    // calculate work thread shape
+    //
+    size_t nthreads = 256;
     size_t nblocks  = ceil((double(keyspace) / double(valsPerByte)) / double(nthreads));
     size_t globalsize = nblocks * nthreads;
+
+    //
+    // run the kernel
+    //
+    double nanosec = 0;
+    Event runtime("md5 kernel");
 
     err = clEnqueueNDRangeKernel(queue, md5kernel, 1, NULL,
                                  &globalsize, &nthreads, 0, NULL,
@@ -383,11 +464,19 @@ double FindKeyWithDigest_GPU(cl_context ctx,
     err = clFinish(queue);
     CL_CHECK_ERROR (err);
 
+    //
+    // get the timing/rate info
+    //
     runtime.FillTimingInfo();
     nanosec = runtime.SubmitEndRuntime(); // ns
 
     double rate = double(keyspace) / double(nanosec);
+    // cout << "rate = " << rate << " GHash/sec" << endl;
 
+
+    //
+    // read the (presumably) found key
+    //
     err = clEnqueueReadBuffer(queue, d_foundIndex, true, 0,
                               sizeof(int)*1, foundIndex,
                               0, NULL, NULL);
@@ -404,9 +493,45 @@ double FindKeyWithDigest_GPU(cl_context ctx,
     err = clFinish(queue);
     CL_CHECK_ERROR(err);
 
+    //
+    // free device memory
+    //
+    err = clReleaseMemObject(d_foundIndex);
+    CL_CHECK_ERROR(err);
+    err = clReleaseMemObject(d_foundKey);
+    CL_CHECK_ERROR(err);
+    err = clReleaseMemObject(d_foundDigest);
+    CL_CHECK_ERROR(err);
+
+    //
+    // return the runtime in seconds
+    //
     return nanosec / 1.e9;
 }
 
+
+// ****************************************************************************
+// Function: RunBenchmark
+//
+// Purpose:
+//   Executes the MD5 Hash benchmark
+//
+// Arguments:
+//   dev: the opencl device id to use for the benchmark
+//   ctx: the opencl context to use for the benchmark
+//   queue: the opencl command queue to issue commands to
+//   resultDB: results from the benchmark are stored in this db
+//   op: the options parser / parameter database
+//
+// Returns:  nothing
+//
+// Programmer: Jeremy Meredith
+// Creation: July 23, 2014
+//
+// Modifications:
+//
+// ****************************************************************************
+extern const char *cl_source_md5;
 
 void
 RunBenchmark(cl_device_id dev,
@@ -491,7 +616,7 @@ RunBenchmark(cl_device_id dev,
 
     for (int pass = 0 ; pass < passes ; ++pass)
     {
-        int randomIndex = keyspace-1;//random() % keyspace;;
+        int randomIndex = random() % keyspace;;
         unsigned char randomKey[8] = {0,0,0,0, 0,0,0,0};
         unsigned int randomDigest[4];
         IndexToKey(randomIndex, byteLength, valsPerByte, randomKey);
@@ -528,16 +653,23 @@ RunBenchmark(cl_device_id dev,
         }
 
         //
+        // Calculate the rate and add it to the results
+        //
+        double rate = (double(keyspace) / double(t)) / 1.e9;
+        if (verbose)
+        {
+            cout << "time = " << t << " sec, rate = " << rate << " GHash/sec\n";
+        }
+
+        //
         // Double check everything matches (index, key, hash).
         //
         if (foundIndex != randomIndex)
         {
-            cerr << "ERROR: mismatch in key index found.\n";
-            resultDB.AddResult("MD5Hash", atts, "GHash/s", FLT_MAX);
-            continue;
+            cerr << "\nERROR: mismatch in key index found.\n";
+            rate = FLT_MAX;
         }
-        
-        if (foundKey[0] != randomKey[0] ||
+        else if (foundKey[0] != randomKey[0] ||
             foundKey[1] != randomKey[1] ||
             foundKey[2] != randomKey[2] ||
             foundKey[3] != randomKey[3] ||
@@ -546,39 +678,35 @@ RunBenchmark(cl_device_id dev,
             foundKey[6] != randomKey[6] ||
             foundKey[7] != randomKey[7])
         {
-            cerr << "ERROR: mismatch in key value found.\n";
-            resultDB.AddResult("MD5Hash", atts, "GHash/s", FLT_MAX);
-            continue;
-        }
-        
-        if (foundDigest[0] != randomDigest[0] ||
+            cerr << "\nERROR: mismatch in key value found.\n";
+            rate = FLT_MAX;
+        }        
+        else if (foundDigest[0] != randomDigest[0] ||
             foundDigest[1] != randomDigest[1] ||
             foundDigest[2] != randomDigest[2] ||
             foundDigest[3] != randomDigest[3])
         {
-            cerr << "ERROR: mismatch in digest of key.\n";
-            resultDB.AddResult("MD5Hash", atts, "GHash/s", FLT_MAX);
-            continue;
+            cerr << "\nERROR: mismatch in digest of key.\n";
+            rate = FLT_MAX;
+        }
+        else
+        {
+            if (verbose)
+                cout << endl << "Successfully found match (index, key, hash):" << endl;
         }
 
         //
-        // Calculate the rate and add it to the results
+        // Add the calculated performancethe results
         //
-        double rate = (double(keyspace) / double(t)) / 1.e9;
-
         resultDB.AddResult("MD5Hash", atts, "GHash/s", rate);
 
         if (verbose)
         {
-            cout << endl;
-            cout << "Successfully found match (index, key, hash):\n";
             cout << " foundIndex  = " << foundIndex << endl;
             cout << " foundKey    = 0x" << AsHex(foundKey, 8/*byteLength*/) << endl;
             cout << " foundDigest = " << AsHex((unsigned char*)foundDigest, 16) << endl;
             cout << endl;
         }
-
-
     }
 
     return;

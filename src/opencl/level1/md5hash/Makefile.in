@@ -77,7 +77,7 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = epmpi
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -225,10 +225,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-
-#if BUILD_MPI
-#    MAYBE_MPI = epmpi 
-#endif
+@BUILD_MPI_TRUE@MAYBE_MPI = epmpi 
 SUBDIRS = $(MAYBE_MPI)
 AM_LDFLAGS = $(OCL_LDFLAGS)
 L1LIBS = $(OCL_LIBS) $(LIBS)
@@ -237,10 +234,7 @@ L1LIBS = $(OCL_LIBS) $(LIBS)
 serialopencldir = $(bindir)/Serial/OpenCL
 
 # how to build those programs
-MD5Hash_SOURCES = MD5Hash.cpp \
-				md5_cl.cpp \
-                main.cpp
-
+MD5Hash_SOURCES = MD5Hash.cpp md5_cl.cpp main.cpp
 MD5Hash_LDADD = $(L1LIBS)
 all: all-recursive
 
