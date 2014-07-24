@@ -478,7 +478,7 @@ double FindKeyWithDigest_GPU(const unsigned int searchDigest[4],
     //
     // calculate work thread shape
     //
-    int nthreads = 256;
+    int nthreads = 384;
     size_t nblocks  = ceil((double(keyspace) / double(valsPerByte)) / double(nthreads));
 
     //
@@ -568,7 +568,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     // Determine the shape/size of key space
     //
     const int sizes_byteLength[]  = { 7,  5,  6,  5};
-    const int sizes_valsPerByte[] = {10, 36, 26, 73};
+    const int sizes_valsPerByte[] = {10, 36, 26, 70};
 
     const int byteLength = sizes_byteLength[size-1];   
     const int valsPerByte = sizes_valsPerByte[size-1];
