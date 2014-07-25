@@ -840,7 +840,7 @@ OpenCLDeviceInfo::FillDeviceInformation ()
     doubleFpValue = string("");
     if (hasDoubleFp
 #ifdef CL_DEVICE_DOUBLE_FP_CONFIG
-         || 1
+         || true
 #endif
        )
     {
