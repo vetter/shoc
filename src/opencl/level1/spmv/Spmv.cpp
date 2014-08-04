@@ -271,7 +271,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     if (devSupportsImages)
     {
         size_t offset[3]={0};
-        size_t size[3]={maxImgWidth,imgHeight,1};
+        size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
         err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
             0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
         CL_CHECK_ERROR(err);
@@ -504,7 +504,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       if (devSupportsImages)
       {
           size_t offset[3]={0};
-          size_t size[3]={maxImgWidth,imgHeight,1};
+          size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
           err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
               0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
           CL_CHECK_ERROR(err);
