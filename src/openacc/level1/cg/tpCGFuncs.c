@@ -75,12 +75,23 @@
 //c  When num_procs is not square, then num_proc_cols must be = 2*num_proc_rows.
 //c---------------------------------------------------------------------
 
+#define NPBVERSION "3.3.1"
+#define NNODES_COMPILED   1
+
 #define max(x,y)    ((x) > (y) ? (x) : (y))
 
 #define NUM_PROCS NUM_PROC_COLS * NUM_PROC_ROWS
 #define NZ NA*(NONZER+1)/NUM_PROCS*(NONZER+1)+NONZER + NA*(NONZER+2+NUM_PROCS/256)/NUM_PROC_COLS
+
 MPI_Request request;
 MPI_Status status;
+
+int NUM_PROC_ROWS, NUM_PROC_COLS;
+int NA;
+int NONZER;
+int NITER;
+double SHIFT;
+double RCOND;
 
 //      common / partit_size  /
 int naa, nzz;
@@ -95,30 +106,30 @@ int exch_recv_length;
 int send_start;
 int send_len;
 
-int colidx[NZ+1];
-int rowstr[NA+1+1];
-int iv[2*NA+1+1];
-int arow[NZ+1];
-int acol[NZ+1];
+int* colidx;
+int* rowstr;
+int* iv;
+int* arow;
+int* acol;
 
-double v[NA+1+1];
-double aelt[NZ+1];
-double a[NZ+1];
-double x[NA/NUM_PROC_ROWS+2+1];
-double z[NA/NUM_PROC_ROWS+2+1];
-double p[NA/NUM_PROC_ROWS+2+1];
-double q[NA/NUM_PROC_ROWS+2+1];
-double r[NA/NUM_PROC_ROWS+2+1];
-double w[NA/NUM_PROC_ROWS+2+1];
+double* v;
+double* aelt;
+double* a;
+double* x;
+double* z;
+double* p;
+double* q;
+double* r;
+double* w;
 
 double amult, tran;
 
 int l2npcols;
-int reduce_exch_proc[NUM_PROC_COLS+1];
-int reduce_send_starts[NUM_PROC_COLS+1];
-int reduce_send_lengths[NUM_PROC_COLS+1];
-int reduce_recv_starts[NUM_PROC_COLS+1];
-int reduce_recv_lengths[NUM_PROC_COLS+1];
+int* reduce_exch_proc;
+int* reduce_send_starts;
+int* reduce_send_lengths;
+int* reduce_recv_starts;
+int* reduce_recv_lengths;
 
 double zeta;
 double rnorm;
@@ -149,6 +160,56 @@ void makea(int n, int nz, double *a, int *colidx, int *rowstr, int nonzer,
 						double rcond, int *arow, int* acol, double* aelt, double* v, int *iv, double shift);
 
 void setup_proc_info(int num_procs, int num_proc_rows, int num_proc_cols );
+void setup_arrays();
+int ilog2(int i);
+int ipow2(int i);
+
+int ilog2(int i)
+{
+    int log2;
+    int exp2 = 1;
+    if (i <= 0) return(-1);
+
+    for (log2 = 0; log2 < 30; log2++) {
+        if (exp2 == i) return(log2);
+        if (exp2 > i) break;
+        exp2 *= 2;
+    }
+    return(-1);
+}
+
+int ipow2(int i)
+{
+    int pow2 = 1;
+    if (i < 0) return(-1);
+    if (i == 0) return(1);
+    while(i--) pow2 *= 2;
+    return(pow2);
+}
+
+void setup_arrays() {
+    colidx = (int*) calloc(NZ+1, sizeof(int));
+    rowstr = (int*) calloc(NA+1+1, sizeof(int));
+    iv = (int*) calloc(2*NA+1+1, sizeof(int));
+    arow = (int*) calloc(NZ+1, sizeof(int));
+    acol = (int*) calloc(NZ+1, sizeof(int));
+
+    v = (double*) calloc(NA+1+1, sizeof(double));
+    aelt = (double*) calloc(NZ+1, sizeof(double));
+    a = (double*) calloc(NZ+1, sizeof(double));
+    x = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+    z = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+    p = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+    q = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+    r = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+    w = (double*) calloc(NA/NUM_PROC_ROWS+2+1, sizeof(double));
+
+    reduce_exch_proc = (int*) calloc(NUM_PROC_COLS+1, sizeof(int));
+    reduce_send_starts = (int*) calloc(NUM_PROC_COLS+1, sizeof(int));
+    reduce_send_lengths = (int*) calloc(NUM_PROC_COLS+1, sizeof(int));
+    reduce_recv_starts = (int*) calloc(NUM_PROC_COLS+1, sizeof(int));
+    reduce_recv_lengths = (int*) calloc(NUM_PROC_COLS+1, sizeof(int));
+}
 
 void setup_proc_info(int num_procs, int num_proc_rows, int num_proc_cols )
 {
@@ -404,11 +465,20 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 	int i, j, k, it;
     int ierr, fstatus;
 
+    NA = _NA;
+    NONZER = _NONZER;
+    NITER = _NITER;
+    SHIFT = _SHIFT;
+    RCOND = _RCOND;
+
     //subroutine initialize_mpi
-    MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     root = 0;
+
+    NUM_PROC_COLS = NUM_PROC_ROWS = ilog2(nprocs)/2;
+    if (NUM_PROC_COLS+NUM_PROC_ROWS != ilog2(nprocs)) NUM_PROC_COLS += 1;
+    NUM_PROC_COLS = ipow2(NUM_PROC_COLS); NUM_PROC_ROWS = ipow2(NUM_PROC_ROWS);
 
 //Set up mpi initialization and number of proc testing
       //call initialize_mpi
@@ -442,6 +512,8 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 
 	naa = NA;
 	nzz = NZ;
+
+    setup_arrays();
 
 //Set up processor info, such as whether sq num of procs, etc
     setup_proc_info( NUM_PROCS, NUM_PROC_ROWS, NUM_PROC_COLS);
@@ -546,7 +618,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 
 //Initialize the CG algorithm:
 
-#pragma acc parallel loop copyin(x) copyout(q,z,r,p,w)
+#pragma acc parallel loop copyin(x[0:NA/NUM_PROC_ROWS+2+1]) copyout(q[0:NA/NUM_PROC_ROWS+2+1],z[0:NA/NUM_PROC_ROWS+2+1],r[0:NA/NUM_PROC_ROWS+2+1],p[0:NA/NUM_PROC_ROWS+2+1],w[0:NA/NUM_PROC_ROWS+2+1])
 	for (j=1; j<=naa/nprows+1; j++){
 		q[j] = 0.0;
 		z[j] = 0.0;
@@ -559,7 +631,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //Now, obtain the norm of r: First, sum squares of r elements locally...
 
 	sum = 0.0;
-#pragma acc parallel loop copyin(r) reduction(+:sum)
+#pragma acc parallel loop copyin(r[0:NA/NUM_PROC_ROWS+2+1]) reduction(+:sum)
 	for (j=1; j<=lastcol-firstcol+1; j++){
 		sum = sum + r[j]*r[j];
 	}
@@ -581,7 +653,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //q = A.p
 //The partition submatrix-vector multiply: use workspace w
 
-#pragma acc parallel loop gang vector copyin(rowstr, a, p, colidx) copyout(w) private(sum)
+#pragma acc parallel loop gang vector copyin(rowstr[0:NA+1+1], a[0:NZ+1], p[0:NA/NUM_PROC_ROWS+2+1], colidx[0:NZ+1]) copyout(w[0:NA/NUM_PROC_ROWS+2+1]) private(sum)
 		for (j=1; j<=lastrow-firstrow+1; j++){
 			sum = 0.0;
 			for (k=rowstr[j]; k<=rowstr[j+1]-1; k++){
@@ -612,14 +684,14 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
             MPI_Wait(&request, &status);
          }
          else {
-#pragma acc parallel loop copyin(w) copyout(q)
+#pragma acc parallel loop copyin(w[0:NA/NUM_PROC_ROWS+2+1]) copyout(q[0:NA/NUM_PROC_ROWS+2+1])
             for (j=1; j<= exch_recv_length; j++){
                q[j] = w[j];
             }
          }
 
 //Clear w for reuse...
-#pragma acc parallel loop copyout(w)
+#pragma acc parallel loop copyout(w[0:NA/NUM_PROC_ROWS+2+1])
 		 for (j=1; j<= max( lastrow-firstrow+1, lastcol-firstcol+1 ); j++){
             w[j] = 0.0;
 		 }
@@ -627,7 +699,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //Obtain p.q
 
          sum = 0.0;
-#pragma acc parallel loop copyin(p, q) reduction(+:sum)
+#pragma acc parallel loop copyin(p[0:NA/NUM_PROC_ROWS+2+1], q[0:NA/NUM_PROC_ROWS+2+1]) reduction(+:sum)
          for (j=1; j<= lastcol-firstcol+1; j++){
             sum = sum + p[j]*q[j];
          }
@@ -651,7 +723,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //Obtain z = z + alpha*p
 //and    r = r - alpha*q
 
-#pragma acc parallel loop copy(r, z) copyin(p, q)
+#pragma acc parallel loop copy(r[0:NA/NUM_PROC_ROWS+2+1], z[0:NA/NUM_PROC_ROWS+2+1]) copyin(p[0:NA/NUM_PROC_ROWS+2+1], q[0:NA/NUM_PROC_ROWS+2+1])
          for (j=1; j<=lastcol-firstcol+1; j++){
             z[j] = z[j] + alpha*p[j];
             r[j] = r[j] - alpha*q[j];
@@ -661,7 +733,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //Now, obtain the norm of r: First, sum squares of r elements locally...
 
          sum = 0.0;
-#pragma acc parallel loop copyin(r) reduction(+:sum)
+#pragma acc parallel loop copyin(r[0:NA/NUM_PROC_ROWS+2+1]) reduction(+:sum)
          for (j=1; j<=lastcol-firstcol+1; j++){
             sum = sum + r[j]*r[j];
          }
@@ -679,7 +751,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
          beta = rho / rho0;
 
 //p = r + beta*p
-#pragma acc parallel loop copyin(r) copy(p)
+#pragma acc parallel loop copyin(r[0:NA/NUM_PROC_ROWS+2+1]) copy(p[0:NA/NUM_PROC_ROWS+2+1])
          for (j=1; j<=lastcol-firstcol+1; j++){
             p[j] = r[j] + beta*p[j];
          }
@@ -691,7 +763,7 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 //First, form A.z
 //The partition submatrix-vector multiply
 
-#pragma acc parallel loop gang vector copyin(rowstr, a, z, colidx) copyout(w) private(sum)
+#pragma acc parallel loop gang vector copyin(rowstr[0:NA+1+1], a[0:NZ+1], z[0:NA/NUM_PROC_ROWS+2+1], colidx[0:NZ+1]) copyout(w[0:NA/NUM_PROC_ROWS+2+1]) private(sum)
       for (j=1; j<=lastrow-firstrow+1; j++){
          sum = 0.0;
          for (k=rowstr[j]; k<=rowstr[j+1]-1; k++){
@@ -721,14 +793,14 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
          MPI_Wait(&request, &status);
       }
       else {
-#pragma acc parallel loop copyin(w) copyout(r)
+#pragma acc parallel loop copyin(w[0:NA/NUM_PROC_ROWS+2+1]) copyout(r[0:NA/NUM_PROC_ROWS+2+1])
          for (j=1; j<=exch_recv_length; j++)
             r[j] = w[j];
       }
 
 //At this point, r contains A.z
          sum = 0.0;
-#pragma acc parallel loop copyin(x,r) reduction(+:sum)
+#pragma acc parallel loop copyin(x[0:NA/NUM_PROC_ROWS+2+1],r[0:NA/NUM_PROC_ROWS+2+1]) reduction(+:sum)
          for (j=1; j<=lastcol-firstcol+1; j++){
             d = x[j] - r[j];
             sum = sum + d*d;
@@ -814,9 +886,9 @@ void cgDouble(int _NA, int _NONZER, int _NITER, double _SHIFT, double _RCOND, do
 							 NITER, NNODES_COMPILED, nprocs, tmax,
 							 mflops, "          floating point",
 							 verified, NPBVERSION);
-      }
+         *gflops = mflops;
 
-     MPI_Finalize();
+      }
 
 }//END MAIN
 
