@@ -350,9 +350,6 @@ int epDouble(const char* CLASSX, int M, double* gflops)
         "Sums = %25.15lE%25.15lE\n"
         "Counts:\n",
         tm, M, gc, sx, sy);
-    for (i = 0; i < NQ; i++) {
-      printf("%3d%14.0lf\n", i, q[i]);
-    }
 
     c_print_results("EP", CLASSX[0], M+1, 0, 0, nit, no_nodes, 
         no_nodes, tm, Mops, 
