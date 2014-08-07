@@ -1,0 +1,23 @@
+device,name
+hd5870,ATI Radeon HD5870
+gtx580,NV GeForce GTX580
+gtx680,NV GeForce GTX680
+gtx690,NV GeForce GTX690
+gtx480,NV GeForce GTX480
+m2070ecc,NV Tesla M2070-ECC
+c2050noecc,NV Tesla C2050-No ECC
+c1060, NV Tesla C1060
+ion,NV ION
+nehalem,Intel 2.27Ghz Nehalem
+gtx570,NV GeForce GTX570
+gtx465,NV GeForce GTX465
+gtx470,NV GeForce GTX470
+hd5750,ATI Radeon HD5750
+hd5770,ATI Radeon HD5770
+hd5850,ATI Radeon HD5850
+hd5970,ATI Radeon HD5970
+m2090,NV Tesla M2090
+sb00,Intel Core i7-2600
+hd7970,ATI Radeon HD7970
+hd5670,ATI Radeon HD5670
+llano,AMD Llano A8-3850 fGPU
