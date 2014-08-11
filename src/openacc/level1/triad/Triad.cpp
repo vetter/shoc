@@ -78,23 +78,6 @@ VerifyResult(const T *devResult, const T* i_A, const T* i_B, const T i_s, const 
     return ret;
 }
  
-// ****************************************************************************
-// Function: addBenchmarkSpecOptions
-//
-// Purpose:
-//   Add benchmark specific options parsing
-//
-// Arguments:
-//   op: the options parser / parameter database
-//
-// Returns:  nothing
-//
-// Programmer: Kyle Spafford
-// Creation: December 15, 2009
-//
-// Modifications:
-//
-// ****************************************************************************
 void
 addBenchmarkSpecOptions(OptionParser &op)
 {
