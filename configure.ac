@@ -657,6 +657,8 @@ AC_CONFIG_FILES([Makefile
                  src/openacc/level1/fft/epmpi/Makefile
                  src/openacc/level1/md/Makefile
                  src/openacc/level1/md/epmpi/Makefile
+                 src/openacc/level1/md5hash/Makefile
+                 src/openacc/level1/md5hash/epmpi/Makefile
                  src/openacc/level1/reduction/Makefile
                  src/openacc/level1/reduction/epmpi/Makefile
                  src/openacc/level1/reduction/tpmpi/Makefile

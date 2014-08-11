@@ -1,1 +1,1 @@
-SUBDIRS=bfs cg ep fft gemm md reduction scan sort spmv stencil2d triad
+SUBDIRS=bfs cg ep fft gemm md reduction scan sort spmv stencil2d triad md5hash

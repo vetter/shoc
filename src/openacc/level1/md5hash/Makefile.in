@@ -34,8 +34,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-serialcuda_PROGRAMS = Stability$(EXEEXT)
-subdir = src/stability
+serialopenacc_PROGRAMS = MD5Hash$(EXEEXT)
+subdir = src/openacc/level1/md5hash
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -45,24 +45,28 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(serialcudadir)"
-PROGRAMS = $(serialcuda_PROGRAMS)
-am_Stability_OBJECTS = Stability.$(OBJEXT) main.$(OBJEXT)
-Stability_OBJECTS = $(am_Stability_OBJECTS)
+am__installdirs = "$(DESTDIR)$(serialopenaccdir)"
+PROGRAMS = $(serialopenacc_PROGRAMS)
+am_MD5Hash_OBJECTS = MD5Hash.$(OBJEXT) MD5HashFuncs.$(OBJEXT) \
+	main.$(OBJEXT)
+MD5Hash_OBJECTS = $(am_MD5Hash_OBJECTS)
 am__DEPENDENCIES_1 =
-Stability_DEPENDENCIES = $(top_builddir)/src/cuda/level1/fft/fftlib.o \
-	$(am__DEPENDENCIES_1)
+MD5Hash_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(Stability_SOURCES)
-DIST_SOURCES = $(Stability_SOURCES)
+SOURCES = $(MD5Hash_SOURCES)
+DIST_SOURCES = $(MD5Hash_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -106,7 +110,7 @@ am__relativize = \
   reldir="$$dir2"
 
 # How to find source files
-VPATH = $(srcdir):$(top_srcdir)/src/cuda/common
+VPATH = $(srcdir):$(srcdir)/../../common:$(srcdir)/../../../common
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
@@ -230,21 +234,22 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @BUILD_MPI_TRUE@MAYBE_MPI = epmpi
 SUBDIRS = $(MAYBE_MPI)
-AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC)
+AM_LDFLAGS = $(OPENACC_LDFLAGS)
+AM_CFLAGS = $(OPENACC_CFLAGS)
 
-# What is the destination for programs built from this directory?
-serialcudadir = $(bindir)/Serial/CUDA
+# what is the destination for programs built from this directory?
+serialopenaccdir = $(bindir)/Serial/OpenACC
 
-# How to build those programs?
-Stability_SOURCES = Stability.cpp \
+# how to build those programs
+MD5Hash_SOURCES = MD5Hash.cpp \
+				MD5HashFuncs.c \
                 main.cpp
 
-Stability_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS)
+MD5Hash_LDADD = -lSHOCCommon $(OPENACC_LIBS) $(LIBS)
 all: all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .cpp .o .obj
+.SUFFIXES: .c .cpp .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -254,9 +259,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/stability/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/openacc/level1/md5hash/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/stability/Makefile
+	  $(AUTOMAKE) --foreign src/openacc/level1/md5hash/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -275,10 +280,10 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-serialcudaPROGRAMS: $(serialcuda_PROGRAMS)
+install-serialopenaccPROGRAMS: $(serialopenacc_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	test -z "$(serialcudadir)" || $(MKDIR_P) "$(DESTDIR)$(serialcudadir)"
-	@list='$(serialcuda_PROGRAMS)'; test -n "$(serialcudadir)" || list=; \
+	test -z "$(serialopenaccdir)" || $(MKDIR_P) "$(DESTDIR)$(serialopenaccdir)"
+	@list='$(serialopenacc_PROGRAMS)'; test -n "$(serialopenaccdir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
 	while read p p1; do if test -f $$p; \
@@ -295,26 +300,26 @@ install-serialcudaPROGRAMS: $(serialcuda_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(serialcudadir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(serialcudadir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(serialopenaccdir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(serialopenaccdir)$$dir" || exit $$?; \
 	    } \
 	; done
 
-uninstall-serialcudaPROGRAMS:
+uninstall-serialopenaccPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(serialcuda_PROGRAMS)'; test -n "$(serialcudadir)" || list=; \
+	@list='$(serialopenacc_PROGRAMS)'; test -n "$(serialopenaccdir)" || list=; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
 	      -e 's/$$/$(EXEEXT)/' `; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(serialcudadir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(serialcudadir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(serialopenaccdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(serialopenaccdir)" && rm -f $$files
 
-clean-serialcudaPROGRAMS:
-	-test -z "$(serialcuda_PROGRAMS)" || rm -f $(serialcuda_PROGRAMS)
-Stability$(EXEEXT): $(Stability_OBJECTS) $(Stability_DEPENDENCIES) 
-	@rm -f Stability$(EXEEXT)
-	$(CXXLINK) $(Stability_OBJECTS) $(Stability_LDADD) $(LIBS)
+clean-serialopenaccPROGRAMS:
+	-test -z "$(serialopenacc_PROGRAMS)" || rm -f $(serialopenacc_PROGRAMS)
+MD5Hash$(EXEEXT): $(MD5Hash_OBJECTS) $(MD5Hash_DEPENDENCIES) 
+	@rm -f MD5Hash$(EXEEXT)
+	$(CXXLINK) $(MD5Hash_OBJECTS) $(MD5Hash_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -322,8 +327,23 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Stability.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MD5Hash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MD5HashFuncs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -537,7 +557,7 @@ check: check-recursive
 all-am: Makefile $(PROGRAMS)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(serialcudadir)"; do \
+	for dir in "$(DESTDIR)$(serialopenaccdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -567,7 +587,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-serialcudaPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-serialopenaccPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
@@ -587,7 +607,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-serialcudaPROGRAMS
+install-data-am: install-serialopenaccPROGRAMS
 
 install-dvi: install-dvi-recursive
 
@@ -632,25 +652,25 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-serialcudaPROGRAMS
+uninstall-am: uninstall-serialopenaccPROGRAMS
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
 	install-am install-strip tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am check check-am clean clean-generic \
-	clean-serialcudaPROGRAMS ctags ctags-recursive distclean \
+	clean-serialopenaccPROGRAMS ctags ctags-recursive distclean \
 	distclean-compile distclean-generic distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-pdf \
 	install-pdf-am install-ps install-ps-am \
-	install-serialcudaPROGRAMS install-strip installcheck \
+	install-serialopenaccPROGRAMS install-strip installcheck \
 	installcheck-am installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-serialcudaPROGRAMS
+	uninstall uninstall-am uninstall-serialopenaccPROGRAMS
 
 
 include $(top_builddir)/config/config.mk
