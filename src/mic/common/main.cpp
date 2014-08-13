@@ -188,7 +188,13 @@ EnumerateDevicesAndChoose(int chosenDevice, bool verbose)
       cout << endl<<endl;
     }
 
+    //Close each device
+    (void)mic_close_device(mdh);
+
   }
+  //Free the device list
+  (void)mic_free_devices(mdl);
+
   std::cout << "Chosen device:"
     << " index=" << chosenDevice
     << std::endl;
