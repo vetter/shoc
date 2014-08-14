@@ -30,49 +30,47 @@ init(OptionParser& op,
     CL_CHECK_ERROR(err);
 
     // ...and build it
-    string args = " -cl-mad-enable ";
+    // (Note that at least some versions of the OpenCL implementation on
+    // OS X will fail to build the program if there are multiple
+    // command line options separated by more than one space.  So: make
+    // sure as you build up your compiler options string you don't 
+    // add two spaces.)
+    string args = " -cl-mad-enable";
     if (op.getOptionBool("use-native")) {
-        args += " -cl-fast-relaxed-math ";
+        args += " -cl-fast-relaxed-math";
     }
     if (!do_dp) {
-        args += " -DSINGLE_PRECISION ";
+        args += " -DSINGLE_PRECISION";
     }
     else if (checkExtension(fftDev, "cl_khr_fp64")) {
-        args += " -DK_DOUBLE_PRECISION ";
+        args += " -DK_DOUBLE_PRECISION";
     }
     else if (checkExtension(fftDev, "cl_amd_fp64")) {
-        args += " -DAMD_DOUBLE_PRECISION ";
+        args += " -DAMD_DOUBLE_PRECISION";
     }
+
     err = clBuildProgram(fftProg, 0, NULL, args.c_str(), NULL, NULL);
+    if( err == CL_BUILD_PROGRAM_FAILURE )
     {
         char* log = NULL;
         size_t bytesRequired = 0;
-        err = clGetProgramBuildInfo(fftProg,
+        int pbierr = clGetProgramBuildInfo(fftProg,
                                     fftDev,
                                     CL_PROGRAM_BUILD_LOG,
                                     0,
                                     NULL,
                                     &bytesRequired );
-        log = (char*)malloc( bytesRequired + 1 );
-        err = clGetProgramBuildInfo(fftProg,
+        log = new char[bytesRequired + 1];
+        pbierr = clGetProgramBuildInfo(fftProg,
                                     fftDev,
                                     CL_PROGRAM_BUILD_LOG,
                                     bytesRequired,
                                     log,
                                     NULL );
-        std::cout << log << std::endl;
-        free( log );
+        std::cerr << log << std::endl;
+        delete[] log;
     }
-    if (err != CL_SUCCESS) {
-        char log[50000];
-        size_t retsize = 0;
-        err = clGetProgramBuildInfo(fftProg, fftDev, CL_PROGRAM_BUILD_LOG,
-                                    50000*sizeof(char),  log, &retsize);
-        CL_CHECK_ERROR(err);
-        cout << "Retsize: " << retsize << endl;
-        cout << "Log: " << log << endl;
-        exit(-1);
-    }
+    CL_CHECK_ERROR(err);
 
     // Create kernel for forward FFT
     fftKrnl = clCreateKernel(fftProg, "fft1D_512", &err);

@@ -73,7 +73,8 @@ my @CSVResults = (
 "ocl_queue",
 "bfs",
 "bfs_pcie",
-"bfs_teps"
+"bfs_teps",
+"md5hash"
 #"qtc",
 #"qtc_kernel"
 );
@@ -156,6 +157,9 @@ my @SerialBenchmarks = (
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
   ["md_dp_bw_pcie",               \&findmax,     "MD-LJ-DP-Bandwidth_PCIe"]
+],
+[ "MD5Hash",           1, 1, 0, 0,
+  ["md5hash",                     \&findmax,     "MD5Hash"]
 ],
 [ "Reduction",         1, 1, 1, 0,
   ["reduction",                   \&findmax,     "Reduction"],
@@ -256,6 +260,9 @@ my @ParallelBenchmarks = (
 [ "MD",                1, 1, 1, 0,
   ["md_sp_flops",                 \&findmean,    "MD-LJ(max)"],
   ["md_dp_flops",                 \&findmean,    "MD-LJ-DP(max)"]
+],
+[ "MD5Hash",           1, 1, 0, 0,
+  ["md5hash",                     \&findmean,    "MD5Hash(max)"]
 ],
 [ "Reduction",         1, 1, 1, 0,
   ["reduction",                   \&findmean,    "Reduction(max)"],
