@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else
@@ -422,7 +423,7 @@ checkExtension( cl_device_id devID, const std::string& ext )
     size_t nBytesNeeded = 0;
     err = clGetDeviceInfo( devID,
                         CL_DEVICE_EXTENSIONS,
-                        NULL,
+                        0,
                         NULL,
                         &nBytesNeeded );
     CL_CHECK_ERROR(err);
