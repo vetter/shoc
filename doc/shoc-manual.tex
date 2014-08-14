@@ -525,6 +525,7 @@ real application kernels (Level 2).
         a device which supports atomic operations. (CC $>$ 1.2)
         \item {\bf FFT}: forward and reverse 1D FFT.
         \item {\bf MD}: computation of the Lennard-Jones potential from molecular dynamics
+        \item {\bf MD5Hash}: computation of many small MD5 digests, heavily dependent on bitwise operations.
         \item {\bf Reduction}: reduction operation on an array of single
         or double precision floating point values.
         \item {\bf SGEMM}: matrix-matrix multiply.
@@ -589,6 +590,7 @@ QueueDelay          & x & x &   &   &   &   &   &   &   \\
 BFS                 & x & x &   & x & x &   &   &   &   \\
 FFT                 & x & x &   & x & x &   &   &   &   \\
 MD                  & x & x &   & x & x &   &   &   &   \\
+MD5Hash             & x & x &   & x & x &   &   &   &   \\
 Reduction           & x & x & x & x & x & x & x & x & x \\
 QTC                 &   &   &   & x &   & x &   &   &   \\
 S3D                 & x & x &   & x & x &   &   &   &   \\

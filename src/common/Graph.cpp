@@ -139,7 +139,7 @@ void Graph::LoadMetisGraph(const char *filename)
 
 		//temp_value=(index-1)*(num_verts)+(vert-1);
 		offset++;
-		while(temp_token=(strtok(NULL,delimiters)))
+		while((temp_token=(strtok(NULL,delimiters))))
 		{
             assert(isdigit(temp_token[0]));
 			vert=atoi(temp_token);
