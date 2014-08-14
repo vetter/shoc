@@ -16,7 +16,7 @@ bool ResultDatabase::Result::operator<(const Result &rhs) const
         return true;
     if (atts > rhs.atts)
         return false;
-    return true; //?
+    return false; // less-operator returns false on equal
 }
 
 double ResultDatabase::Result::GetMin() const

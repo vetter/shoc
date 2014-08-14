@@ -271,7 +271,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     if (devSupportsImages)
     {
         size_t offset[3]={0};
-        size_t size[3]={maxImgWidth,imgHeight,1};
+        size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
         err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
             0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
         CL_CHECK_ERROR(err);
@@ -343,7 +343,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
          err = clFinish(queue);
          CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
-         double oTransferTime = outTransfer.FillTimingInfo();
+         double oTransferTime = outTransfer.StartEndRuntime();
 
         // Compare reference solution to GPU result
         if (! verifyResults(refOut, h_out, numRows, k)) {
@@ -381,7 +381,9 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     CL_CHECK_ERROR(err);
 
     // Free host memory
-    delete[] h_rowLengths, h_valcm, h_colscm;
+    delete[] h_rowLengths;
+    delete[] h_valcm;
+    delete[] h_colscm;
 }
 // ****************************************************************************
 // Function: csrTest
@@ -502,7 +504,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       if (devSupportsImages)
       {
           size_t offset[3]={0};
-          size_t size[3]={maxImgWidth,imgHeight,1};
+          size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
           err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
               0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
           CL_CHECK_ERROR(err);
@@ -615,7 +617,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
           err = clFinish(queue);
           CL_CHECK_ERROR(err);
           outTransfer.FillTimingInfo();
-          double oTransferTime = outTransfer.FillTimingInfo();
+          double oTransferTime = outTransfer.StartEndRuntime();
 
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
@@ -692,7 +694,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          err = clFinish(queue);
          CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
-         double oTransferTime = outTransfer.FillTimingInfo();
+         double oTransferTime = outTransfer.StartEndRuntime();
 
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
@@ -909,8 +911,15 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
              h_rowDelimiters, h_vec, h_out, numRows, nItems,
              refOut, false, paddedSize, 0);
     }
-    delete[] h_val, h_cols, h_rowDelimiters, h_vec, h_out;
-    delete[] h_valPad, h_colsPad, h_rowDelimitersPad;
+
+    delete[] h_val;
+    delete[] h_cols;
+    delete[] h_rowDelimiters;
+    delete[] h_vec;
+    delete[] h_out;
+    delete[] h_valPad;
+    delete[] h_colsPad;
+    delete[] h_rowDelimitersPad;
 }
 
 // ****************************************************************************

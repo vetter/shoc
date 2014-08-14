@@ -65,7 +65,7 @@ OpenCLPlatform::LookupInfo( cl_platform_id platformID,
     size_t nBytesNeeded = 0;
     err = clGetPlatformInfo(platformID,
                             paramName,
-                            NULL,
+                            0,
                             NULL,
                             &nBytesNeeded);
     CL_CHECK_ERROR(err);
