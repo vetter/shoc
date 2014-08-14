@@ -33,6 +33,7 @@ DoTriadFloats( unsigned int nItems,
         #pragma acc update host(C[j*blkSize:blkSize]) async(j+1) 
 
     }
+    #pragma acc wait 
 
     // stop the timer and record the result (in seconds)
     *totalTriadTime = Timer_Stop( wholeTimerHandle, "" );
@@ -70,6 +71,7 @@ DoTriadDoubles ( unsigned int nItems,
         #pragma acc update host(C[j*blkSize:blkSize]) async(j+1) 
 
     }
+    #pragma acc wait
 
     // stop the timer and record the result (in seconds)
     *totalTriadTime = Timer_Stop( wholeTimerHandle, "" );

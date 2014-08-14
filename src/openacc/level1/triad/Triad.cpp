@@ -168,7 +168,7 @@ void RunTest(const std::string& testName,
     //
 
     const bool verbose = opts.getOptionBool("verbose");
-    int nPasses = 1;
+    const bool nPasses = opts.getOptionInt("passes");
 
     // 256k through 8M bytes
     const int nSizes = 9;
