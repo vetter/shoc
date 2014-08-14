@@ -503,6 +503,7 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows)
     csrTest<floatType>(resultDB, op, h_val, h_cols,
             h_rowDelimiters, h_vec, h_out, numRows, nItems, refOut, false);
 
+#if READY
 //TODO: below codes need to be implemented.
 /*
     // Test CSR kernels on padded data
@@ -516,6 +517,18 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows)
             h_rowDelimiters, h_vec, h_out, numRows, nItems, refOut, false,
             paddedSize);
 */
+#else
+    // add "no result" results for the tests that aren't implemented
+    std::string suffix = (sizeof(floatType) == sizeof(float)) ? "SP" : "DP";
+
+    resultDB.AddResult(std::string("Padded_CSR-Scalar-") + suffix, "N/A", "Gflop/s", FLT_MAX);
+    resultDB.AddResult(std::string("Padded_CSR-Scalar-") + suffix + "_PCIe", "N/A", "Gflop/s", FLT_MAX);
+
+    resultDB.AddResult(std::string("Padded_CSR-Vector-") + suffix, "N/A", "Gflop/s", FLT_MAX);
+    resultDB.AddResult(std::string("Padded_CSR-Vector-") + suffix + "_PCIe", "N/A", "Gflop/s", FLT_MAX);
+
+    resultDB.AddResult(std::string("ELLPACKR-") + suffix, "N/A", "Gflop/s", FLT_MAX);
+#endif // READY
 
     delete[] refOut; 
     delete[] h_val; 

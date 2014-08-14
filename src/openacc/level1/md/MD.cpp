@@ -4,6 +4,7 @@
 #include <list>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "constants.h"
 #include "MD.h"

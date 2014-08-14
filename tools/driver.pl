@@ -100,10 +100,10 @@ my @CSVResults = (
 
 
 my @SerialBenchmarks = (
-[ "BusSpeedDownload",  1, 1, 0, 0,
+[ "BusSpeedDownload",  1, 1, 1, 0,
   ["bspeed_download",             \&findmax,     "DownloadSpeed"]
 ],
-[ "BusSpeedReadback",  1, 1, 0, 0,
+[ "BusSpeedReadback",  1, 1, 1, 0,
   ["bspeed_readback",             \&findmax,     "ReadbackSpeed"]
 ],
 [ "MaxFlops",          1, 1, 0, 0,
@@ -141,7 +141,7 @@ my @SerialBenchmarks = (
   ["ifft_dp",                     \&findmax,     "DP-FFT-INV"],
   ["ifft_dp_pcie",                \&findmax,     "DP-FFT-INV_PCIe"]
 ],
-[ "GEMM",             1, 1, 0, 0,
+[ "GEMM",              1, 1, 1, 0,
   ["sgemm_n",                     \&findmax,     "SGEMM-N"],
   ["sgemm_t",                     \&findmax,     "SGEMM-T"],
   ["sgemm_n_pcie",                \&findmax,     "SGEMM-N_PCIe"],
@@ -151,7 +151,7 @@ my @SerialBenchmarks = (
   ["dgemm_n_pcie",                \&findmax,     "DGEMM-N_PCIe"],
   ["dgemm_t_pcie",                \&findmax,     "DGEMM-T_PCIe"]
 ],
-[ "MD",                1, 1, 0, 0,
+[ "MD",                1, 1, 1, 0,
   ["md_sp_bw",                    \&findmax,     "MD-LJ-Bandwidth"],
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
@@ -163,7 +163,7 @@ my @SerialBenchmarks = (
   ["reduction_dp",                \&findmax,     "Reduction-DP"],
   ["reduction_dp_pcie",           \&findmax,     "Reduction-DP_PCIe"]
 ],
-[ "Scan",              1, 1, 0, 0,
+[ "Scan",              1, 1, 1, 0,
   ["scan",                        \&findmax,     "Scan"],
   ["scan_pcie",                   \&findmax,     "Scan_PCIe"],
   ["scan_dp",                     \&findmax,     "Scan-DP"],
@@ -173,7 +173,7 @@ my @SerialBenchmarks = (
   ["sort",                        \&findmax,     "Sort-Rate"],
   ["sort_pcie",                   \&findmax,     "Sort-Rate_PCIe"]
 ],
-[ "Spmv",              1, 1, 0, 0,
+[ "Spmv",              1, 1, 1, 0,
   ["spmv_csr_scalar_sp",          \&findmax,     "CSR-Scalar-SP"],
   ["spmv_csr_scalar_sp_pcie",     \&findmax,     "CSR-Scalar-SP_PCIe"],
   ["spmv_csr_scalar_dp",          \&findmax,     "CSR-Scalar-DP"],
@@ -220,10 +220,10 @@ my @SerialBenchmarks = (
 # the result names in the CSV output list above.
 
 my @ParallelBenchmarks = (
-[ "BusSpeedDownload",  1, 1, 0, 0,
+[ "BusSpeedDownload",  1, 1, 1, 0,
   ["bspeed_download",             \&findmean,    "DownloadSpeed(max)"]
 ],
-[ "BusSpeedReadback",  1, 1, 0, 0,
+[ "BusSpeedReadback",  1, 1, 1, 0,
   ["bspeed_readback",             \&findmean,    "ReadbackSpeed(max)"]
 ],
 [ "MaxFlops",          1, 1, 0, 0,
@@ -249,11 +249,11 @@ my @ParallelBenchmarks = (
   ["fft_sp",                      \&findmean,    "SP-FFT(max)"],
   ["fft_dp",                      \&findmean,    "DP-FFT(max)"]
 ],
-[ "GEMM",             1, 1, 0, 0,
+[ "GEMM",              1, 1, 1, 0,
   ["sgemm_n",                     \&findmean,    "SGEMM-N(max)"],
   ["dgemm_n",                     \&findmean,    "DGEMM-N(max)"]
 ],
-[ "MD",                1, 1, 0, 0,
+[ "MD",                1, 1, 1, 0,
   ["md_sp_flops",                 \&findmean,    "MD-LJ(max)"],
   ["md_dp_flops",                 \&findmean,    "MD-LJ-DP(max)"]
 ],
@@ -261,14 +261,14 @@ my @ParallelBenchmarks = (
   ["reduction",                   \&findmean,    "Reduction(max)"],
   ["reduction_dp",                \&findmean,    "Reduction-DP(max)"]
 ],
-[ "Scan",              1, 1, 0, 0,
+[ "Scan",              1, 1, 1, 0,
   ["scan",                        \&findmean,    "Scan(max)"],
   ["scan_dp",                     \&findmean,    "Scan-DP(max)"]
 ],
 [ "Sort",              1, 1, 0, 0,
   ["sort",                        \&findmean,    "Sort-Rate(max)"]
 ],
-[ "Spmv",              1, 1, 0, 0,
+[ "Spmv",              1, 1, 1, 0,
   ["spmv_csr_scalar_sp",          \&findmean,    "CSR-Scalar-SP(max)"],
   ["spmv_csr_vector_sp",          \&findmean,    "CSR-Vector-SP(max)"],
   ["spmv_ellpackr_sp",            \&findmean,    "ELLPACKR-SP(max)"],
@@ -287,7 +287,7 @@ my @ParallelBenchmarks = (
   ["s3d",                         \&findmean,    "S3D-SP(max)"],
   ["s3d_dp",                      \&findmean,    "S3D-DP(max)"]
 ],
-[ "QTC",                1, 0, 0, 1,
+[ "QTC",               1, 0, 0, 1,
   ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
   ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
 ]

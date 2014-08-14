@@ -643,6 +643,12 @@ AC_CONFIG_FILES([Makefile
                  src/openacc/level1/Makefile
                  src/openacc/level1/bfs/Makefile
                  src/openacc/level1/bfs/epmpi/Makefile
+                 src/openacc/level1/cg/Makefile
+                 src/openacc/level1/cg/epmpi/Makefile
+                 src/openacc/level1/cg/tpmpi/Makefile
+                 src/openacc/level1/ep/Makefile
+                 src/openacc/level1/ep/epmpi/Makefile
+                 src/openacc/level1/ep/tpmpi/Makefile
                  src/openacc/level1/fft/Makefile
                  src/openacc/level1/fft/epmpi/Makefile
                  src/openacc/level1/md/Makefile

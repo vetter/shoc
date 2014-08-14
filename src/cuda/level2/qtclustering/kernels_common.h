@@ -9,7 +9,7 @@
 //#include <float.h> // float.h should be included by math.h and we need it for FLT_MAX
 
 #include "tuningParameters.h"
-#include "qtc_common.h"
+#include "QTC/qtc_common.h"
 
 // Forward declarations
 __global__ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int cwrank, int node_rank, int node_count, int total_thread_block_count, bool can_use_texture);
@@ -33,13 +33,13 @@ inline dim3 grid2D( int nblocks )
     if( nblocks < 1 )
         return dim3(1,1);
 
-    while( nblocks/slices > 65535 )
+    while( nblocks/slices > 65535 ) 
         slices *= 2;
     return dim3( nblocks/slices, slices );
 }
 
 
-inline __device__
+inline __device__ 
 int closest_point_reduction(float min_dist, float threshold, int closest_point){
     __shared__ float dist_array[THREADSPERBLOCK];
     __shared__ int point_index_array[THREADSPERBLOCK];
@@ -71,7 +71,7 @@ int closest_point_reduction(float min_dist, float threshold, int closest_point){
 }
 
 
-__global__
+__global__ 
 void reduce_card_device(int *cardinalities, int TB_count){
     int i, max_card = -1, winner_index;
 
@@ -175,12 +175,12 @@ trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dis
         }
 
         __syncthreads();
-
+        
         if( 0 == tid ){
             if( flag_sh ){
                 cnt = cnt_sh;
                 for(int j = 0; (j < curThreadCount) && (i+j < point_count); j++ ){
-                    if( INVALID_POINT_MARKER != tmp_pnts[j] ){
+                    if( INVALID_POINT_MARKER != tmp_pnts[j] ){ 
                         ungrpd_pnts_indr[cnt] = tmp_pnts[j];
                         cnt++;
                     }
@@ -200,7 +200,7 @@ trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dis
 }
 
 
-__global__
+__global__ 
 void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int node_rank, int node_count, int total_thread_block_count, int matrix_type_mask, bool can_use_texture) {
     int max_cardinality = -1;
     int max_cardinality_index;

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <stdlib.h>
 
 #include "OptionParser.h"
 #include "ResultDatabase.h"

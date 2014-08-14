@@ -21,7 +21,7 @@
 	echo ";" >> $@
 
 %.o: %.cu
-	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $<
+	$(NVCC) ${AM_CPPFLAGS} ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $<
 
 #%.d: %.cpp
 #	@echo "updating $@"; set -e; ${RM} $@; \

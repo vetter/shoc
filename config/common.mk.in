@@ -40,5 +40,6 @@ else
 CUDA_LIBS       =
 endif
 
+OPENACC_CPPFLAGS	= -I$(top_srcdir)/src/openacc/common
 
 

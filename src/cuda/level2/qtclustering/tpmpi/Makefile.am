@@ -2,14 +2,14 @@ include $(top_builddir)/config/config.mk
 include $(top_builddir)/config/targets.mk
 
 # How to find source files
-VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common
+VPATH = $(srcdir)/..:$(srcdir)/../../../common:$(srcdir)/../../../../common:$(srcdir)/../../../../common/QTC
 
 # Which compiler to use to build and link
 CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
 AM_LDFLAGS = $(CUDA_LDFLAGS)
-AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common -I$(srcdir)/..
 
 # What is the destination for programs built from this directory?
 tpcudadir = $(bindir)/TP/CUDA

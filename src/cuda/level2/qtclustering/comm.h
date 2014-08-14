@@ -1,10 +1,6 @@
 #ifndef _COMM_H_
 #define _COMM_H_
 
-#if defined(PARALLEL)
-#  include "mpi.h"
-#endif
-
 #define COMM_TYPE_INT   0
 #define COMM_TYPE_FLOAT 1
 
