@@ -52,8 +52,10 @@
 #define VECSIZE_SP 480000
 #define REPS_SP 1000
 
-float __declspec(target(mic)) testICC_read(const int reps);
-float __declspec(target(mic)) testICC_write(const int reps, const float value);
+//float __declspec(target(mic)) testICC_read(const int reps);
+float __declspec(target(mic)) testICC_read(float* data, const int reps);
+//float __declspec(target(mic)) testICC_write(const int reps, const float value);
+float __declspec(target(mic)) testICC_write(const size_t numElements, float* data, const int reps, const float value);
 
 
 // L2 & L1 Benchmarks Sizes
@@ -84,6 +86,45 @@ void addBenchmarkSpecOptions(OptionParser &op)
 }
 
 // ****************************************************************************
+// Function: initData
+//
+// Purpose:
+//   Randomly intialize the host data in preparation for the FP test.
+//
+// Arguments:
+//   hostMem - uninitialized host memory
+//   numFloats - length of hostMem array
+//
+// Returns:  nothing
+//
+// Programmer: Zhi Ying(zhi.ying@intel.com)
+//             Jun Jin(jun.i.jin@intel.com)
+//
+// Modifications:
+// Aug. 12, 2014 - Jeff Young - Modified to support different data type
+//
+// ****************************************************************************
+void InitData(float *hostMem, const size_t numElements)
+{
+    /*const int halfNumFloats = numFloats/2;
+    srand((unsigned)time(NULL));
+    for (int j=0; j<halfNumFloats; ++j)
+    {
+        hostMem[j] = hostMem[numFloats-j-1] = (T)((rand()/ (float)RAND_MAX) *
+                10.0);
+    }*/
+    
+    #pragma ivdep
+    #pragma omp parallel for shared(hostMem)
+    for (int q = 0; q < numElements; q++)
+    {
+        hostMem[q] = 1.0;
+    }
+}
+
+
+
+// ****************************************************************************
 // Function: runBenchmark
 //
 // Purpose:
@@ -107,20 +148,33 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     const bool verbose = op.getOptionBool("verbose");
     const unsigned int passes = op.getOptionInt("passes");
 
-    char sizeStr[128];
+    char sizeStr[256];
 
     double t = 0.0f;
     double startTime;
     unsigned int w;
     __declspec(target(mic)) static unsigned int reps;
     double nbytes;
-    float res = 0.0;
     float input = 1.0;
 
     int numThreads = MIC_THREADS;
     double dThreads = static_cast<double>(numThreads);
     
     double bdwth;
+
+    //Initialize the data array for each test
+    size_t numElements;
+    numElements = VECSIZE_SP*MIC_THREADS;
+
+    static __declspec(target(mic)) float *hostMem;
+    hostMem = (float*)_mm_malloc(sizeof(float)*numElements, 64);
+    
+    float res = 0.0;
+    
+    //Number of bytes read/written is currently constant
+    nbytes = ((double)w)*((double)reps)*((double)sizeof(float))*dThreads;
+    
+    sprintf(sizeStr, "% 7fkB", nbytes/(1024.0));
 
     for (int p = 0; p < passes; p++)
     {
@@ -131,21 +185,32 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
         reps = REPS_SP;
 
         // ========= Test Read - ICC Code =============
+        //Reinitialize input array for each test and each pass
+        InitData(hostMem,numElements);  
+        //Transfer data to device before timed section and don't free the allocation
+        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))                                
+        {}  
         int testICC_readTimerHandle = Timer::Start();
-        #pragma offload target (mic)
-        res = testICC_read(reps);
+
+        //Specify that hostMem was already transferred
+        #pragma offload target (mic) nocopy(hostMem)
+        res = testICC_read(hostMem, reps);
+    
         t = Timer::Stop(testICC_readTimerHandle, "testICC_read");
 
         // Add Result - while this is not strictly a coalesced read, this value matches up with the gmem_writebw result for SHOC
-        nbytes = ((double)w)*((double)reps)*((double)sizeof(float))*dThreads;
         bdwth = ((double)nbytes) / (t*1.e9);
-        resultDB.AddResult("readGlobalMemoryCoalesced", sizeStr, "GB/s",
-                bdwth);
+        resultDB.AddResult("readGlobalMemoryCoalesced", sizeStr, "GB/s", bdwth);
 
         // ========= Test Write - ICC Code =============
+        //Reinitialize input array for each test and each pass
+        InitData(hostMem,numElements);  
+        //Transfer data to device before timed section and don't free the allocation
+        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))                                
+        {}  
         int testICC_writeTimerHandle = Timer::Start();
-        #pragma offload target (mic)
-        res = testICC_write(reps, input);
+        #pragma offload target (mic) in(numElements) nocopy(hostMem)
+        res = testICC_write(numElements, hostMem, reps, input);
         t = Timer::Stop(testICC_writeTimerHandle, "testICC_write");
 
         // Add Result - while this is not strictly a coalesced write, this value matches up with the gmem_writebw result for SHOC
@@ -173,22 +238,11 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 // ****************************************************************************
 
 
-float __declspec(target(mic)) testICC_read(const int reps)
+float __declspec(target(mic)) testICC_read(float* data, const int reps)
 {
 #ifdef __MIC__ || __MIC2__
 
-    size_t numElements;
-
-    numElements = VECSIZE_SP*MIC_THREADS;
-
-    float* a = (float*)_mm_malloc(sizeof(float)*numElements, 64);
     __declspec(aligned(64))float res = 0.0;
-    #pragma ivdep
-    #pragma omp parallel for shared(a)
-    for (int q = 0; q < numElements; q++)
-    {
-        a[q] = 1.0;
-    }
 
     #pragma omp parallel shared(res)
     {
@@ -201,7 +255,7 @@ float __declspec(target(mic)) testICC_read(const int reps)
             #pragma ivdep
             for (int q = offset; q < offset+VECSIZE_SP; q++)
             {
-                b += a[q];
+                b += data[q];
             }
             b += 1.0;
         }
@@ -210,7 +264,6 @@ float __declspec(target(mic)) testICC_read(const int reps)
             res += b;
         }
     }
-    _mm_free(a);
     return res;
 #else
     return 0.0;
@@ -218,23 +271,12 @@ float __declspec(target(mic)) testICC_read(const int reps)
 }
 
 
-float __declspec(target(mic)) testICC_write(const int reps, const float value)
+float __declspec(target(mic)) testICC_write(const size_t numElements, float* data, const int reps, const float value)
 {
 #ifdef __MIC__ || __MIC2__
 
-    size_t numElements;
 
-    numElements = VECSIZE_SP*MIC_THREADS;
-
-    float* a = (float*)_mm_malloc(sizeof(float)*numElements, 64);
     __declspec(aligned(64))float res = 0.0;
-
-    #pragma vector aligned
-    #pragma ivdep
-    for (int q = 0; q < numElements; q++)
-    {
-        a[q] = 1.0;
-    }
 
     #pragma omp parallel shared(res)
     {
@@ -248,15 +290,15 @@ float __declspec(target(mic)) testICC_write(const int reps, const float value)
             #pragma ivdep
             for (int q = offset; q < offset+VECSIZE_SP; q++)
             {
-                a[q] += writeData;
+                data[q] += writeData;
             }
             writeData += 1.0;
         }
     }
 
-    // Sum something in a, avoid compiler optimizations
-    res = a[0] + a[numElements-1];
-    _mm_free(a);
+    // Sum something in data, avoid compiler optimizations
+    res = data[0] + data[numElements-1];
+    
     return res;
 #else
     return 0.0;
