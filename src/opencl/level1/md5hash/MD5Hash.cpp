@@ -578,9 +578,9 @@ RunBenchmark(cl_device_id dev,
     // Determine the shape/size of key space
     //
     const int sizes_byteLength[]  = { 7,  5,  6,  5};
-    const int sizes_valsPerByte[] = {10, 36, 26, 73};
+    const int sizes_valsPerByte[] = {10, 36, 26, 70};
 
-    const int byteLength = sizes_byteLength[size-1];   
+    const int byteLength = sizes_byteLength[size-1];
     const int valsPerByte = sizes_valsPerByte[size-1];
 
     char atts[1024];
@@ -680,7 +680,7 @@ RunBenchmark(cl_device_id dev,
         {
             cerr << "\nERROR: mismatch in key value found.\n";
             rate = FLT_MAX;
-        }        
+        }
         else if (foundDigest[0] != randomDigest[0] ||
             foundDigest[1] != randomDigest[1] ||
             foundDigest[2] != randomDigest[2] ||
