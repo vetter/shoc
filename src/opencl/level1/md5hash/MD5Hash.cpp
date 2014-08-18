@@ -421,6 +421,25 @@ double FindKeyWithDigest_GPU(cl_context ctx,
     CL_CHECK_ERROR(err);
 
     //
+    // initialize output buffers to show no found result
+    //
+    err = clEnqueueWriteBuffer(queue, d_foundIndex, true, 0,
+                               sizeof(int)*1, foundIndex,
+                               0, NULL, NULL);
+    CL_CHECK_ERROR(err);
+    err = clEnqueueWriteBuffer(queue, d_foundKey, true, 0,
+                               8, foundKey,
+                               0, NULL, NULL);
+    CL_CHECK_ERROR(err);
+    err = clEnqueueWriteBuffer(queue, d_foundDigest, true, 0,
+                               sizeof(int)*4, foundDigest,
+                               0, NULL, NULL);
+    CL_CHECK_ERROR(err);
+
+    err = clFinish(queue);
+    CL_CHECK_ERROR(err);
+
+    //
     // set arguments for the kernel
     //
     err = clSetKernelArg(md5kernel, 0, sizeof(unsigned int), (void*)&searchDigest[0]);
@@ -578,7 +597,7 @@ RunBenchmark(cl_device_id dev,
     // Determine the shape/size of key space
     //
     const int sizes_byteLength[]  = { 7,  5,  6,  5};
-    const int sizes_valsPerByte[] = {10, 36, 26, 70};
+    const int sizes_valsPerByte[] = {10, 35, 25, 70};
 
     const int byteLength = sizes_byteLength[size-1];
     const int valsPerByte = sizes_valsPerByte[size-1];
@@ -664,7 +683,12 @@ RunBenchmark(cl_device_id dev,
         //
         // Double check everything matches (index, key, hash).
         //
-        if (foundIndex != randomIndex)
+        if (foundIndex < 0)
+        {
+            cerr << "\nERROR: could not find a match.\n";
+            rate = FLT_MAX;
+        }
+        else if (foundIndex != randomIndex)
         {
             cerr << "\nERROR: mismatch in key index found.\n";
             rate = FLT_MAX;

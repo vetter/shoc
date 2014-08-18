@@ -470,6 +470,17 @@ double FindKeyWithDigest_GPU(const unsigned int searchDigest[4],
     cudaMalloc((void**)&d_foundDigest, sizeof(unsigned int) * 4);
     CHECK_CUDA_ERROR();
 
+    //
+    // initialize output buffers to show no found result
+    //
+    cudaMemcpy(d_foundIndex, foundIndex, sizeof(int) * 1, cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
+    cudaMemcpy(d_foundKey, foundKey, 8, cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
+    cudaMemcpy(d_foundDigest, foundDigest, sizeof(unsigned int) * 4, cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
+
+
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -568,7 +579,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     // Determine the shape/size of key space
     //
     const int sizes_byteLength[]  = { 7,  5,  6,  5};
-    const int sizes_valsPerByte[] = {10, 36, 26, 70};
+    const int sizes_valsPerByte[] = {10, 35, 25, 70};
 
     const int byteLength = sizes_byteLength[size-1];   
     const int valsPerByte = sizes_valsPerByte[size-1];
@@ -653,7 +664,12 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         //
         // Double check everything matches (index, key, hash).
         //
-        if (foundIndex != randomIndex)
+        if (foundIndex < 0)
+        {
+            cerr << "\nERROR: could not find a match.\n";
+            rate = FLT_MAX;
+        }
+        else if (foundIndex != randomIndex)
         {
             cerr << "\nERROR: mismatch in key index found.\n";
             rate = FLT_MAX;
