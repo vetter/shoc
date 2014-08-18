@@ -127,7 +127,7 @@ generateKernel (ostringstream &oss,
        elemSize = sizeof(int);
     else
        elemSize = sizeof(float);
-    if (test.useLocalMem)
+    if (test.useLocalMem){
        if (localMem > 0)
        {
           long maxLocal = localMem/elemSize;
@@ -139,6 +139,7 @@ generateKernel (ostringstream &oss,
        }
        else
           localMemSize = test.localBuffSize;
+    }
     oss << std::string("__kernel void ") << kName << "(";
     if (opt == OP_MEM_READ)
         oss << test.sourceType << " "
@@ -506,6 +507,9 @@ void RunBenchmark(cl_device_id dev,
                     err = clWaitForEvents(1, &evDownloadPrime2.CLEvent());
                     CL_CHECK_ERROR(err);
                 }
+                break;
+
+                default:
                 break;
             }
 
