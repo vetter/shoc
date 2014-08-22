@@ -5956,7 +5956,7 @@ if test "x$with_mic" != xno; then :
 
                                                         { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can compiler programs for Intel MIC" >&5
 $as_echo_n "checking whether we can compiler programs for Intel MIC... " >&6; }
-        MIC_OFFLOAD_CXXFLAGS="-openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report"
+        MIC_OFFLOAD_CXXFLAGS=" -openmp -intel-extensions -offload-option,mic,compiler,\"-mP2OPT_hpo_vec_check_dp_trip=F -fimf-precision=low -fimf-domain-exclusion=15 -opt-report\" -mP2OPT_hlo_pref_issue_second_level_prefetch=F -mP2OPT_hlo_pref_issue_first_level_prefetch=F -vec-report0 -O3 -opt-report-phase:offload -openmp-report -I /usr/include"
         savedCXXFLAGS=$CXXFLAGS
         CXXFLAGS="$CXXFLAGS $MIC_OFFLOAD_CXXFLAGS -Werror"
 
@@ -6000,7 +6000,7 @@ $as_echo "yes" >&6; }
 
                 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can link MIC programs with C++ driver" >&5
 $as_echo_n "checking whether we can link MIC programs with C++ driver... " >&6; }
-                MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl"
+                MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl -lscif -lmicmgmt"
                 savedLDFLAGS=$LDFLAGS
                 LDFLAGS="$LDFLAGS $MIC_OFFLOAD_LDFLAGS"
 
