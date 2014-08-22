@@ -34,6 +34,10 @@
 
 #include <string.h>
 
+#ifdef __MIC__
+#  include "immintrin.h"
+#endif // __MIC__
+
 template <class T>
 __declspec(target(MIC)) void scanTiling(T *input,  T* output, const size_t n, 
         T* opblocksum, int ThreadCount)
