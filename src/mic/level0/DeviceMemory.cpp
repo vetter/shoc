@@ -171,25 +171,31 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     
     float res = 0.0;
     
+    w = VECSIZE_SP;
+    reps = REPS_SP;
+    
     //Number of bytes read/written is currently constant
     nbytes = ((double)w)*((double)reps)*((double)sizeof(float))*dThreads;
     
-    sprintf(sizeStr, "% 7fkB", nbytes/(1024.0));
+    if(verbose)
+      cout<< "Test Parameters:\n VECSIZE_SP = "<<w<<", REPS_SP = "<<reps<<", MIC_THREADS = "<<MIC_THREADS<<", nbytes/test = "<< nbytes <<" B"<<endl;
+    
+    //Total number of bytes transferred across all reps of each test
+    sprintf(sizeStr, "%4f kB", nbytes/(1024.0));
 
     for (int p = 0; p < passes; p++)
     {
         cout << "Running benchmarks, pass: " << p << "\n";
 
         // Test Memory
-        w = VECSIZE_SP;
-        reps = REPS_SP;
 
         // ========= Test Read - ICC Code =============
         //Reinitialize input array for each test and each pass
         InitData(hostMem,numElements);  
         //Transfer data to device before timed section and don't free the allocation
-        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))                                
-        {}  
+        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))
+        {}
+
         int testICC_readTimerHandle = Timer::Start();
 
         //Specify that hostMem was already transferred
@@ -206,19 +212,28 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
         //Reinitialize input array for each test and each pass
         InitData(hostMem,numElements);  
         //Transfer data to device before timed section and don't free the allocation
-        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))                                
-        {}  
+        #pragma offload target(mic) in(hostMem:length(numElements) free_if(0))        
+        {}
+        
         int testICC_writeTimerHandle = Timer::Start();
         #pragma offload target (mic) in(numElements) nocopy(hostMem)
         res = testICC_write(numElements, hostMem, reps, input);
         t = Timer::Stop(testICC_writeTimerHandle, "testICC_write");
+        
 
         // Add Result - while this is not strictly a coalesced write, this value matches up with the gmem_writebw result for SHOC
-        nbytes = ((double)w)*((double)reps)*((double)sizeof(float))*dThreads;
         bdwth = ((double)nbytes) / (t*1.e9);
         resultDB.AddResult("writeGlobalMemoryCoalesced", sizeStr, "GB/s",
                 bdwth);
     }
+    
+    // Free memory allocated on the mic
+    #pragma offload target(mic) \
+    in(hostMem:length(numElements) alloc_if(0)  )
+    {
+    }
+    
+    _mm_free(hostMem);
 }
 // ****************************************************************************
 // Function: testICC_read
