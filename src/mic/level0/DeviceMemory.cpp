@@ -50,7 +50,7 @@
 
 // Memory Benchmarks Sizes
 #define VECSIZE_SP 480000
-#define REPS_SP 1000
+#define REPS_SP 100
 
 //float __declspec(target(mic)) testICC_read(const int reps);
 float __declspec(target(mic)) testICC_read(float* data, const int reps);
@@ -141,7 +141,9 @@ void InitData(float *hostMem, const size_t numElements)
 // Modifications:
 // Dec. 12, 2012 - Kyle Spafford - Updates and SHOC coding style conformance.
 // Aug. 12, 2014 - Jeff Young - Removed intrinsics code and eversion variable 
-//
+// Aug. 25, 2014 - Jeff Young - Updated bandwidth calculation and added result
+//    variables for compatibility with shocdriver.
+//         
 // ****************************************************************************
 void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
@@ -178,7 +180,7 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
     nbytes = ((double)w)*((double)reps)*((double)sizeof(float))*dThreads;
     
     if(verbose)
-      cout<< "Test Parameters:\n VECSIZE_SP = "<<w<<", REPS_SP = "<<reps<<", MIC_THREADS = "<<MIC_THREADS<<", nbytes/test = "<< nbytes <<" B"<<endl;
+      cout<< "Test Parameters:\n VECSIZE_SP = "<<w<<", REPS_SP = "<<reps<<", MIC_THREADS = "<<MIC_THREADS<<", nbytes/test = "<< nbytes <<" B"<<endl<<endl;
     
     //Total number of bytes transferred across all reps of each test
     sprintf(sizeStr, "%4f kB", nbytes/(1024.0));
@@ -225,6 +227,14 @@ void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
         bdwth = ((double)nbytes) / (t*1.e9);
         resultDB.AddResult("writeGlobalMemoryCoalesced", sizeStr, "GB/s",
                 bdwth);
+
+        //Add bogus results for the other 5 DeviceMemory metrics to preserve compatibility with CUDA/OpenCL implementations.
+        //These results should not be reported by shocdriver 
+        resultDB.AddResult("readGlobalMemoryUnit", sizeStr, "GB/s", FLT_MAX);
+        resultDB.AddResult("writeGlobalMemoryUnit", sizeStr, "GB/s", FLT_MAX);
+        resultDB.AddResult("readLocalMemory", sizeStr, "GB/s", FLT_MAX);
+        resultDB.AddResult("writeLocalMemory", sizeStr, "GB/s", FLT_MAX);
+        resultDB.AddResult("TextureRepeatedRandomAccess", sizeStr, "GB/s", FLT_MAX);
     }
     
     // Free memory allocated on the mic
@@ -266,15 +276,15 @@ float __declspec(target(mic)) testICC_read(float* data, const int reps)
 
         for (int m = 0; m < reps; m++)
         {
-            #pragma vector aligned
-            #pragma ivdep
+            #pragma vector aligned  //arrays can be aligned for perf optimization
+            #pragma ivdep           //ignore vector dependencies
             for (int q = offset; q < offset+VECSIZE_SP; q++)
             {
                 b += data[q];
             }
             b += 1.0;
         }
-        #pragma omp critical
+        #pragma omp critical //Each thread will update the result sum with their contribution
         {
             res += b;
         }
