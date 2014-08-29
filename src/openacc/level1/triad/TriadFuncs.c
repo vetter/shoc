@@ -29,7 +29,6 @@ DoTriadFloats( unsigned int nItems,
         {
             C[j*blkSize + i] = A[j*blkSize + i] + s*B[j*blkSize + i];
         }
-        #pragma acc update host(C[j*blkSize:blkSize]) async(j+1) //doubled this call to get full overlap of transfers
         #pragma acc update host(C[j*blkSize:blkSize]) async(j+1) 
 
     }
