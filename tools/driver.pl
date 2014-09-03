@@ -314,6 +314,7 @@ my $sizeClass  = 1;
 my $bindir     = "./bin";
 my $readonly   = 0;
 my $hostfile   = "";
+my $singlebench= "";
 
 # parse arguments
 while (scalar(@ARGV) > 0) {
@@ -378,6 +379,11 @@ while (scalar(@ARGV) > 0) {
         die "Please choose one of '-cuda' or '-opencl' to set the operating mode.\n"
           if ($mode ne "");
         $mode = "opencl";
+    }
+    elsif ($arg eq "-benchmark")
+    {
+        $singlebench = shift;
+        die "-benchmark argument requires a value\n" if (!defined $singlebench);
     }
     elsif ($arg eq "-read-only")
     {
@@ -498,6 +504,11 @@ foreach my $bench (@$benchmarks)
     my $incuda  = $$bench[1];
     my $inopencl= $$bench[2];
     my $istp    = $$bench[3];
+
+    # check if they specified a single benchmark before proceeding
+    next if (($singlebench ne "") and
+             ($program ne $singlebench));
+
 
     if ((!$incuda   and ($mode eq "cuda")) or
         (!$inopencl and ($mode eq "opencl")))
@@ -897,12 +908,13 @@ sub usage() {
    print "Note -cuda and -opencl are mutually exlcusive.\n\n";
 
    print "Other options\n";
-   print "-n        - Number of nodes to run on\n";
-   print "-p        - OpenCL Platform ID to run on\n";
-   print "-d        - Comma-separated list of device numbers on each node\n";
-   print "-hostfile - specify hostfile for parallel runs\n";
-   print "-help     - print this message\n";
-   print "-bindir  - location of SHOC bin directory.\n\n";
+   print "-n          - Number of nodes to run on\n";
+   print "-p          - OpenCL Platform ID to run on\n";
+   print "-d          - Comma-separated list of device numbers on each node\n";
+   print "-hostfile   - specify hostfile for parallel runs\n";
+   print "-help       - print this message\n";
+   print "-bindir     - location of SHOC bin directory\n";
+   print "-benchmark  - name of a single benchmark to run\n\n";
    print "Note: The driver script assumes it is running from the tools\n";
    print "directory.  Use -bindir when you need to run from somwhere else\n\n";
 
