@@ -231,8 +231,8 @@ my @ParallelBenchmarks = (
   ["bspeed_readback",             \&findmean,    "ReadbackSpeed(max)"]
 ],
 [ "MaxFlops",          1, 1, 0,
-  ["maxspflops",                  \&findanymean, "-SP"],
-  ["maxdpflops",                  \&findanymean, "-DP"]
+  ["maxspflops",                  \&findanymean, "-SP\\\(max\\\)"],
+  ["maxdpflops",                  \&findanymean, "-DP\\\(max\\\)"]
 ],
 [ "DeviceMemory",      1, 1, 0,
   ["gmem_readbw",                 \&findmean,     "readGlobalMemoryCoalesced(max)"],
@@ -295,8 +295,8 @@ my @ParallelBenchmarks = (
   ["s3d_dp",                      \&findmean,    "S3D-DP(max)"]
 ],
 [ "QTC",                1, 0, 1,
-  ["qtc",                         \&findmin,     "QTC+PCI_Trans."],
-  ["qtc_kernel",                  \&findmin,     "QTC_Kernel"]
+  ["qtc",                         \&findmin,     "QTC+PCI_Trans.(min)"],
+  ["qtc_kernel",                  \&findmin,     "QTC_Kernel(min)"]
 ]
 );
 
@@ -739,7 +739,7 @@ sub findanymean {
       if ( $header_found eq 1 && $tokens[0] =~ /$pattern/ ) {
          $unit = $tokens[2];
          if ( $tokens[4] > $best ) {
-            $best = $tokens[7];
+            $best = $tokens[4];
          }
       }
       if ( $tokens[0] eq "test" ) {
