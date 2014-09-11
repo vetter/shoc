@@ -38,14 +38,14 @@ struct float2 {
 // ****************************************************************************
 void addBenchmarkSpecOptions(OptionParser &op) {
 
-    op.addOption("time", OPT_INT, "1", 
+    op.addOption("time", OPT_INT, "1",
         "specify running time in miuntes", 't');
 }
 
 // ****************************************************************************
 // Function: RunBenchmark
 //
-// Purpose: 
+// Purpose:
 //   Runs the stablity test. The algorithm for the parallel
 //   version of the test, which enables testing of an entire GPU
 //   cluster at the same time, is as follows. Each participating node
@@ -76,7 +76,7 @@ void addBenchmarkSpecOptions(OptionParser &op) {
 //
 // ****************************************************************************
 void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
-{	
+{
     int mpi_rank, mpi_size, node_rank;
     int i, j;
     float2* source, * result;
@@ -89,20 +89,20 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
     NodeInfo NI;
     node_rank = NI.nodeRank();
 
-    cout << "MPI Task " << mpi_rank << " of " << mpi_size 
+    cout << "MPI Task " << mpi_rank << " of " << mpi_size
          << " (noderank=" << node_rank << ") starting....\n";
 #else
     mpi_rank = 0;
     mpi_size = 1;
     node_rank = 0;
 #endif
-   
+
     // ensure chk buffer alloc succeeds before grabbing the
     // rest of available memory.
     allocDeviceBuffer(&chk, 1);
     unsigned long avail_bytes = findAvailBytes();
     // unsigned long avail_bytes = 1024*1024*1024-1;
-    
+
     // now determine how much available memory will be used (subject
     // to CUDA's constraint on the maximum block dimension size)
     int blocks = avail_bytes / (512*sizeof(float2));
@@ -112,13 +112,13 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
     }
     int half_n_ffts = ((blocks/slices)*slices)/2;
     int n_ffts = half_n_ffts * 2;
-    fprintf(stderr, "avail_bytes=%ld, blocks=%d, n_ffts=%d\n", 
+    fprintf(stderr, "avail_bytes=%ld, blocks=%d, n_ffts=%d\n",
             avail_bytes, blocks, n_ffts);
 
     int half_n_cmplx = half_n_ffts * 512;
     unsigned long used_bytes = half_n_cmplx * 2 * sizeof(float2);
 
-    cout << mpi_rank << ": testing " 
+    cout << mpi_rank << ": testing "
          << used_bytes/((double)1024*1024) << " MBs\n";
 
     // allocate host memory
@@ -130,7 +130,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
 
     // alloc gather buffer
     int* recvbuf = (int*)malloc(mpi_size*sizeof(int));
-    
+
     // compute start and finish times
     time_t start = time(NULL);
     time_t finish = start + (time_t)(op.getOptionInt("time")*60);
@@ -141,7 +141,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
         printf("start = %s", asctime(&start_tm));
         printf("finish = %s", asctime(&finish_tm));
     }
-    
+
     for (int iter = 0; ; iter++) {
         bool failed = false;
         int errorCount = 0, stop = 0;
@@ -182,13 +182,13 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
         // errors and reporting count to node 0.
         if (failed) {
             fprintf(stderr, "Failure on node %d, iter %d:", mpi_rank, iter);
-            
+
             // repeat check on CPU
             copyFromDevice(result, work, used_bytes);
             float2* result2 = result + half_n_cmplx;
             for (j = 0; j < half_n_cmplx; j++) {
-                if (result[j].x != result2[j].x || 
-                    result[j].y != result2[j].y) 
+                if (result[j].x != result2[j].x ||
+                    result[j].y != result2[j].y)
                 {
                     errorCount++;
                 }
@@ -202,7 +202,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
         }
 
 #ifdef PARALLEL
-        MPI_Gather(&errorCount, 1, MPI_INT, recvbuf, 1, MPI_INT, 
+        MPI_Gather(&errorCount, 1, MPI_INT, recvbuf, 1, MPI_INT,
                    0, MPI_COMM_WORLD);
 #else
         recvbuf[0] = errorCount;
@@ -215,7 +215,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
             struct tm curtm;
             localtime_r(&curtime, &curtm);
             fprintf(stderr, "iter=%d: %s", iter, asctime(&curtm));
-            
+
             for (i = 0; i < mpi_size; i++) {
                 if (recvbuf[i]) {
                     fprintf(stderr, "--> %d failures on node %d\n", recvbuf[i], i);
@@ -226,7 +226,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
                 stop = 1;
             }
         }
-        
+
 #ifdef PARALLEL
         MPI_Bcast(&stop, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
@@ -234,7 +234,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser& op)
         resultDB.AddResult("Check", "", "Failures", errorCount);
         if (stop) break;
     }
-    
+
     freeDeviceBuffer(work);
     freeDeviceBuffer(chk);
 

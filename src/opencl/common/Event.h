@@ -18,7 +18,7 @@
 class Event
 {
   public:
-    /// Value to use for specifying to query all OpenCL kernel 
+    /// Value to use for specifying to query all OpenCL kernel
     // events asssociated with this Event.
     static const int ALL_EVENTS;
 
@@ -59,7 +59,7 @@ class Event
 
     // Obtain timing information from OpenCL runtime for each kernel
     // associated with this Event.
-    bool            FillTimingInfo(const int idx = 0);
+    void            FillTimingInfo(const int idx = 0);
 
     // Retrieve the timestamp that an associated OpenCL kernel was enqueued.
     cl_ulong        QueuedTime(const int idx = 0) const;

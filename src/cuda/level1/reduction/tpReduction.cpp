@@ -87,7 +87,7 @@ addBenchmarkSpecOptions(OptionParser &op)
 // Function: RunBenchmark
 //
 // Purpose:
-//   Driver for the true parallel reduction benchmark.  Detects double 
+//   Driver for the true parallel reduction benchmark.  Detects double
 //   precision capability and calls the RunTest function appropriately.
 //
 // Arguments:
@@ -108,7 +108,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     int size, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    
+
     int device;
     cudaGetDevice(&device);
     cudaDeviceProp deviceProp;
@@ -116,7 +116,7 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 
     // Always do the single precision test
     RunTest<float>("AllReduce-SP", resultDB, op);
-    
+
     // Test to see if this device supports double precision
     if ((deviceProp.major == 1 && deviceProp.minor >= 3) ||
                (deviceProp.major >= 2))
@@ -126,8 +126,8 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
             cout << "Starting double precision tests\n";
         }
         RunTest<double>("AllReduce-DP", resultDB, op);
-    } 
-    else 
+    }
+    else
     {
         char atts[1024] = "DP_Not_Supported";
         cout << "Warning, rank " << rank << "'s device does not support DP\n";
@@ -135,12 +135,12 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
         // doesn't support DP, submit FLT_MAX (this is handled as no result by
         // ResultDB.
         int passes = op.getOptionInt("passes");
-        for (int k = 0; k < passes; k++) 
+        for (int k = 0; k < passes; k++)
         {
             resultDB.AddResult("AllReduce-DP-Kernel" , atts, "GB/s", FLT_MAX);
-            resultDB.AddResult("AllReduce-DP-Kernel+PCIe" , atts, "GB/s", 
+            resultDB.AddResult("AllReduce-DP-Kernel+PCIe" , atts, "GB/s",
                 FLT_MAX);
-            resultDB.AddResult("AllReduce-DP-MPI_Allreduce" , atts, "GB/s", 
+            resultDB.AddResult("AllReduce-DP-MPI_Allreduce" , atts, "GB/s",
                 FLT_MAX);
             resultDB.AddResult("AllReduce-DP-Overall" , atts, "GB/s", FLT_MAX);
         }
@@ -169,12 +169,12 @@ RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 template <class T>
 void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
 {
-    
+
     int comm_size, rank;
 
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    
+
     // Per rank size
     int prob_sizes[4] = { 1, 8, 64, 128 };
 
@@ -218,14 +218,14 @@ void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
     }
 
     for (int k=0; k<passes; k++)
-    {    
+    {
         double pcie_time=0.0, kernel_time=0.0, mpi_time=0.0;
         cudaEvent_t start, stop;
         CUDA_SAFE_CALL(cudaEventCreate(&start));
         CUDA_SAFE_CALL(cudaEventCreate(&stop));
 
         MPI_Barrier(MPI_COMM_WORLD);
-        
+
         // Repeatedly transfer input data to GPU and measure average time
         CUDA_SAFE_CALL(cudaEventRecord(start, 0));
         for (int m = 0; m < iters; m++)
@@ -247,7 +247,7 @@ void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
         {
             RunTestLaunchKernel<T>(num_blocks, num_threads, smem_size,
                                     d_idata, d_odata, size);
-        }        
+        }
         cudaEventRecord(stop, 0);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&temp, start, stop);
@@ -266,14 +266,14 @@ void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
         cudaEventElapsedTime(&temp, start, stop);
         pcie_time += (temp / (double)iters) * 1.e-3;
 
-        T local_result=0, global_result=0; 
-        
+        T local_result=0, global_result=0;
+
         // Start a wallclock timer for MPI
-        int TH_global = Timer::Start();        
+        int TH_global = Timer::Start();
 
         // Perform reduction of block sums and MPI allreduce call
         for (int m = 0; m < iters; m++)
-        {        
+        {
             local_result = 0.0f;
 
             for (int i=0; i<num_blocks; i++)
@@ -283,10 +283,10 @@ void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
             global_result = 0.0f;
             globalReduction(&local_result, &global_result);
         }
-        
-        mpi_time = Timer::Stop(TH_global,"global all reduce") / 
+
+        mpi_time = Timer::Stop(TH_global,"global all reduce") /
             (double)iters;
-        
+
         // Compute local reference solution
         T cpu_result = reduceCPU<T>(h_idata, size);
         // Use some error threshold for floating point rounding
@@ -295,39 +295,39 @@ void RunTest(string test_name, ResultDatabase &resultDB, OptionParser &op)
 
         if (diff > threshold)
         {
-            cout << "Error in local reduction detected in rank " 
+            cout << "Error in local reduction detected in rank "
                  << rank << "\n";
             cout << "Diff: " << diff << endl;
         }
-        
+
         if (global_result != (comm_size * local_result))
         {
             cout << "Test Failed, error in global all reduce detected in rank "
                  << rank << endl;
-        } 
-        else 
+        }
+        else
         {
             if (rank == 0)
             {
                 cout << "Test Passed.\n";
             }
         }
-        
+
         // Calculate results
         char atts[1024];
         sprintf(atts, "%d_itemsPerRank",size);
         double local_gbytes = (double)(size*sizeof(T))/(1000.*1000.*1000.);
         double global_gbytes = local_gbytes * comm_size;
 
-        resultDB.AddResult(test_name+"-Kernel", atts, "GB/s", 
+        resultDB.AddResult(test_name+"-Kernel", atts, "GB/s",
             global_gbytes / kernel_time);
         resultDB.AddResult(test_name+"-Kernel+PCIe", atts, "GB/s",
             global_gbytes / (kernel_time + pcie_time));
         resultDB.AddResult(test_name+"-MPI_Allreduce",  atts, "GB/s",
             (sizeof(T)*comm_size*1.e-9) / (mpi_time));
-        resultDB.AddResult(test_name+"-Overall", atts, "GB/s", 
+        resultDB.AddResult(test_name+"-Overall", atts, "GB/s",
             global_gbytes / (kernel_time + pcie_time + mpi_time));
-        
+
         cudaEventDestroy(start);
         cudaEventDestroy(stop);
     }

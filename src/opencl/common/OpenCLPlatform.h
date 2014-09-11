@@ -4,9 +4,6 @@
 #include <iostream>
 #include <string>
 #include <list>
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "support.h"
 #include "OpenCLDeviceInfo.h"
 #include "Platform.h"
@@ -38,21 +35,23 @@ namespace SHOC {
         string platformVersion;
         string platformExtensions;
         static const int MAGIC_KEY_OPENCL_PLATFORM;
-        
+
+        static std::string LookupInfo( cl_platform_id platformID, cl_platform_info paramName );
+
     public:
         // constructer collects information about all devices on this node
         OpenCLPlatform ();
-        OpenCLPlatform (cl::Platform &clPlatform);
+        OpenCLPlatform (cl_platform_id platformID);
         OpenCLPlatform (const OpenCLPlatform &ocp);
         OpenCLPlatform& operator= (const OpenCLPlatform &ocp);
 
         ~OpenCLPlatform () { }
-        
+
         void Print (ostream &os) const;
-        
+
         virtual void writeObject (ostringstream &oss) const;
         virtual void readObject (istringstream &iss);
-        
+
         bool operator< (const OpenCLPlatform &ocp) const;
         bool operator> (const OpenCLPlatform &ocp) const;
         bool operator== (const OpenCLPlatform &ocp) const;

@@ -70,7 +70,7 @@
 __kernel void
 ratx2_kernel(__global const real* C, __global real* RF)
 {
-    
+
     RF(1) = RF(1)*C(2)*C(4);
     RF(2) = RF(2)*C(3)*C(1);
     RF(3) = RF(3)*C(5)*C(1);

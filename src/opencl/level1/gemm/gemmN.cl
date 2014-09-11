@@ -55,7 +55,7 @@ __kernel void sgemmNT( __global const FPTYPE *A, int lda,
 	A += ibx + id;
 	B += iby + inx + (iny*ldb);
 	C += ibx + id  + (iby*ldc );
-	
+
 	FPTYPE a[4];
 	for(i=0; i<4; ++i){ a[i] = A[i*lda]; }
 	__private FPTYPE b;
@@ -64,27 +64,27 @@ __kernel void sgemmNT( __global const FPTYPE *A, int lda,
 	A += 4*lda;
 	B += 4*ldb;
         counter+= 4*ldb;
-    
+
 	__local FPTYPE bs[4][16];
 	FPTYPE c[16];
         for(i=0; i<16; ++i){
             c[i] = 0.0;
         }
-    
+
 	do
 	{
 	        __private FPTYPE as[4];
 		for(i=0; i<4; ++i){ as[i] = a[i]; }
-		
+
 		bs[iny][inx] = b;
   		barrier(CLK_LOCAL_MEM_FENCE);
-		
+
 		a[0] = A[0*lda];
 		a[1] = A[1*lda];
 		a[2] = A[2*lda];
 		a[3] = A[3*lda];
 		b    = B[0];
-		
+
 		SAXPY( as[0], bs[0], c );
 		SAXPY( as[1], bs[1], c );
 		SAXPY( as[2], bs[2], c );
@@ -94,12 +94,12 @@ __kernel void sgemmNT( __global const FPTYPE *A, int lda,
 		B += 4*ldb;
                 counter += 4*ldb;
   		barrier(CLK_LOCAL_MEM_FENCE);
-		
+
 	} while( counter < k*ldb );
-	
+
 	bs[iny][inx] = b;
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
+
 	SAXPY( a[0], bs[0], c );
 	SAXPY( a[1], bs[1], c );
 	SAXPY( a[2], bs[2], c );
@@ -121,7 +121,7 @@ __kernel void sgemmNN( __global const FPTYPE *A, int lda,
 	const int ibx = get_group_id(0) * 64;
 	const int iby = get_group_id(1) * 16;
 	const int id = inx + iny*16;
-	
+
         int i, j, ii, counter=0;
 
 	A += ibx + id;
@@ -129,7 +129,7 @@ __kernel void sgemmNN( __global const FPTYPE *A, int lda,
 	B += inx + (iby+iny) * ldb;
 
 	C += ibx + id  + (iby*ldc);
-	
+
 	FPTYPE c[16];
         for(i=0; i<16; ++i){
             c[i] = 0.0;
@@ -153,20 +153,20 @@ __kernel void sgemmNN( __global const FPTYPE *A, int lda,
 		SAXPY( a[0], bs[0], c );	a[0] = A[0*lda];
 		SAXPY( a[1], bs[1], c );	a[1] = A[1*lda];
 		SAXPY( a[2], bs[2], c );	a[2] = A[2*lda];
-		SAXPY( a[3], bs[3], c );	a[3] = A[3*lda];	
- 
+		SAXPY( a[3], bs[3], c );	a[3] = A[3*lda];
+
 		A += 4*lda;
 		SAXPY( a[0], bs[4], c );	a[0] = A[0*lda];
 		SAXPY( a[1], bs[5], c );	a[1] = A[1*lda];
 		SAXPY( a[2], bs[6], c );	a[2] = A[2*lda];
 		SAXPY( a[3], bs[7], c );	a[3] = A[3*lda];
-		
+
 		A += 4*lda;
 		SAXPY( a[0], bs[8], c );	a[0] = A[0*lda];
 		SAXPY( a[1], bs[9], c );	a[1] = A[1*lda];
 		SAXPY( a[2], bs[10], c );	a[2] = A[2*lda];
 		SAXPY( a[3], bs[11], c );	a[3] = A[3*lda];
-		
+
 		A += 4*lda;
 		SAXPY( a[0], bs[12], c );
 		SAXPY( a[1], bs[13], c );
@@ -177,10 +177,10 @@ __kernel void sgemmNN( __global const FPTYPE *A, int lda,
 	        counter += 16;
 		barrier(CLK_LOCAL_MEM_FENCE);
 	} while( counter < k );
-	
+
 	for( int i = 0; i < 16; i++, C += ldc ){
-		C[0] = alpha*c[i] + beta*C[0]; 
+		C[0] = alpha*c[i] + beta*C[0];
 	}
 
-}	
+}
 

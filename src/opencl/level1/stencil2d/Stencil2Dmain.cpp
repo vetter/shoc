@@ -6,9 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <assert.h>
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
 #include "OptionParser.h"
 #include "ResultDatabase.h"
 #include "Timer.h"
@@ -52,9 +49,9 @@ void CheckOptions( const OptionParser& opts );
 template<class T>
 void
 DoTest( std::string testName,
-        cl::Device& dev,
-        cl::Context& ctx,
-        cl::CommandQueue& queue,
+        cl_device_id dev,
+        cl_context ctx,
+        cl_command_queue queue,
         ResultDatabase& resultDB,
         OptionParser& opts,
         std::string compileFlags )
@@ -112,7 +109,7 @@ DoTest( std::string testName,
         std::vector<long long> lDims = opts.getOptionVecInt( "lsize" );
         assert( lDims.size() == 2 );
         std::ostringstream experimentDescriptionStr;
-        experimentDescriptionStr 
+        experimentDescriptionStr
             << nIters << ':'
             << arrayDims[0] << 'x' << arrayDims[1] << ':'
             << lDims[0] << 'x' << lDims[1];
@@ -141,7 +138,7 @@ DoTest( std::string testName,
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
-        Matrix2D<T> expected( arrayDims[0] + 2*haloWidth, 
+        Matrix2D<T> expected( arrayDims[0] + 2*haloWidth,
                                 arrayDims[1] + 2*haloWidth );
         Initialize<T> init( seed, haloWidth, haloVal );
 
@@ -155,7 +152,7 @@ DoTest( std::string testName,
                 if( (expected.GetNumRows() != arrayDims[0] + 2*haloWidth) ||
                     (expected.GetNumColumns() != arrayDims[1] + 2*haloWidth) )
                 {
-                    std::cerr << "The matrix read from file \'" 
+                    std::cerr << "The matrix read from file \'"
                         << GetMatrixFileName<T>( matrixFilenameBase )
                         << "\' does not match the matrix size specified on the command line.\n";
                     expected.Reset( arrayDims[0] + 2*haloWidth, arrayDims[1] + 2*haloWidth );
@@ -165,7 +162,7 @@ DoTest( std::string testName,
                     haveExpectedData = true;
                 }
             }
-            
+
             if( !haveExpectedData )
             {
                 std::cout << "\nSince we could not read the expected matrix values,\nperforming stencil operation on host for later comparison with OpenCL output.\n"
@@ -199,13 +196,13 @@ DoTest( std::string testName,
         assert( haveExpectedData );
 
         // compute the result on the OpenCL device(s)
-        Matrix2D<T> data( arrayDims[0] + 2*haloWidth, 
+        Matrix2D<T> data( arrayDims[0] + 2*haloWidth,
                                 arrayDims[1] + 2*haloWidth );
         testStencil = testStencilFactory->BuildStencil( opts );
 
         // Compute the number of floating point operations we will perform.
         //
-        // Note: in the truly-parallel case, we count flops for redundant 
+        // Note: in the truly-parallel case, we count flops for redundant
         // work due to the need for a halo.
         // But we do not add to the count for the local 1-wide halo since
         // we aren't computing new values for those items.
@@ -225,13 +222,13 @@ DoTest( std::string testName,
         npts *= numParticipating;
 #endif // defined(PARALLEL)
 
-        // In our 9-point stencil, there are 11 floating point operations 
+        // In our 9-point stencil, there are 11 floating point operations
         // per point (3 multiplies and 11 adds):
         //
         // newval = weight_center * centerval +
-        //      weight_cardinal * (northval + southval + eastval + westval) + 
+        //      weight_cardinal * (northval + southval + eastval + westval) +
         //      weight_diagnoal * (neval + nwval + seval + swval)
-        // 
+        //
         // we do this stencil operation 'nIters' times
         unsigned long nflops = npts * 11 * nIters;
 
@@ -262,7 +259,7 @@ DoTest( std::string testName,
         if( cwrank == 0 )
         {
 #endif // defined(PARALLEL)
-        std::cout << "\nPerforming stencil operation on chosen OpenCL device, " 
+        std::cout << "\nPerforming stencil operation on chosen OpenCL device, "
             << nPasses << " passes.\n"
             << "Depending on chosen device, this may take a while."
             << std::endl;
@@ -271,7 +268,7 @@ DoTest( std::string testName,
 #endif // defined(PARALLEL)
 
 #if !defined(PARALLEL)
-        std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output." 
+        std::cout << "At the end of each pass the number of validation\nerrors observed will be printed to the standard output."
             << std::endl;
 #endif // !defined(PARALLEL)
         for( unsigned int pass = 0; pass < nPasses; pass++ )
@@ -295,8 +292,8 @@ DoTest( std::string testName,
                                     gflops );
             if( beVerbose )
             {
-                std::cout << "observed result, pass " << (pass + 1) << ":\n" 
-                    << data 
+                std::cout << "observed result, pass " << (pass + 1) << ":\n"
+                    << data
                     << std::endl;
             }
 
@@ -335,9 +332,9 @@ DoTest( std::string testName,
 
 
 void
-RunBenchmark( cl::Device& dev,
-                cl::Context& ctx,
-                cl::CommandQueue& queue,
+RunBenchmark( cl_device_id dev,
+                cl_context ctx,
+                cl_command_queue queue,
                 ResultDatabase& resultDB,
                 OptionParser& op )
 {

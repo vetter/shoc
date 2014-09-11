@@ -10,12 +10,12 @@
 # undef MIN
 #endif
 #define MIN(_X, _Y) ( ((_X) < (_Y)) ? (_X) : (_Y) )
-    
+
 #ifdef MAX
 # undef MAX
 #endif
 #define MAX(_X, _Y) ( ((_X) > (_Y)) ? (_X) : (_Y) )
-                                               
+
 #define INVALID_POINT_MARKER -42
 
 #endif

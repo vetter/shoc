@@ -44,7 +44,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 template <class T>
 bool scanCPU(T *data, T* reference, T* dev_result, const size_t size)
 {
-    
+
     bool passed = true;
     T last = 0.0f;
 
@@ -68,7 +68,7 @@ bool scanCPU(T *data, T* reference, T* dev_result, const size_t size)
     if (passed)
         cout << "Passed" << endl;
     else
-        cout << "---FAILED---" << endl;
+        cout << "Failed" << endl;
     return passed;
 }
 
@@ -124,18 +124,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_scan;
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     // Always run single precision test
     // OpenCL doesn't support templated kernels, so we have to use macros
     string spMacros = "-DSINGLE_PRECISION";
@@ -178,8 +172,8 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     int err = 0;
 
     // Program Setup
-    cl_program prog = clCreateProgramWithSource(ctx, 
-                                                1, 
+    cl_program prog = clCreateProgramWithSource(ctx,
+                                                1,
                                                 &cl_source_scan,
                                                 NULL,
                                                 &err);
@@ -211,15 +205,16 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
 
     cl_kernel top_scan = clCreateKernel(prog, "top_scan", &err);
     CL_CHECK_ERROR(err);
-    
+
     cl_kernel bottom_scan = clCreateKernel(prog, "bottom_scan", &err);
     CL_CHECK_ERROR(err);
 
-    // If the device doesn't support at least 256 work items in a
-    // group, use a different kernel (TODO)
-    if (getMaxWorkGroupSize(dev) < 256)
-    {
-        cout << "Scan requires work group size of at least 256" << endl;
+    if ( getMaxWorkGroupSize(ctx, reduce)      < 256 ||
+         getMaxWorkGroupSize(ctx, top_scan)    < 256 ||
+         getMaxWorkGroupSize(ctx, bottom_scan) < 256) {
+
+        cout << "Scan requires a device that supports a work group " <<
+          "size of at least 256" << endl;
         char atts[1024] = "GSize_Not_Supported";
         // resultDB requires neg entry for every possible result
         int passes = op.getOptionInt("passes");
@@ -249,7 +244,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     T* h_idata = (T*)clEnqueueMapBuffer(queue, h_i, true,
             CL_MAP_READ|CL_MAP_WRITE, 0, bytes, 0, NULL, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate pinned host memory for output data (h_odata)
     cl_mem h_o = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
             bytes, NULL, &err);
@@ -269,20 +264,20 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     // Allocate device memory for input array
     cl_mem d_idata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
-    
+
     // Allocate device memory for output array
     cl_mem d_odata = clCreateBuffer(ctx, CL_MEM_READ_WRITE, bytes, NULL, &err);
     CL_CHECK_ERROR(err);
 
     // Number of local work items per group
     const size_t local_wsize  = 256;
-    
+
     // Number of global work items
     const size_t global_wsize = 16384; // i.e. 64 work groups
     const size_t num_work_groups = global_wsize / local_wsize;
 
     // Allocate device memory for local work group intermediate sums
-    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
+    cl_mem d_isums = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
             num_work_groups * sizeof(T), NULL, &err);
     CL_CHECK_ERROR(err);
 
@@ -295,7 +290,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(reduce, 3, local_wsize * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-                        
+
     // Set the kernel arguments for the top-level scan
     err = clSetKernelArg(top_scan, 0, sizeof(cl_mem), (void*)&d_isums);
     CL_CHECK_ERROR(err);
@@ -315,7 +310,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clSetKernelArg(bottom_scan, 4, local_wsize * 2 * sizeof(T), NULL);
     CL_CHECK_ERROR(err);
-    
+
     // Copy data to GPU
     cout << "Copying input data to device." << endl;
     Event evTransfer("PCIe transfer");
@@ -327,7 +322,6 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     evTransfer.FillTimingInfo();
     double inTransferTime = evTransfer.StartEndRuntime();
 
-    
     // Repeat the test multiplie times to get a good measurement
     int passes = op.getOptionInt("passes");
     int iters  = op.getOptionInt("iterations");
@@ -339,22 +333,26 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
         for (int j = 0; j < iters; j++)
         {
             // For scan, we use a reduce-then-scan approach
-            
+
             // Each thread block gets an equal portion of the
             // input array, and computes the sum.
             err = clEnqueueNDRangeKernel(queue, reduce, 1, NULL,
                         &global_wsize, &local_wsize, 0, NULL, NULL);
-            
+            CL_CHECK_ERROR(err);
+
             // Next, a top-level exclusive scan is performed on the array
             // of block sums
             Event ev_tscan("Top-Level Scan Kernel");
             err = clEnqueueNDRangeKernel(queue, top_scan, 1, NULL,
                         &local_wsize, &local_wsize, 0, NULL, NULL);
-          
+
+            CL_CHECK_ERROR(err);
+
             // Finally, a bottom-level scan is performed by each block
             // that is seeded with the scanned value in block sums
             err = clEnqueueNDRangeKernel(queue, bottom_scan, 1, NULL,
                         &global_wsize, &local_wsize, 0, NULL, NULL);
+            CL_CHECK_ERROR(err);
         }
         err = clFinish(queue);
         CL_CHECK_ERROR(err);
@@ -403,7 +401,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     CL_CHECK_ERROR(err);
     err = clReleaseMemObject(h_o);
     CL_CHECK_ERROR(err);
-    
+
     // Clean up other host memory
     delete[] reference;
 
@@ -416,5 +414,4 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     err = clReleaseKernel(bottom_scan);
     CL_CHECK_ERROR(err);
 }
-
 

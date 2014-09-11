@@ -16,7 +16,7 @@ bool ResultDatabase::Result::operator<(const Result &rhs) const
         return true;
     if (atts > rhs.atts)
         return false;
-    return true; //?
+    return false; // less-operator returns false on equal
 }
 
 double ResultDatabase::Result::GetMin() const
@@ -238,14 +238,14 @@ void ResultDatabase::DumpDetailed(ostream &out)
             out << "N/A\t";
         else
             out << r.GetMax()    << "\t";
-        for (int j=0; j<r.value.size(); j++)        
+        for (int j=0; j<r.value.size(); j++)
         {
             if (r.value[j] == FLT_MAX)
                 out << "N/A\t";
             else
                 out << r.value[j] << "\t";
         }
-        
+
         out << endl;
     }
     out << endl
@@ -317,13 +317,134 @@ void ResultDatabase::DumpSummary(ostream &out)
             out << "N/A\t";
         else
             out << r.GetMax()    << "\t";
-        
+
         out << endl;
     }
     out << endl
         << "Note: results marked with (*) had missing values such as" << endl
         << "might occur with a mixture of architectural capabilities." << endl;
 }
+
+// ****************************************************************************
+//  Method:  ResultDatabase::DumpCsv
+//
+//  Purpose:
+//    Writes either detailed or summary results (min/max/stddev/med/mean), but not
+//    every individual trial.
+//
+//  Arguments:
+//    out        file to print CSV results
+//
+//  Programmer:  Jeffrey Young
+//  Creation:    August 28th, 2014
+//
+//  Modifications:
+//
+// ****************************************************************************
+void ResultDatabase::DumpCsv(string fileName)
+{
+    bool emptyFile;
+    vector<Result> sorted(results);
+
+    sort(sorted.begin(), sorted.end());
+
+    //Check to see if the file is empty - if so, add the headers
+    emptyFile = this->IsFileEmpty(fileName);
+
+    //Open file and append by default
+    ofstream out;
+    out.open(fileName.c_str(), std::ofstream::out | std::ofstream::app); 
+
+    cout<<"fileEmpty is "<<emptyFile<<endl;
+
+    //Add headers only for empty files
+    if(emptyFile)
+    {
+    // TODO: in big parallel runs, the "trials" are the procs
+    // and we really don't want to print them all out....
+    out << "test, "
+        << "atts, "
+        << "units, "
+        << "median, "
+        << "mean, "
+        << "stddev, "
+        << "min, "
+        << "max, ";
+    out << endl;
+    }
+
+    for (int i=0; i<sorted.size(); i++)
+    {
+        Result &r = sorted[i];
+        out << r.test << ", ";
+        out << r.atts << ", ";
+        out << r.unit << ", ";
+        if (r.GetMedian() == FLT_MAX)
+            out << "N/A, ";
+        else
+            out << r.GetMedian() << ", ";
+        if (r.GetMean() == FLT_MAX)
+            out << "N/A, ";
+        else
+            out << r.GetMean()   << ", ";
+        if (r.GetStdDev() == FLT_MAX)
+            out << "N/A, ";
+        else
+            out << r.GetStdDev() << ", ";
+        if (r.GetMin() == FLT_MAX)
+            out << "N/A, ";
+        else
+            out << r.GetMin()    << ", ";
+        if (r.GetMax() == FLT_MAX)
+            out << "N/A, ";
+        else
+            out << r.GetMax()    << ", ";
+
+        out << endl;
+    }
+
+    out.close();
+}
+
+// ****************************************************************************
+//  Method:  ResultDatabase::IsFileEmpty
+//
+//  Purpose:
+//    Returns whether a file is empty - used as a helper for CSV printing
+//
+//  Arguments:
+//    file  The input file to check for emptiness
+//
+//  Programmer:  Jeffrey Young
+//  Creation:    August 28th, 2014
+//
+//  Modifications:
+//
+// ****************************************************************************
+
+bool ResultDatabase::IsFileEmpty(string fileName)
+{
+      bool fileEmpty;
+
+      ifstream file(fileName.c_str());
+
+      //If the file doesn't exist it is by definition empty
+      if(!file.good())
+      {
+        return true;
+      }
+      else
+      {
+        fileEmpty = (bool)(file.peek() == ifstream::traits_type::eof());
+        file.close();
+        cout<<"CSV - fileEmpty is "<<fileEmpty<<endl;
+        return fileEmpty;
+      }
+  
+      //Otherwise, return false  
+        return false;
+}
+
 
 
 // ****************************************************************************

@@ -76,14 +76,14 @@ ratt7_kernel(__global const real* T, __global const real* RF,
     const real ALOGT = LOG(TEMP);
 #ifdef DOUBLE_PRECISION
     const real SMALL_INV = 1e+300;
-#else 
+#else
     const real SMALL_INV = 1e+20f;
 #endif
 
     const real RU=CPREC(8.31451e7);
     const real PATM = CPREC(1.01325e6);
     const real PFAC = DIV (PATM, (RU*(TEMP)));
-    
+
     real rtemp_inv;
 
     rtemp_inv = DIV ((EG(2)*EG(26)*PFAC), EG(27));

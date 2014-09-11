@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // Programming Model-Specific Memory Management
-// Some programming models for heterogeneous systems provide 
+// Some programming models for heterogeneous systems provide
 // memory management functions for allocating memory on the host
 // and on the device.  These functions provide an abstract interface
 // to that programming-model-specific interface.

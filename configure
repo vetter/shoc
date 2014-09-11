@@ -644,6 +644,7 @@ BIBTEX
 PDFLATEX
 BUILD_MIC_FALSE
 BUILD_MIC_TRUE
+LD
 BUILD_CUDA_FALSE
 BUILD_CUDA_TRUE
 CUDA_CPPFLAGS
@@ -669,7 +670,6 @@ CC
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
-am__nodep
 AMDEPBACKSLASH
 AMDEP_FALSE
 AMDEP_TRUE
@@ -683,10 +683,6 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
-AM_BACKSLASH
-AM_DEFAULT_VERBOSITY
-AM_DEFAULT_V
-AM_V
 am__untar
 am__tar
 AMTAR
@@ -763,7 +759,6 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-enable_silent_rules
 enable_dependency_tracking
 with_opencl
 with_cuda
@@ -1403,12 +1398,8 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-silent-rules   less verbose build output (undo: "make V=1")
-  --disable-silent-rules  verbose build output (undo: "make V=0")
-  --enable-dependency-tracking
-                          do not reject slow dependency extractors
-  --disable-dependency-tracking
-                          speeds up one-time build
+  --disable-dependency-tracking  speeds up one-time build
+  --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-builddoc       build SHOC documentation; requires pdflatex, bibtex,
                           and latexmk [default=disabled]
   --disable-stability     build SHOC stability test; requires CUDA
@@ -2453,7 +2444,7 @@ test -n "$target_alias" &&
     NONENONEs,x,x, &&
   program_prefix=${target_alias}-
 
-am__api_version='1.13'
+am__api_version='1.11'
 
 # Find a good install program.  We prefer a C program (faster),
 # so one script is as good as another.  But avoid the broken or
@@ -2550,6 +2541,9 @@ test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether build environment is sane" >&5
 $as_echo_n "checking whether build environment is sane... " >&6; }
+# Just in case
+sleep 1
+echo timestamp > conftest.file
 # Reject unsafe characters in $srcdir or the absolute working directory
 # name.  Accept space and tab only in the latter.
 am_lf='
@@ -2560,40 +2554,32 @@ case `pwd` in
 esac
 case $srcdir in
   *[\\\"\#\$\&\'\`$am_lf\ \	]*)
-    as_fn_error $? "unsafe srcdir value: '$srcdir'" "$LINENO" 5;;
+    as_fn_error $? "unsafe srcdir value: \`$srcdir'" "$LINENO" 5;;
 esac
 
-# Do 'set' in a subshell so we don't clobber the current shell's
+# Do `set' in a subshell so we don't clobber the current shell's
 # arguments.  Must try -L first in case configure is actually a
 # symlink; some systems play weird games with the mod time of symlinks
 # (eg FreeBSD returns the mod time of the symlink's containing
 # directory).
 if (
-   am_has_slept=no
-   for am_try in 1 2; do
-     echo "timestamp, slept: $am_has_slept" > conftest.file
-     set X `ls -Lt "$srcdir/configure" conftest.file 2> /dev/null`
-     if test "$*" = "X"; then
-	# -L didn't work.
-	set X `ls -t "$srcdir/configure" conftest.file`
-     fi
-     if test "$*" != "X $srcdir/configure conftest.file" \
-	&& test "$*" != "X conftest.file $srcdir/configure"; then
+   set X `ls -Lt "$srcdir/configure" conftest.file 2> /dev/null`
+   if test "$*" = "X"; then
+      # -L didn't work.
+      set X `ls -t "$srcdir/configure" conftest.file`
+   fi
+   rm -f conftest.file
+   if test "$*" != "X $srcdir/configure conftest.file" \
+      && test "$*" != "X conftest.file $srcdir/configure"; then
 
-	# If neither matched, then we have a broken ls.  This can happen
-	# if, for instance, CONFIG_SHELL is bash and it inherits a
-	# broken ls alias from the environment.  This has actually
-	# happened.  Such a system could not be considered "sane".
-	as_fn_error $? "ls -t appears to fail.  Make sure there is not a broken
-  alias in your environment" "$LINENO" 5
-     fi
-     if test "$2" = conftest.file || test $am_try -eq 2; then
-       break
-     fi
-     # Just in case.
-     sleep 1
-     am_has_slept=yes
-   done
+      # If neither matched, then we have a broken ls.  This can happen
+      # if, for instance, CONFIG_SHELL is bash and it inherits a
+      # broken ls alias from the environment.  This has actually
+      # happened.  Such a system could not be considered "sane".
+      as_fn_error $? "ls -t appears to fail.  Make sure there is not a broken
+alias in your environment" "$LINENO" 5
+   fi
+
    test "$2" = conftest.file
    )
 then
@@ -2605,16 +2591,6 @@ Check your system clock" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-# If we didn't sleep, we still need to ensure time stamps of config.status and
-# generated files are strictly newer.
-am_sleep_pid=
-if grep 'slept: no' conftest.file >/dev/null 2>&1; then
-  ( sleep 1 ) &
-  am_sleep_pid=$!
-fi
-
-rm -f conftest.file
-
 test "$program_prefix" != NONE &&
   program_transform_name="s&^&$program_prefix&;$program_transform_name"
 # Use a double $ so make ignores it.
@@ -2637,12 +2613,12 @@ if test x"${MISSING+set}" != xset; then
   esac
 fi
 # Use eval to expand $SHELL
-if eval "$MISSING --is-lightweight"; then
-  am_missing_run="$MISSING "
+if eval "$MISSING --run true"; then
+  am_missing_run="$MISSING --run "
 else
   am_missing_run=
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: 'missing' script is too old or missing" >&5
-$as_echo "$as_me: WARNING: 'missing' script is too old or missing" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \`missing' script is too old or missing" >&5
+$as_echo "$as_me: WARNING: \`missing' script is too old or missing" >&2;}
 fi
 
 if test x"${install_sh}" != xset; then
@@ -2654,10 +2630,10 @@ if test x"${install_sh}" != xset; then
   esac
 fi
 
-# Installed binaries are usually stripped using 'strip' when the user
-# run "make install-strip".  However 'strip' might not be the right
+# Installed binaries are usually stripped using `strip' when the user
+# run `make install-strip'.  However `strip' might not be the right
 # tool to use in cross-compilation environments, therefore Automake
-# will honor the 'STRIP' environment variable to overrule this program.
+# will honor the `STRIP' environment variable to overrule this program.
 if test "$cross_compiling" != no; then
   if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}strip", so it can be a program name with args.
@@ -2796,6 +2772,12 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $MKDIR_P" >&5
 $as_echo "$MKDIR_P" >&6; }
 
+mkdir_p="$MKDIR_P"
+case $mkdir_p in
+  [\\/$]* | ?:[\\/]*) ;;
+  */*) mkdir_p="\$(top_builddir)/$mkdir_p" ;;
+esac
+
 for ac_prog in gawk mawk nawk awk
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -2878,45 +2860,6 @@ else
 fi
 rmdir .tst 2>/dev/null
 
-# Check whether --enable-silent-rules was given.
-if test "${enable_silent_rules+set}" = set; then :
-  enableval=$enable_silent_rules;
-fi
-
-case $enable_silent_rules in # (((
-  yes) AM_DEFAULT_VERBOSITY=0;;
-   no) AM_DEFAULT_VERBOSITY=1;;
-    *) AM_DEFAULT_VERBOSITY=1;;
-esac
-am_make=${MAKE-make}
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $am_make supports nested variables" >&5
-$as_echo_n "checking whether $am_make supports nested variables... " >&6; }
-if ${am_cv_make_support_nested_variables+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if $as_echo 'TRUE=$(BAR$(V))
-BAR0=false
-BAR1=true
-V=1
-am__doit:
-	@$(TRUE)
-.PHONY: am__doit' | $am_make -f - >/dev/null 2>&1; then
-  am_cv_make_support_nested_variables=yes
-else
-  am_cv_make_support_nested_variables=no
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_make_support_nested_variables" >&5
-$as_echo "$am_cv_make_support_nested_variables" >&6; }
-if test $am_cv_make_support_nested_variables = yes; then
-    AM_V='$(V)'
-  AM_DEFAULT_V='$(AM_DEFAULT_VERBOSITY)'
-else
-  AM_V=$AM_DEFAULT_VERBOSITY
-  AM_DEFAULT_V=$AM_DEFAULT_VERBOSITY
-fi
-AM_BACKSLASH='\'
-
 if test "`cd $srcdir && pwd`" != "`pwd`"; then
   # Use -I$(srcdir) only when $(srcdir) != ., so that make's output
   # is not polluted with repeated "-I."
@@ -2967,19 +2910,13 @@ AUTOHEADER=${AUTOHEADER-"${am_missing_run}autoheader"}
 
 MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 
-# For better backward compatibility.  To be removed once Automake 1.9.x
-# dies out for good.  For more background, see:
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
-mkdir_p='$(MKDIR_P)'
-
 # We need awk for the "check" target.  The system "awk" is bad on
 # some platforms.
-# Always define AMTAR for backward compatibility.  Yes, it's still used
-# in the wild :-(  We should find a proper way to deprecate it ...
-AMTAR='$${TAR-tar}'
+# Always define AMTAR for backward compatibility.
 
-am__tar='$${TAR-tar} chof - "$$tardir"' am__untar='$${TAR-tar} xf -'
+AMTAR=${AMTAR-"${am_missing_run}tar"}
+
+am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
@@ -3530,7 +3467,7 @@ am__quote=
 _am_result=none
 # First try GNU make style include.
 echo "include confinc" > confmf
-# Ignore all kinds of additional output from 'make'.
+# Ignore all kinds of additional output from `make'.
 case `$am_make -s -f confmf 2> /dev/null` in #(
 *the\ am__doit\ target*)
   am__include=include
@@ -3563,7 +3500,6 @@ fi
 if test "x$enable_dependency_tracking" != xno; then
   am_depcomp="$ac_aux_dir/depcomp"
   AMDEPBACKSLASH='\'
-  am__nodep='_no'
 fi
  if test "x$enable_dependency_tracking" != xno; then
   AMDEP_TRUE=
@@ -3586,9 +3522,8 @@ else
   # We make a subdir and do the tests there.  Otherwise we can end up
   # making bogus files that we don't know about and never remove.  For
   # instance it was reported that on HP-UX the gcc test will end up
-  # making a dummy file named 'D' -- because '-MD' means "put the output
-  # in D".
-  rm -rf conftest.dir
+  # making a dummy file named `D' -- because `-MD' means `put the output
+  # in D'.
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -3622,16 +3557,16 @@ else
     : > sub/conftest.c
     for i in 1 2 3 4 5 6; do
       echo '#include "conftst'$i'.h"' >> sub/conftest.c
-      # Using ": > sub/conftst$i.h" creates only sub/conftst1.h with
-      # Solaris 10 /bin/sh.
-      echo '/* dummy */' > sub/conftst$i.h
+      # Using `: > sub/conftst$i.h' creates only sub/conftst1.h with
+      # Solaris 8's {/usr,}/bin/sh.
+      touch sub/conftst$i.h
     done
     echo "${am__include} ${am__quote}sub/conftest.Po${am__quote}" > confmf
 
-    # We check with '-c' and '-o' for the sake of the "dashmstdout"
+    # We check with `-c' and `-o' for the sake of the "dashmstdout"
     # mode.  It turns out that the SunPro C++ compiler does not properly
-    # handle '-M -o', and we need to detect this.  Also, some Intel
-    # versions had trouble with output in subdirs.
+    # handle `-M -o', and we need to detect this.  Also, some Intel
+    # versions had trouble with output in subdirs
     am__obj=sub/conftest.${OBJEXT-o}
     am__minus_obj="-o $am__obj"
     case $depmode in
@@ -3640,16 +3575,16 @@ else
       test "$am__universal" = false || continue
       ;;
     nosideeffect)
-      # After this tag, mechanisms are not by side-effect, so they'll
-      # only be used when explicitly requested.
+      # after this tag, mechanisms are not by side-effect, so they'll
+      # only be used when explicitly requested
       if test "x$enable_dependency_tracking" = xyes; then
 	continue
       else
 	break
       fi
       ;;
-    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
-      # This compiler won't grok '-c -o', but also, the minuso test has
+    msvisualcpp | msvcmsys)
+      # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
       am__obj=conftest.${OBJEXT-o}
@@ -4253,9 +4188,8 @@ else
   # We make a subdir and do the tests there.  Otherwise we can end up
   # making bogus files that we don't know about and never remove.  For
   # instance it was reported that on HP-UX the gcc test will end up
-  # making a dummy file named 'D' -- because '-MD' means "put the output
-  # in D".
-  rm -rf conftest.dir
+  # making a dummy file named `D' -- because `-MD' means `put the output
+  # in D'.
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -4289,16 +4223,16 @@ else
     : > sub/conftest.c
     for i in 1 2 3 4 5 6; do
       echo '#include "conftst'$i'.h"' >> sub/conftest.c
-      # Using ": > sub/conftst$i.h" creates only sub/conftst1.h with
-      # Solaris 10 /bin/sh.
-      echo '/* dummy */' > sub/conftst$i.h
+      # Using `: > sub/conftst$i.h' creates only sub/conftst1.h with
+      # Solaris 8's {/usr,}/bin/sh.
+      touch sub/conftst$i.h
     done
     echo "${am__include} ${am__quote}sub/conftest.Po${am__quote}" > confmf
 
-    # We check with '-c' and '-o' for the sake of the "dashmstdout"
+    # We check with `-c' and `-o' for the sake of the "dashmstdout"
     # mode.  It turns out that the SunPro C++ compiler does not properly
-    # handle '-M -o', and we need to detect this.  Also, some Intel
-    # versions had trouble with output in subdirs.
+    # handle `-M -o', and we need to detect this.  Also, some Intel
+    # versions had trouble with output in subdirs
     am__obj=sub/conftest.${OBJEXT-o}
     am__minus_obj="-o $am__obj"
     case $depmode in
@@ -4307,16 +4241,16 @@ else
       test "$am__universal" = false || continue
       ;;
     nosideeffect)
-      # After this tag, mechanisms are not by side-effect, so they'll
-      # only be used when explicitly requested.
+      # after this tag, mechanisms are not by side-effect, so they'll
+      # only be used when explicitly requested
       if test "x$enable_dependency_tracking" = xyes; then
 	continue
       else
 	break
       fi
       ;;
-    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
-      # This compiler won't grok '-c -o', but also, the minuso test has
+    msvisualcpp | msvcmsys)
+      # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
       am__obj=conftest.${OBJEXT-o}
@@ -5998,11 +5932,112 @@ if ac_fn_cxx_try_compile "$LINENO"; then :
                 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can link MIC programs with C++ driver" >&5
-$as_echo_n "checking whether we can link MIC programs with C++ driver... " >&6; }
+                #If we know definitively that we are using an Intel compiler use xiar and xild to link and archive
+                if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}xild", so it can be a program name with args.
+set dummy ${ac_tool_prefix}xild; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_LD+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$LD"; then
+  ac_cv_prog_LD="$LD" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_LD="${ac_tool_prefix}xild"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+LD=$ac_cv_prog_LD
+if test -n "$LD"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LD" >&5
+$as_echo "$LD" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_LD"; then
+  ac_ct_LD=$LD
+  # Extract the first word of "xild", so it can be a program name with args.
+set dummy xild; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_ac_ct_LD+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ac_ct_LD"; then
+  ac_cv_prog_ac_ct_LD="$ac_ct_LD" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_LD="xild"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_LD=$ac_cv_prog_ac_ct_LD
+if test -n "$ac_ct_LD"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_LD" >&5
+$as_echo "$ac_ct_LD" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+  if test "x$ac_ct_LD" = x; then
+    LD=":"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    LD=$ac_ct_LD
+  fi
+else
+  LD="$ac_cv_prog_LD"
+fi
+
+                if hash xiar 2>/dev/null; then
+                  AR=xiar
+                fi
+
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether we can link MIC programs with C++ driver or xild" >&5
+$as_echo_n "checking whether we can link MIC programs with C++ driver or xild... " >&6; }
                 MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl -lscif -lmicmgmt"
+                #For older Intel compilers the intrinsics library must be included for functions like "intel_fast_memcmp"
+                INTEL_INTR_LDFLAGS="-lirc"
                 savedLDFLAGS=$LDFLAGS
                 LDFLAGS="$LDFLAGS $MIC_OFFLOAD_LDFLAGS"
+                #Adds irc lib to MIC and OpenCL builds
+                LIBS="$LIBS $INTEL_INTR_LDFLAGS"
 
                 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -6487,7 +6522,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/gemm/Makefile src/cuda/level1/gemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mic/Makefile src/mic/level0/Makefile src/mic/level1/Makefile src/mic/level1/fft/Makefile src/mic/level1/gemm/Makefile src/mic/level1/md/Makefile src/mic/level1/reduction/Makefile src/mic/level1/scan/Makefile src/mic/level1/sort/Makefile src/mic/level1/spmv/Makefile src/mic/level1/stencil2d/Makefile src/mic/level1/triad/Makefile src/mic/level2/Makefile src/mic/level2/s3d/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/gemm/Makefile src/opencl/level1/gemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
+ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/md5hash/Makefile src/cuda/level1/md5hash/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/gemm/Makefile src/cuda/level1/gemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mic/Makefile src/mic/level0/Makefile src/mic/level1/Makefile src/mic/level1/fft/Makefile src/mic/level1/gemm/Makefile src/mic/level1/md/Makefile src/mic/level1/reduction/Makefile src/mic/level1/scan/Makefile src/mic/level1/sort/Makefile src/mic/level1/spmv/Makefile src/mic/level1/stencil2d/Makefile src/mic/level1/triad/Makefile src/mic/level2/Makefile src/mic/level2/s3d/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/md5hash/Makefile src/opencl/level1/md5hash/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/gemm/Makefile src/opencl/level1/gemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6598,14 +6633,6 @@ LIBOBJS=$ac_libobjs
 LTLIBOBJS=$ac_ltlibobjs
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking that generated files are newer than configure" >&5
-$as_echo_n "checking that generated files are newer than configure... " >&6; }
-   if test -n "$am_sleep_pid"; then
-     # Hide warnings about reused PIDs.
-     wait $am_sleep_pid 2>/dev/null
-   fi
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: done" >&5
-$as_echo "done" >&6; }
  if test -n "$EXEEXT"; then
   am__EXEEXT_TRUE=
   am__EXEEXT_FALSE='#'
@@ -7262,6 +7289,8 @@ do
     "src/cuda/level1/fft/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/fft/epmpi/Makefile" ;;
     "src/cuda/level1/md/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md/Makefile" ;;
     "src/cuda/level1/md/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md/epmpi/Makefile" ;;
+    "src/cuda/level1/md5hash/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md5hash/Makefile" ;;
+    "src/cuda/level1/md5hash/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md5hash/epmpi/Makefile" ;;
     "src/cuda/level1/reduction/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/Makefile" ;;
     "src/cuda/level1/reduction/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/epmpi/Makefile" ;;
     "src/cuda/level1/reduction/tpmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/tpmpi/Makefile" ;;
@@ -7316,6 +7345,8 @@ do
     "src/opencl/level1/fft/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/fft/epmpi/Makefile" ;;
     "src/opencl/level1/md/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/md/Makefile" ;;
     "src/opencl/level1/md/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/md/epmpi/Makefile" ;;
+    "src/opencl/level1/md5hash/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/md5hash/Makefile" ;;
+    "src/opencl/level1/md5hash/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/md5hash/epmpi/Makefile" ;;
     "src/opencl/level1/reduction/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/reduction/Makefile" ;;
     "src/opencl/level1/reduction/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/reduction/epmpi/Makefile" ;;
     "src/opencl/level1/reduction/tpmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/opencl/level1/reduction/tpmpi/Makefile" ;;
@@ -7934,7 +7965,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
   case $ac_file$ac_mode in
     "depfiles":C) test x"$AMDEP_TRUE" != x"" || {
-  # Older Autoconf quotes --file arguments for eval, but not when files
+  # Autoconf 2.62 quotes --file arguments for eval, but not when files
   # are listed without --file.  Let's play safe and only enable the eval
   # if we detect the quoting.
   case $CONFIG_FILES in
@@ -7947,7 +7978,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
     # Strip MF so we end up with the name of the file.
     mf=`echo "$mf" | sed -e 's/:.*$//'`
     # Check whether this is an Automake generated Makefile or not.
-    # We used to match only the files named 'Makefile.in', but
+    # We used to match only the files named `Makefile.in', but
     # some people rename them; so instead we look at the file content.
     # Grep'ing the first line is not enough: some people post-process
     # each Makefile.in and add a new line on top of each file to say so.
@@ -7981,19 +8012,21 @@ $as_echo X"$mf" |
       continue
     fi
     # Extract the definition of DEPDIR, am__include, and am__quote
-    # from the Makefile without running 'make'.
+    # from the Makefile without running `make'.
     DEPDIR=`sed -n 's/^DEPDIR = //p' < "$mf"`
     test -z "$DEPDIR" && continue
     am__include=`sed -n 's/^am__include = //p' < "$mf"`
     test -z "am__include" && continue
     am__quote=`sed -n 's/^am__quote = //p' < "$mf"`
+    # When using ansi2knr, U may be empty or an underscore; expand it
+    U=`sed -n 's/^U = //p' < "$mf"`
     # Find all dependency output files, they are included files with
     # $(DEPDIR) in their names.  We invoke sed twice because it is the
     # simplest approach to changing $(DEPDIR) to its actual value in the
     # expansion.
     for file in `sed -n "
       s/^$am__include $am__quote\(.*(DEPDIR).*\)$am__quote"'$/\1/p' <"$mf" | \
-	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g'`; do
+	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g' -e 's/\$U/'"$U"'/g'`; do
       # Make sure the directory exists.
       test -f "$dirpart/$file" && continue
       fdir=`$as_dirname -- "$file" ||

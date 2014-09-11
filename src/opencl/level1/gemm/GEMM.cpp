@@ -89,18 +89,12 @@ addBenchmarkSpecOptions(OptionParser &op)
 extern const char *cl_source_gemmN;
 
 void
-RunBenchmark(cl::Device& devcpp,
-                  cl::Context& ctxcpp,
-                  cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
     // Always run single precision test
     // OpenCL doesn't support templated kernels, so we have to use macros
     runTest<float>("SGEMM", dev, ctx, queue, resultDB, op,
@@ -161,14 +155,14 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     int i, j;
 
     lda = ldb = ldc = N;
-    
+
     cl_uint numDimensions = 0;
     clGetDeviceInfo (dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,
                              sizeof(cl_uint), &numDimensions, NULL);
     size_t *maxWorkSizes = new size_t[numDimensions];
     clGetDeviceInfo (dev, CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                       sizeof(size_t)*numDimensions, maxWorkSizes, NULL);   
-    
+                       sizeof(size_t)*numDimensions, maxWorkSizes, NULL);
+
     if (numDimensions<2 || maxWorkSizes[0]<16 || maxWorkSizes[1] < 4)
     {
         cout << "SGEMM needs a 2-dimensional work group size of at least {16,4}." << endl;
@@ -186,7 +180,7 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     }
 
     size_t localWorkSize[2] = {16,4};
-    
+
 
     // Create program object
     cl_program prog = clCreateProgramWithSource(ctx, 1,
@@ -223,21 +217,21 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     cl_mem Aobj, Bobj, Cobj;
     if (true) // pinned
     {
-        Aobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+        Aobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 			       sizeof(T)*N*N, NULL, &err);
         CL_CHECK_ERROR(err);
         A =(T*)clEnqueueMapBuffer(queue,Aobj,true,CL_MAP_READ|CL_MAP_WRITE,
 				       0,sizeof(T)*N*N,0, NULL,NULL,&err);
         CL_CHECK_ERROR(err);
 
-        Bobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+        Bobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 			       sizeof(T)*N*N, NULL, &err);
         CL_CHECK_ERROR(err);
         B =(T*)clEnqueueMapBuffer(queue,Bobj,true,CL_MAP_READ|CL_MAP_WRITE,
 				       0,sizeof(T)*N*N,0, NULL,NULL,&err);
         CL_CHECK_ERROR(err);
 
-        Cobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+        Cobj = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 			       sizeof(T)*N*N, NULL, &err);
         CL_CHECK_ERROR(err);
         C =(T*)clEnqueueMapBuffer(queue,Cobj,true,CL_MAP_READ|CL_MAP_WRITE,

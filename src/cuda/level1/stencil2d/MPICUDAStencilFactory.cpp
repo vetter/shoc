@@ -36,7 +36,7 @@ MPICUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
                                         nItersPerHaloExchange );
 
     // determine which device to use
-    // We would really prefer this to be done in main() but 
+    // We would really prefer this to be done in main() but
     // since BuildStencil is a virtual function, we cannot change its
     // signature, and OptionParser provides no way to override an
     // option's value after it is set during parsing.
@@ -47,9 +47,9 @@ MPICUDAStencilFactory<T>::BuildStencil( const OptionParser& options )
     // devices are heterogeneous?
     int chosenDevice = (myRankInNode % devs.size());
 
-    return new MPICUDAStencil<T>( wCenter, 
-                                wCardinal, 
-                                wDiagonal, 
+    return new MPICUDAStencil<T>( wCenter,
+                                wCardinal,
+                                wDiagonal,
                                 lRows,
                                 lCols,
                                 mpiGridRows,
@@ -87,7 +87,7 @@ MPICUDAStencilFactory<T>::CheckOptions( const OptionParser& opts ) const
     unsigned int haloWidth = (unsigned int)opts.getOptionInt( "iters-per-exchange" );
 
     // verify that MPI halo width will result in a matrix being passed
-    // to the kernel that also has its global size as a multiple of 
+    // to the kernel that also has its global size as a multiple of
     // the local work size
     //
     // Because the MPI halo width is arbitrary, and the kernel halo width

@@ -71,7 +71,7 @@ __kernel void
 gr_base(__global const real* P, __global const real* T, __global const real* Y,
 		__global real* C, const real TCONV, const real PCONV)
 {
-      
+
     const real TEMP = T[get_global_id(0)]*TCONV;
     const real PRES = P[get_global_id(0)]*PCONV;
 

@@ -12,7 +12,7 @@ using namespace std;
 OptionParser::OptionParser()
   : helpRequested( false )
 {
-    addOption("configFile", OPT_STRING, "", 
+    addOption("configFile", OPT_STRING, "",
               "specify configuration file", 'c');
     addOption("help", OPT_BOOL, "", "print this usage", 'h');
 }
@@ -82,7 +82,7 @@ bool OptionParser::parse(const vector<string> &args) {
              }
              i++;
              continue;
-         }         
+         }
          if (optionMap.find(longName) == optionMap.end()) {
             cout << "Option not recognized: " << temp << endl;
             cout << "Ignoring remaining options" << endl;
@@ -100,7 +100,7 @@ bool OptionParser::parse(const vector<string> &args) {
                optionMap[longName].value = args[i+1];
                i++;
             }
-         }         
+         }
       }
       else  //Short name argument
       {
@@ -121,7 +121,7 @@ bool OptionParser::parse(const vector<string> &args) {
                   }
                   i++;
                   continue;
-              }         
+              }
 
               if (optionMap[longName].type == OPT_BOOL) {
                   //Option is bool and is flagged true
@@ -154,7 +154,7 @@ bool OptionParser::parse(const vector<string> &args) {
 }
 
 void OptionParser::print() const {
-   
+
    vector<string> printed;
 
     OptionMap::const_iterator i = optionMap.begin();
@@ -175,7 +175,7 @@ void OptionParser::print() const {
 
 }
 
-long long OptionParser::getOptionInt(const string &name) const { 
+long long OptionParser::getOptionInt(const string &name) const {
 
    long long retVal;
 
@@ -274,7 +274,7 @@ vector<string> OptionParser::getOptionVecString(const string &name) const {
    if (iter == optionMap.end()) {
      cout << "getOptionVecString: option name \"" << name << "\" not recognized.\n";
      return retval;
-   } 
+   }
    vector<string> tokens = SplitValues(iter->second.value, ',');
    for (int i=0; i<tokens.size(); i++) {
        stringstream ss(tokens[i]);
@@ -301,7 +301,7 @@ bool OptionParser::parseFile(const string &fileName) {
    ifstream inf(fileName.c_str());
    string line;
    vector<string> optionsFromFile;
-   
+
    if (!inf.good()) {
       cout << "Bad config file" << endl;
       return false;
@@ -320,7 +320,7 @@ bool OptionParser::parseFile(const string &fileName) {
                 optionsFromFile.push_back(tokens[i]);
              }
          }
-      }   
+      }
    }
 
    inf.close();
@@ -329,18 +329,18 @@ bool OptionParser::parseFile(const string &fileName) {
 
 
 void OptionParser::usage() const {
-   
+
 
    string type;
    cout << "Usage: benchmark ";
     OptionMap::const_iterator j = optionMap.begin();
-   
+
    Option jo = j->second;
    cout << "[--" << jo.longName << " ";
-   
-   if (jo.type == OPT_INT || jo.type == OPT_FLOAT) 
+
+   if (jo.type == OPT_INT || jo.type == OPT_FLOAT)
       type = "number";
-   else if (jo.type == OPT_BOOL) 
+   else if (jo.type == OPT_BOOL)
       type = "";
    else if (jo.type == OPT_STRING)
       type = "value";
@@ -348,15 +348,15 @@ void OptionParser::usage() const {
       type = "n1,n2,...";
    else if (jo.type == OPT_VECSTRING)
       type = "value1,value2,...";
-   cout << type << "]" << endl; 
+   cout << type << "]" << endl;
 
    while (++j !=optionMap.end()) {
       jo = j->second;
       cout << "                 [--" << jo.longName << " ";
-   
-      if (jo.type == OPT_INT || jo.type == OPT_FLOAT) 
+
+      if (jo.type == OPT_INT || jo.type == OPT_FLOAT)
           type = "number";
-      else if (jo.type == OPT_BOOL) 
+      else if (jo.type == OPT_BOOL)
           type = "";
       else if (jo.type == OPT_STRING)
          type = "value";
@@ -364,10 +364,10 @@ void OptionParser::usage() const {
           type = "n1,n2,...";
       else if (jo.type == OPT_VECSTRING)
           type = "value1,value2,...";
-      
-      cout << type << "]" << endl; 
+
+      cout << type << "]" << endl;
    }
-   
+
    cout << endl;
    cout << "Available Options: " << endl;
     OptionMap::const_iterator i = optionMap.begin();
@@ -380,7 +380,7 @@ void OptionParser::usage() const {
           cout << "    ";
       cout << setiosflags(ios::left) << setw(25)
            << "--" + o.longName + "    " << o.helpText << endl;
-      
+
       i++;
    }
 

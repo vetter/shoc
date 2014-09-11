@@ -73,7 +73,8 @@ my @CSVResults = (
 "ocl_queue",
 "bfs",
 "bfs_pcie",
-"bfs_teps"
+"bfs_teps",
+"md5hash"
 #"qtc",
 #"qtc_kernel"
 );
@@ -157,7 +158,10 @@ my @SerialBenchmarks = (
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
   ["md_dp_bw_pcie",               \&findmax,     "MD-LJ-DP-Bandwidth_PCIe"]
 ],
-[ "Reduction",         1, 1, 1, 0,
+[ "MD5Hash",           1, 1, 0,
+  ["md5hash",                     \&findmax,     "MD5Hash"]
+],
+[ "Reduction",         1, 1, 0,
   ["reduction",                   \&findmax,     "Reduction"],
   ["reduction_pcie",              \&findmax,     "Reduction_PCIe"],
   ["reduction_dp",                \&findmax,     "Reduction-DP"],
@@ -257,7 +261,10 @@ my @ParallelBenchmarks = (
   ["md_sp_flops",                 \&findmean,    "MD-LJ(max)"],
   ["md_dp_flops",                 \&findmean,    "MD-LJ-DP(max)"]
 ],
-[ "Reduction",         1, 1, 0, 0,
+[ "MD5Hash",           1, 1, 0,
+  ["md5hash",                     \&findmean,    "MD5Hash(max)"]
+],
+[ "Reduction",         1, 1, 0,
   ["reduction",                   \&findmean,    "Reduction(max)"],
   ["reduction_dp",                \&findmean,    "Reduction-DP(max)"]
 ],
@@ -307,6 +314,7 @@ my $sizeClass  = 1;
 my $bindir     = "./bin";
 my $readonly   = 0;
 my $hostfile   = "";
+my $singlebench= "";
 
 # parse arguments
 while (scalar(@ARGV) > 0) {
@@ -377,6 +385,10 @@ while (scalar(@ARGV) > 0) {
         die "Please choose one of '-cuda', '-opencl', '-mic' to set the operating mode.\n"
           if ($mode ne "");
         $mode = "mic";
+    elsif ($arg eq "-benchmark")
+    {
+        $singlebench = shift;
+        die "-benchmark argument requires a value\n" if (!defined $singlebench);
     }
     elsif ($arg eq "-read-only")
     {
@@ -500,6 +512,11 @@ foreach my $bench (@$benchmarks)
     my $inopencl= $$bench[2];
     my $inmic   = $$bench[3];
     my $istp    = $$bench[4];
+
+    # check if they specified a single benchmark before proceeding
+    next if (($singlebench ne "") and
+             ($program ne $singlebench));
+
 
     if ((!$incuda   and ($mode eq "cuda")) or
         (!$inopencl and ($mode eq "opencl")) or
@@ -915,12 +932,13 @@ sub usage() {
    print "Note -cuda, -opencl, and -mic are mutually exlcusive.\n\n";
 
    print "Other options\n";
-   print "-n        - Number of nodes to run on\n";
-   print "-p        - OpenCL Platform ID to run on\n";
-   print "-d        - Comma-separated list of device numbers on each node\n";
-   print "-hostfile - specify hostfile for parallel runs\n";
-   print "-help     - print this message\n";
-   print "-bindir  - location of SHOC bin directory.\n\n";
+   print "-n          - Number of nodes to run on\n";
+   print "-p          - OpenCL Platform ID to run on\n";
+   print "-d          - Comma-separated list of device numbers on each node\n";
+   print "-hostfile   - specify hostfile for parallel runs\n";
+   print "-help       - print this message\n";
+   print "-bindir     - location of SHOC bin directory\n";
+   print "-benchmark  - name of a single benchmark to run\n\n";
    print "Note: The driver script assumes it is running from the tools\n";
    print "directory.  Use -bindir when you need to run from somwhere else\n\n";
 

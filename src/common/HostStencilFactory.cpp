@@ -11,13 +11,13 @@ HostStencilFactory<T>::BuildStencil( const OptionParser& options )
     T wCardinal;
     T wDiagonal;
     StencilFactory<T>::ExtractOptions( options, wCenter, wCardinal, wDiagonal );
-    
+
     return new HostStencil<T>( wCenter, wCardinal, wDiagonal );
 }
 
 
 template<class T>
-void 
+void
 HostStencilFactory<T>::CheckOptions( const OptionParser& options ) const
 {
     // let base class check its options

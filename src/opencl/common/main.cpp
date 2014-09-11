@@ -10,17 +10,12 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "shoc_compat_cas.h"
-#define __CL_ENABLE_EXCEPTIONS
-#include "cl.hpp"
-
 #include "OpenCLDeviceInfo.h"
 #include "OpenCLNodePlatformContainer.h"
 #include "MultiNodeContainer.h"
 #include "support.h"
 #include "ResultDatabase.h"
 #include "OptionParser.h"
-#include "InvalidArgValue.h"
 
 #ifdef PARALLEL
 #include <ParallelResultDatabase.h>
@@ -37,9 +32,9 @@ typedef MultiNodeContainer<OpenCLNodePlatformContainer> OpenCLMultiNodeContainer
 
 void addBenchmarkSpecOptions(OptionParser &op);
 
-void RunBenchmark(cl::Device& dev,
-                  cl::Context& ctx,
-                  cl::CommandQueue& queue,
+void RunBenchmark(cl_device_id devID,
+                  cl_context ctx,
+                  cl_command_queue queue,
                   ResultDatabase &resultDB,
                   OptionParser &op);
 
@@ -63,8 +58,8 @@ void RunBenchmark(cl::Device& dev,
 //   the list of devices among the tasks.
 //
 //   Gabriel Marin, Tue Jun 01 15:38 EST 2010
-//   Check that we have valid (not NULL) context and queue objects before 
-//   running the benchmarks. Errors inside CreateContextFromSingleDevice or 
+//   Check that we have valid (not NULL) context and queue objects before
+//   running the benchmarks. Errors inside CreateContextFromSingleDevice or
 //   CreateCommandQueueForContextAndDevice were not propagated out to the main
 //   program.
 //
@@ -89,7 +84,7 @@ int main(int argc, char *argv[])
 #endif
 
         OptionParser op;
-       
+
         //Add shared options to the parser
         op.addOption("platform", OPT_INT, "0", "specify OpenCL platform to use",
                 'p');
@@ -100,7 +95,7 @@ int main(int argc, char *argv[])
                 "show info for available platforms and devices", 'i');
         op.addOption("verbose", OPT_BOOL, "", "enable verbose output", 'v');
         op.addOption("quiet", OPT_BOOL, "", "write minimum necessary to standard output", 'q');
-                
+
         addBenchmarkSpecOptions(op);
 
         if (!op.parse(argc, argv))
@@ -114,12 +109,12 @@ int main(int argc, char *argv[])
 #endif
             return (op.HelpRequested() ? 0 : 1 );
         }
-        
+
         if (op.getOptionBool("infoDevices"))
         {
 #define DEBUG_DEVICE_CONTAINER 0
 #ifdef PARALLEL
-            // execute following code only if I am the process of lowest 
+            // execute following code only if I am the process of lowest
             // rank on this node
             NodeInfo NI;
             int mynoderank = NI.nodeRank();
@@ -129,7 +124,7 @@ int main(int argc, char *argv[])
                 MPI_Comm nlrcomm = NI.getNLRComm();
                 MPI_Comm_size(nlrcomm, &nlrsize);
                 MPI_Comm_rank(nlrcomm, &nlrrank);
-                
+
                 OpenCLNodePlatformContainer ndc1;
                 OpenCLMultiNodeContainer localMnc(ndc1);
                 localMnc.doMerge (nlrrank, nlrsize, nlrcomm);
@@ -162,7 +157,7 @@ int main(int argc, char *argv[])
         }
 
         bool verbose = op.getOptionBool("verbose");
-        
+
         // The device option supports specifying more than one device
         // for now, just choose the first one.
         int platform = op.getOptionInt("platform");
@@ -178,7 +173,7 @@ int main(int argc, char *argv[])
 
         // If they haven't specified any devices, assume they
         // want the process with in-node rank N to use device N
-        int device = myNodeRank;
+        int deviceIdx = myNodeRank;
 
         // If they have, then round-robin the list of devices
         // among the processes on a node.
@@ -186,27 +181,40 @@ int main(int argc, char *argv[])
         if (deviceVec.size() > 0)
         {
         int len = deviceVec.size();
-            device = deviceVec[myNodeRank % len];
+            deviceIdx = deviceVec[myNodeRank % len];
         }
 
         // Check for an erroneous device
-        if (device >= GetNumOclDevices(platform)) {
-            cerr << "Warning: device index: " << device
+        if (deviceIdx >= GetNumOclDevices(platform)) {
+            cerr << "Warning: device index: " << deviceIdx
                  << " out of range, defaulting to device 0.\n";
-            device = 0;
+            deviceIdx = 0;
         }
 
         // Initialization
         if (verbose) cout << ">> initializing\n";
-        cl::Device     id    = ListDevicesAndGetDevice(platform, device);
-        std::vector<cl::Device> ctxDevices;
-        ctxDevices.push_back( id );
-        cl::Context ctx( ctxDevices );
-        cl::CommandQueue queue( ctx, id, CL_QUEUE_PROFILING_ENABLE );
+        cl_device_id devID = ListDevicesAndGetDevice(platform, deviceIdx);
+        cl_int clErr;
+        cl_context ctx = clCreateContext( NULL,     // properties
+                                            1,      // number of devices
+                                            &devID, // device
+                                            NULL,   // notification function
+                                            NULL,
+                                            &clErr );
+        CL_CHECK_ERROR(clErr);
+        cl_command_queue queue = clCreateCommandQueue( ctx,
+                                                        devID,
+                                                        CL_QUEUE_PROFILING_ENABLE,
+                                                        &clErr );
+        CL_CHECK_ERROR(clErr);
         ResultDatabase resultDB;
 
         // Run the benchmark
-        RunBenchmark(id, ctx, queue, resultDB, op);
+        RunBenchmark(devID, ctx, queue, resultDB, op);
+
+        clReleaseCommandQueue( queue );
+        clReleaseContext( ctx );
+
 
 #ifndef PARALLEL
         resultDB.DumpDetailed(cout);
@@ -219,16 +227,6 @@ int main(int argc, char *argv[])
             pardb.DumpOutliers(cout);
         }
 #endif
-    }
-    catch( cl::Error e )
-    {
-        std::cerr << e.what() << '(' << e.err() << ')' << std::endl;
-        ret = 1;
-    }
-    catch( InvalidArgValue& e )
-    {
-        std::cerr << e.what() << ": " << e.GetMessage() << std::endl;
-        ret = 1;
     }
     catch( std::exception& e )
     {

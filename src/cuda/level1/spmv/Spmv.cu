@@ -8,7 +8,7 @@
 #include "Spmv.h"
 #include "Spmv/util.h"
 
-using namespace std; 
+using namespace std;
 
 texture<float, 1> vecTex;  // vector textures
 texture<int2, 1>  vecTexD;
@@ -39,21 +39,21 @@ struct texReaderDP {
 
 // Forward declarations for kernels
 template <typename fpType, typename texReader>
-__global__ void 
+__global__ void
 spmv_csr_scalar_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
                        const int dim, fpType * __restrict__ out);
 
 template <typename fpType, typename texReader>
-__global__ void 
+__global__ void
 spmv_csr_vector_kernel(const fpType * __restrict__ val,
              	       const int    * __restrict__ cols,
 		               const int    * __restrict__ rowDelimiters,
                        const int dim, fpType * __restrict__ out);
 
 template <typename fpType, typename texReader>
-__global__ void 
+__global__ void
 spmv_ellpackr_kernel(const fpType * __restrict__ val,
 		             const int    * __restrict__ cols,
 		             const int    * __restrict__ rowLengths,
@@ -68,7 +68,7 @@ zero(fpType * __restrict__ a, const int size);
 // Function: addBenchmarkSpecOptions
 //
 // Purpose:
-//   Add benchmark specific options parsing.  
+//   Add benchmark specific options parsing.
 //
 // Arguments:
 //   op: the options parser / parameter database
@@ -81,9 +81,9 @@ zero(fpType * __restrict__ a, const int size);
 void addBenchmarkSpecOptions(OptionParser &op)
 {
     op.addOption("iterations", OPT_INT, "100", "Number of SpMV iterations "
-                 "per pass"); 
+                 "per pass");
     op.addOption("mm_filename", OPT_STRING, "random", "Name of file "
-                 "which stores the matrix in Matrix Market format"); 
+                 "which stores the matrix in Matrix Market format");
     op.addOption("maxval", OPT_FLOAT, "10", "Maximum value for random "
                  "matrices");
     op.addOption("seed", OPT_INT, "24115438", "Seed for PRNG");
@@ -92,20 +92,20 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // ****************************************************************************
 // Function: spmvCpu
 //
-// Purpose: 
-//   Runs sparse matrix vector multiplication on the CPU 
+// Purpose:
+//   Runs sparse matrix vector multiplication on the CPU
 //
-// Arguements: 
+// Arguements:
 //   val: array holding the non-zero values for the matrix
 //   cols: array of column indices for each element of A
-//   rowDelimiters: array of size dim+1 holding indices to rows of A; 
+//   rowDelimiters: array of size dim+1 holding indices to rows of A;
 //                  last element is the index one past the last
 //                  element of A
 //   vec: dense vector of size dim to be used for multiplication
 //   dim: number of rows/columns in the matrix
 //   out: input - buffer of size dim
-//        output - result from the spmv calculation 
-// 
+//        output - result from the spmv calculation
+//
 // Programmer: Lukasz Wesolowski
 // Creation: June 23, 2010
 // Returns:
@@ -113,33 +113,33 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //   out indirectly through a pointer
 // ****************************************************************************
 template <typename floatType>
-void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters, 
-	     const floatType *vec, int dim, floatType *out) 
+void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters,
+	     const floatType *vec, int dim, floatType *out)
 {
-    for (int i=0; i<dim; i++) 
+    for (int i=0; i<dim; i++)
     {
-        floatType t = 0; 
+        floatType t = 0;
         for (int j = rowDelimiters[i]; j < rowDelimiters[i + 1]; j++)
         {
-            int col = cols[j]; 
+            int col = cols[j];
             t += val[j] * vec[col];
-        }    
-        out[i] = t; 
+        }
+        out[i] = t;
     }
 }
 
 // ****************************************************************************
 // Function: verifyResults
-// 
-// Purpose: 
+//
+// Purpose:
 //   Verifies correctness of GPU results by comparing to CPU results
 //
-// Arguments: 
+// Arguments:
 //   cpuResults: array holding the CPU result vector
 //   gpuResults: array hodling the GPU result vector
 //   size: number of elements per vector
 //   pass: optional iteration number
-// 
+//
 // Programmer: Lukasz Wesolowski
 // Creation: June 23, 2010
 // Returns:
@@ -149,28 +149,28 @@ void spmvCpu(const floatType *val, const int *cols, const int *rowDelimiters,
 // ****************************************************************************
 template <typename floatType>
 bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
-                   const int size, const int pass = -1) 
+                   const int size, const int pass = -1)
 {
-    bool passed = true; 
+    bool passed = true;
     for (int i = 0; i < size; i++)
     {
-        if (fabs(cpuResults[i] - gpuResults[i]) / cpuResults[i] 
-            > MAX_RELATIVE_ERROR) 
+        if (fabs(cpuResults[i] - gpuResults[i]) / cpuResults[i]
+            > MAX_RELATIVE_ERROR)
         {
 //            cout << "Mismatch at i: "<< i << " ref: " << cpuResults[i] <<
 //                " dev: " << gpuResults[i] << endl;
             passed = false;
         }
     }
-    if (pass != -1) 
+    if (pass != -1)
     {
         cout << "Pass "<<pass<<": ";
     }
-    if (passed) 
+    if (passed)
     {
         cout << "Passed" << endl;
     }
-    else 
+    else
     {
         cout << "---FAILED---" << endl;
     }
@@ -331,8 +331,8 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         int numRows, int numNonZeroes, floatType* refOut, bool padded,
         int paddedSize)
 {
-    int *h_rowLengths; 
-    CUDA_SAFE_CALL(cudaMallocHost(&h_rowLengths, paddedSize * sizeof(int))); 
+    int *h_rowLengths;
+    CUDA_SAFE_CALL(cudaMallocHost(&h_rowLengths, paddedSize * sizeof(int)));
     int maxrl = 0;
     for (int k=0; k<numRows; k++)
     {
@@ -350,9 +350,9 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
     // Column major format host data structures
     int cmSize = padded ? paddedSize : numRows;
     floatType *h_valcm;
-    CUDA_SAFE_CALL(cudaMallocHost(&h_valcm, maxrl * cmSize * sizeof(floatType))); 
+    CUDA_SAFE_CALL(cudaMallocHost(&h_valcm, maxrl * cmSize * sizeof(floatType)));
     int *h_colscm;
-    CUDA_SAFE_CALL(cudaMallocHost(&h_colscm, maxrl * cmSize * sizeof(int))); 
+    CUDA_SAFE_CALL(cudaMallocHost(&h_colscm, maxrl * cmSize * sizeof(int)));
     convertToColMajor(h_val, h_cols, numRows, h_rowDelimiters, h_valcm,
                               h_colscm, h_rowLengths, maxrl, padded);
 
@@ -470,7 +470,7 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
 //
 // ****************************************************************************
 template <typename floatType, typename texReader>
-void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0) 
+void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
 {
     // Host data structures
     // Array of values in the sparse matrix
@@ -497,14 +497,14 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
     {
         numRows = nRows;
         nItems = numRows * numRows / 100; // 1% of entries will be non-zero
-        float maxval = op.getOptionFloat("maxval"); 
-        CUDA_SAFE_CALL(cudaMallocHost(&h_val, nItems * sizeof(floatType))); 
-        CUDA_SAFE_CALL(cudaMallocHost(&h_cols, nItems * sizeof(int))); 
-        CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimiters, (numRows + 1) * sizeof(int))); 
-        initRandomVector(h_val, nItems, maxval); 
+        float maxval = op.getOptionFloat("maxval");
+        CUDA_SAFE_CALL(cudaMallocHost(&h_val, nItems * sizeof(floatType)));
+        CUDA_SAFE_CALL(cudaMallocHost(&h_cols, nItems * sizeof(int)));
+        CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimiters, (numRows + 1) * sizeof(int)));
+        fill(h_val, nItems, maxval);
         initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows);
     }
-    else 
+    else
     {
         int numCols;
 
@@ -526,14 +526,14 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
     }
 
     // Set up remaining host data
-    CUDA_SAFE_CALL(cudaMallocHost(&h_vec, numRows * sizeof(floatType))); 
+    CUDA_SAFE_CALL(cudaMallocHost(&h_vec, numRows * sizeof(floatType)));
     refOut = new floatType[numRows];
-    CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimitersPad, (numRows + 1) * sizeof(int))); 
-    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval"));
+    CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimitersPad, (numRows + 1) * sizeof(int)));
+    fill(h_vec, numRows, op.getOptionFloat("maxval"));
 
     // Set up the padded data structures
     int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);
-    CUDA_SAFE_CALL(cudaMallocHost(&h_out, paddedSize * sizeof(floatType))); 
+    CUDA_SAFE_CALL(cudaMallocHost(&h_out, paddedSize * sizeof(floatType)));
     convertToPadded(h_val, h_cols, numRows, h_rowDelimiters, &h_valPad,
             &h_colsPad, h_rowDelimitersPad, &nItemsPadded);
 
@@ -556,15 +556,15 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
             h_rowDelimiters, h_vec, h_out, numRows, nItems, refOut, false,
             paddedSize);
 
-    delete[] refOut; 
-    CUDA_SAFE_CALL(cudaFreeHost(h_val)); 
-    CUDA_SAFE_CALL(cudaFreeHost(h_cols)); 
+    delete[] refOut;
+    CUDA_SAFE_CALL(cudaFreeHost(h_val));
+    CUDA_SAFE_CALL(cudaFreeHost(h_cols));
     CUDA_SAFE_CALL(cudaFreeHost(h_rowDelimiters));
-    CUDA_SAFE_CALL(cudaFreeHost(h_vec)); 
-    CUDA_SAFE_CALL(cudaFreeHost(h_out)); 
-    CUDA_SAFE_CALL(cudaFreeHost(h_valPad)); 
-    CUDA_SAFE_CALL(cudaFreeHost(h_colsPad)); 
-    CUDA_SAFE_CALL(cudaFreeHost(h_rowDelimitersPad)); 
+    CUDA_SAFE_CALL(cudaFreeHost(h_vec));
+    CUDA_SAFE_CALL(cudaFreeHost(h_out));
+    CUDA_SAFE_CALL(cudaFreeHost(h_valPad));
+    CUDA_SAFE_CALL(cudaFreeHost(h_colsPad));
+    CUDA_SAFE_CALL(cudaFreeHost(h_rowDelimitersPad));
 }
 
 // ****************************************************************************
@@ -674,8 +674,8 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 //                  last element is the index one past the last
 //                  element of the matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing
 //           out indirectly through a pointer
 //
@@ -686,7 +686,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 //
 // ****************************************************************************
 template <typename fpType, typename texReader>
-__global__ void 
+__global__ void
 spmv_csr_scalar_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
@@ -695,17 +695,17 @@ spmv_csr_scalar_kernel(const fpType * __restrict__ val,
     int myRow = blockIdx.x * blockDim.x + threadIdx.x;
     texReader vecTexReader;
 
-    if (myRow < dim) 
+    if (myRow < dim)
     {
         fpType t = 0.0f;
         int start = rowDelimiters[myRow];
         int end = rowDelimiters[myRow+1];
         for (int j = start; j < end; j++)
         {
-            int col = cols[j]; 
+            int col = cols[j];
             t += val[j] * vecTexReader(col);
         }
-        out[myRow] = t; 
+        out[myRow] = t;
     }
 }
 
@@ -724,8 +724,8 @@ spmv_csr_scalar_kernel(const fpType * __restrict__ val,
 //                  last element is the index one past the last
 //                  element of the matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing
 //           out indirectly through a pointer
 //
@@ -736,14 +736,14 @@ spmv_csr_scalar_kernel(const fpType * __restrict__ val,
 //
 // ****************************************************************************
 template <typename fpType, typename texReader>
-__global__ void 
+__global__ void
 spmv_csr_vector_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
                        const int dim, fpType * __restrict__ out)
 {
     // Thread ID in block
-    int t = threadIdx.x; 
+    int t = threadIdx.x;
     // Thread ID within warp
     int id = t & (warpSize-1);
     int warpsPerBlock = blockDim.x / warpSize;
@@ -754,14 +754,14 @@ spmv_csr_vector_kernel(const fpType * __restrict__ val,
 
     __shared__ volatile fpType partialSums[BLOCK_SIZE];
 
-    if (myRow < dim) 
+    if (myRow < dim)
     {
         int warpStart = rowDelimiters[myRow];
         int warpEnd = rowDelimiters[myRow+1];
         fpType mySum = 0;
         for (int j = warpStart + id; j < warpEnd; j += warpSize)
         {
-            int col = cols[j]; 
+            int col = cols[j];
             mySum += val[j] * vecTexReader(col);
         }
         partialSums[t] = mySum;
@@ -773,7 +773,7 @@ spmv_csr_vector_kernel(const fpType * __restrict__ val,
         if (id <  2) partialSums[t] += partialSums[t+ 2];
         if (id <  1) partialSums[t] += partialSums[t+ 1];
 
-        // Write result 
+        // Write result
         if (id == 0)
         {
             out[myRow] = partialSums[t];
@@ -795,8 +795,8 @@ spmv_csr_vector_kernel(const fpType * __restrict__ val,
 //   cols: array of column indices for each element of the sparse matrix
 //   rowLengths: array storing the length of each row of the sparse matrix
 //   dim: number of rows in the matrix
-//   out: output - result from the spmv calculation 
-//   
+//   out: output - result from the spmv calculation
+//
 // Returns:  nothing directly
 //           out indirectly through a pointer
 //
@@ -816,7 +816,7 @@ spmv_ellpackr_kernel(const fpType * __restrict__ val,
     int t = blockIdx.x * blockDim.x + threadIdx.x;
     texReader vecTexReader;
 
-    if (t < dim) 
+    if (t < dim)
     {
         fpType result = 0.0f;
         int max = rowLengths[t];

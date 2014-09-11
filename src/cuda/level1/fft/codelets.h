@@ -1,7 +1,7 @@
 // Written by Vasily Volkov.
-// Copyright (c) 2008-2009, The Regents of the University of California. 
+// Copyright (c) 2008-2009, The Regents of the University of California.
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 //
@@ -40,7 +40,7 @@
 inline dim3 grid2D( int nblocks )
 {
     int slices = 1;
-    while( nblocks/slices > 65535 ) 
+    while( nblocks/slices > 65535 )
         slices *= 2;
     return dim3( nblocks/slices, slices );
 }
@@ -103,7 +103,7 @@ T2 csub( T2 a, T2 b ) { return make_T2<T2,T>( a.x - b.x, a.y - b.y ); }
 #define iexp_1_4   make_T2<T2,T>(  0, 1 )
 #define iexp_3_8   make_T2<T2,T>( -1, 1 )//requires post-multiply by 1/sqrt(2)
 
-template <class T2, class T> inline __device__ 
+template <class T2, class T> inline __device__
 T2 exp_i( T phi )
 {
     return make_T2<T2,T>( __cosf(phi), __sinf(phi) );
@@ -147,17 +147,17 @@ inline __device__ int rev4x4( int bits )
 //  all FFTs produce output in bit-reversed order
 //
 #define IFFT2 FFT2
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void FFT2( T2 &a0, T2 &a1 )
-{ 
+{
     T2 c0 = a0;
-//    a0 = c0 + a1; 
+//    a0 = c0 + a1;
     a0 = cadd<T2,T>(c0, a1);
 //    a1 = c0 - a1;
     a1 = csub<T2,T>(c0, a1);
 }
 
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void FFT4( T2 &a0, T2 &a1, T2 &a2, T2 &a3 )
 {
     FFT2<T2,T>( a0, a2 );
@@ -168,7 +168,7 @@ void FFT4( T2 &a0, T2 &a1, T2 &a2, T2 &a3 )
     FFT2<T2,T>( a2, a3 );
 }
 
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void IFFT4( T2 &a0, T2 &a1, T2 &a2, T2 &a3 )
 {
     IFFT2<T2,T>( a0, a2 );
@@ -179,21 +179,21 @@ void IFFT4( T2 &a0, T2 &a1, T2 &a2, T2 &a3 )
     IFFT2<T2,T>( a2, a3 );
 }
 
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void FFT2( T2 *a ) { FFT2<T2,T>( a[0], a[1] ); }
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void FFT4( T2 *a ) { FFT4<T2,T>( a[0], a[1], a[2], a[3] ); }
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void IFFT4( T2 *a ) { IFFT4<T2,T>( a[0], a[1], a[2], a[3] ); }
 
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void FFT8( T2 *a )
 {
     FFT2<T2,T>( a[0], a[4] );
     FFT2<T2,T>( a[1], a[5] );
     FFT2<T2,T>( a[2], a[6] );
     FFT2<T2,T>( a[3], a[7] );
-    
+
 //    a[5] = ( a[5] * exp_1_8 ) * M_SQRT1_2;
 //    a[6] =   a[6] * exp_1_4;
 //    a[7] = ( a[7] * exp_3_8 ) * M_SQRT1_2;
@@ -205,14 +205,14 @@ void FFT8( T2 *a )
     FFT4<T2,T>( a[4], a[5], a[6], a[7] );
 }
 
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void IFFT8( T2 *a )
 {
     IFFT2<T2,T>( a[0], a[4] );
     IFFT2<T2,T>( a[1], a[5] );
     IFFT2<T2,T>( a[2], a[6] );
     IFFT2<T2,T>( a[3], a[7] );
-    
+
 //    a[5] = ( a[5] * iexp_1_8 ) * M_SQRT1_2;
 //    a[6] =   a[6] * iexp_1_4;
 //    a[7] = ( a[7] * iexp_3_8 ) * M_SQRT1_2;
@@ -228,31 +228,31 @@ void IFFT8( T2 *a )
 //
 //  loads
 //
-template<int n, class T2> inline __device__ 
+template<int n, class T2> inline __device__
 void load( T2 *a, T2 *x, int sx )
 {
     for( int i = 0; i < n; i++ )
         a[i] = x[i*sx];
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void loadx( T2 *a, T *x, int sx )
 {
     for( int i = 0; i < n; i++ )
         a[i].x = x[i*sx];
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void loady( T2 *a, T *x, int sx )
 {
     for( int i = 0; i < n; i++ )
         a[i].y = x[i*sx];
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void loadx( T2 *a, T *x, int *ind )
 {
     for( int i = 0; i < n; i++ )
         a[i].x = x[ind[i]];
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void loady( T2 *a, T *x, int *ind )
 {
     for( int i = 0; i < n; i++ )
@@ -262,35 +262,35 @@ void loady( T2 *a, T *x, int *ind )
 //
 //  stores, input is in bit reversed order
 //
-template<int n, class T2> inline __device__ 
+template<int n, class T2> inline __device__
 void store( T2 *a, T2 *x, int sx )
 {
 #pragma unroll
     for( int i = 0; i < n; i++ )
         x[i*sx] = a[rev<n>(i)];
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void storex( T2 *a, T *x, int sx )
 {
 #pragma unroll
     for( int i = 0; i < n; i++ )
         x[i*sx] = a[rev<n>(i)].x;
 }
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void storey( T2 *a, T *x, int sx )
 {
 #pragma unroll
     for( int i = 0; i < n; i++ )
         x[i*sx] = a[rev<n>(i)].y;
 }
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void storex4x4( T2 *a, T *x, int sx )
 {
 #pragma unroll
     for( int i = 0; i < 16; i++ )
         x[i*sx] = a[rev4x4(i)].x;
 }
-template<class T2, class T> inline __device__ 
+template<class T2, class T> inline __device__
 void storey4x4( T2 *a, T *x, int sx )
 {
 #pragma unroll
@@ -301,7 +301,7 @@ void storey4x4( T2 *a, T *x, int sx )
 //
 //  multiply by twiddle factors in bit-reversed order
 //
-template<int radix, class T2, class T> inline __device__ 
+template<int radix, class T2, class T> inline __device__
 void twiddle( T2 *a, int i, int n )
 {
 #pragma unroll
@@ -310,7 +310,7 @@ void twiddle( T2 *a, int i, int n )
         a[j] = cmul<T2,T>(a[j], exp_i<T2,T>((-2*M_PI*rev<radix>(j)/n)*i));
 }
 
-template<int radix, class T2, class T> inline __device__ 
+template<int radix, class T2, class T> inline __device__
 void itwiddle( T2 *a, int i, int n )
 {
 #pragma unroll
@@ -322,7 +322,7 @@ void itwiddle( T2 *a, int i, int n )
 //
 //  transpose via shared memory, input is in bit-reversed layout
 //
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void transpose( T2 *a, T *s, int ds, T *l, int dl, int sync = 0xf )
 {
     storex<n,T2,T>( a, s, ds );  if( sync&8 ) __syncthreads();
@@ -331,7 +331,7 @@ void transpose( T2 *a, T *s, int ds, T *l, int dl, int sync = 0xf )
     loady<n,T2,T> ( a, l, dl );  if( sync&1 ) __syncthreads();
 }
 
-template<int n, class T2, class T> inline __device__ 
+template<int n, class T2, class T> inline __device__
 void transpose( T2 *a, T *s, int ds, T *l, int *il, int sync = 0xf )
 {
     storex<n,T2,T>( a, s, ds );  if( sync&8 ) __syncthreads();
@@ -340,7 +340,7 @@ void transpose( T2 *a, T *s, int ds, T *l, int *il, int sync = 0xf )
     loady<n,T2,T> ( a, l, il );  if( sync&1 ) __syncthreads();
 }
 
-template<class T2, class T>  inline __device__ 
+template<class T2, class T>  inline __device__
 void transpose4x4( T2 *a, T *s, int ds, T *l, int dl, int sync = 0xf )
 {
     storex4x4<T2,T>( a, s, ds ); if( sync&8 ) __syncthreads();
@@ -349,60 +349,60 @@ void transpose4x4( T2 *a, T *s, int ds, T *l, int dl, int sync = 0xf )
     loady<16,T2,T>( a, l, dl );  if( sync&1 ) __syncthreads();
 }
 
-template<class T2, class T> __global__ 
+template<class T2, class T> __global__
 void FFT512_device( T2 *work )
-{	
+{
     int tid = threadIdx.x;
     int hi = tid>>3;
     int lo = tid&7;
-    
+
     work += (blockIdx.y * gridDim.x + blockIdx.x) * 512 + tid;
-	
+
     T2 a[8];
     __shared__ T smem[8*8*9];
-    
+
     load<8, T2>( a, work, 64 );
 
     FFT8<T2,T>( a );
-	
+
     twiddle<8,T2,T>( a, tid, 512 );
     transpose<8, T2, T>( a, &smem[hi*8+lo], 66, &smem[lo*66+hi], 8 );
-	
+
     FFT8<T2,T>( a );
-	
+
     twiddle<8,T2,T>( a, hi, 64);
     transpose<8, T2, T>( a, &smem[hi*8+lo], 8*9, &smem[hi*8*9+lo], 8, 0xE );
-    
+
     FFT8<T2,T>( a );
 
     store<8, T2>( a, work, 64 );
-}	
+}
 
-template<class T2, class T> __global__ 
+template<class T2, class T> __global__
 void IFFT512_device( T2 *work )
-{	
+{
     int i, tid = threadIdx.x;
     int hi = tid>>3;
     int lo = tid&7;
-    
+
     work += (blockIdx.y * gridDim.x + blockIdx.x) * 512 + tid;
-	
+
     T2 a[8];
     __shared__ T smem[8*8*9];
-    
+
     load<8, T2>( a, work, 64 );
 
 
     IFFT8<T2,T>( a );
-	
+
     itwiddle<8,T2,T>( a, tid, 512 );
     transpose<8,T2,T>( a, &smem[hi*8+lo], 66, &smem[lo*66+hi], 8 );
-	
+
     IFFT8<T2,T>( a );
-	
+
     itwiddle<8,T2,T>( a, hi, 64);
     transpose<8,T2,T>( a, &smem[hi*8+lo], 8*9, &smem[hi*8*9+lo], 8, 0xE );
-    
+
     IFFT8<T2,T>( a );
 
     // normalize...
@@ -412,4 +412,4 @@ void IFFT512_device( T2 *work )
     }
     store<8, T2>( a, work, 64 );
 
-}	
+}

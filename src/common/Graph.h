@@ -15,8 +15,8 @@ class Graph
 
     void SetAllCosts(unsigned int c);
     public:
-    Graph();    
-    ~Graph();    
+    Graph();
+    ~Graph();
     void LoadMetisGraph(const char *filename);
     void SaveMetisGraph(const char *filename);
     unsigned int GetNumVertices();
@@ -30,7 +30,7 @@ class Graph
     unsigned int **GetEdgeOffsetsPtr();
     unsigned int **GetEdgeListPtr();
     unsigned int **GetEdgeCostsPtr();
- 
+
     unsigned int *GetVertexLengths(unsigned int *cost,unsigned int source);
     int GetMetisGraphType();
     unsigned int GetAdjacencyListLength();

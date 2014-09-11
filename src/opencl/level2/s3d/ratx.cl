@@ -95,7 +95,7 @@ ratx_kernel(__global const real* T, __global const real* C,
                 + 2.e0*C(16) + CPREC(1.5e0)*C(14) + CPREC(1.5e0)*C(15) ;
     real CTB_16 = CTOT + C(1) + 5.e0*C(6) + C(10) + 5.e-1*C(11) + C(12)
                 + 2.e0*C(16) + 2.e0*C(14) + 2.e0*C(15) ;
-    
+
     //     If fall-off (pressure correction):
 
     PR = RKLOW(1) * DIV(CTB_16, RF(16));

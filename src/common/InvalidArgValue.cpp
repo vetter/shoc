@@ -1,36 +1,26 @@
-#include <string.h>
+#include <sstream>
 #include "InvalidArgValue.h"
 
-const char* InvalidArgValue::defMsg = "invalid argument value: no further details available";
-
-
-InvalidArgValue::InvalidArgValue( const char* _msg )
-  : msg( NULL )
+std::string
+InvalidArgValue::GenerateErrorMessage( const std::string& _msg )
 {
-    if( _msg != NULL )
+    std::ostringstream msgstr;
+    msgstr << "invalid argument value: ";
+    if( _msg.length() > 0 )
     {
-        try
-        {
-            msg = new char[strlen(_msg)];
-            strcpy( msg, _msg );
-        }
-        catch(...)
-        {
-            // nothing else to do - just leave msg as NULL
-        }
+        msgstr << _msg;
     }
+    else
+    {
+        msgstr << "no further details available";
+    }
+    return msgstr.str();
 }
 
-InvalidArgValue::~InvalidArgValue( void ) throw ()
-{
-    delete[] msg;
-    msg = NULL;
-}
 
-
-char const*
-InvalidArgValue::what( void ) const throw()
+InvalidArgValue::InvalidArgValue( const std::string& _msg )
+  : std::runtime_error( GenerateErrorMessage(_msg) )
 {
-    return "invalid argument value";
+    // nothing else to do
 }
 

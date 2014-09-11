@@ -27,25 +27,25 @@ inline void globalExscan(double* local_result, double* global_result)
 
 template<class T>
 void
-LaunchReduceKernel( int num_blocks, 
-                    int num_threads, 
+LaunchReduceKernel( int num_blocks,
+                    int num_threads,
                     int smem_size,
-                    T* d_idata, 
-                    T* d_odata, 
+                    T* d_idata,
+                    T* d_odata,
                     int size );
 
 template<class T>
 void
-LaunchTopScanKernel( int num_blocks, 
-                     int num_threads, 
+LaunchTopScanKernel( int num_blocks,
+                     int num_threads,
                      int smem_size,
                      T* d_block_sums,
                      int size );
 
 template<class T, class vecT, int blockSize>
 void
-LaunchBottomScanKernel( int num_blocks, 
-                        int num_threads, 
+LaunchBottomScanKernel( int num_blocks,
+                        int num_threads,
                         int smem_size,
                         T* g_idata,
                         T* g_odata,

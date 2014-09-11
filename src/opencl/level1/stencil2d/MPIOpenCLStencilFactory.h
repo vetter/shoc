@@ -17,9 +17,9 @@ template<class T>
 class MPIOpenCLStencilFactory : public CommonOpenCLStencilFactory<T>
 {
 public:
-    MPIOpenCLStencilFactory( cl::Device& _dev, 
-                                cl::Context& _ctx, 
-                                cl::CommandQueue& _queue )
+    MPIOpenCLStencilFactory( cl_device_id _dev,
+                                cl_context _ctx,
+                                cl_command_queue _queue )
       : CommonOpenCLStencilFactory<T>( "MPIOpenCLStencil", _dev, _ctx, _queue )
     {
         // nothing else to do

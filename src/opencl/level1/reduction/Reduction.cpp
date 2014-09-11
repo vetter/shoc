@@ -55,15 +55,15 @@ bool checkResults(T* devResult, T* idata, const int numBlocks, const int size)
     double threshold = 1.0e-8;
     T diff = fabs(devSum - refSum);
 
-    cout << "TEST ";
+    cout << "Test ";
     if (diff < threshold)
     {
-        cout << "PASSED\n";
+        cout << "Passed\n";
         return true;
     }
     else
     {
-        cout << "FAILED\nDiff: " << diff << "\n";
+        cout << "Failed\nDiff: " << diff << "\n";
         return false;
     }
 }
@@ -112,24 +112,18 @@ addBenchmarkSpecOptions(OptionParser &op)
 //
 // Modifications:
 //   Jeremy Meredith, Thu Sep 24 17:30:18 EDT 2009
-//   Use implicit include of source file instead of 
+//   Use implicit include of source file instead of
 //   runtime loading.
 //
 // ****************************************************************************
 extern const char *cl_source_reduction;
 
 void
-RunBenchmark(cl::Device& devcpp, cl::Context& ctxcpp, 
-        cl::CommandQueue& queuecpp,
+RunBenchmark(cl_device_id dev,
+        cl_context ctx,
+        cl_command_queue queue,
         ResultDatabase &resultDB, OptionParser &op)
 {
-    // convert from C++ bindings to C bindings
-    // TODO propagate use of C++ bindings
-    cl_device_id dev = devcpp();
-    cl_context ctx = ctxcpp();
-    cl_command_queue queue = queuecpp();
-
-
     // Always run single precision test
     // OpenCL doesn't support templated kernels, so we have to use macros
     string spMacros = "-DSINGLE_PRECISION";

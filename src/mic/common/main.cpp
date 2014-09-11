@@ -569,11 +569,6 @@ main(int argc, char *argv[])
 #endif
 
   }
-  catch( InvalidArgValue& e )
-  {
-    std::cerr << e.what() << ": " << e.GetMessage() << std::endl;
-    ret = 1;
-  }
   catch( std::exception& e )
   {
     std::cerr << e.what() << std::endl;

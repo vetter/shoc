@@ -29,7 +29,7 @@ private:
     static const char barDone[81];
     double rTotal;
     double percDone;
-    
+
 public:
     //   Constructor
     //
@@ -48,7 +48,7 @@ public:
         }
         percDone = itersDone*rTotal;
     }
-    
+
     //   Method: setTotalIters
     //
     //   Purpose: setter for the total work amount
@@ -64,7 +64,7 @@ public:
             percDone = itersDone*rTotal;
         }
     }
-    
+
     //   Method: setItersDone
     //
     //   Purpose: setter for the completed work amount
@@ -76,7 +76,7 @@ public:
         itersDone = _itersDone;
         percDone = itersDone*rTotal;
     }
-    
+
     //   Method: addItersDone
     //
     //   Purpose: update amount of completed work
@@ -88,7 +88,7 @@ public:
         itersDone += _inc;
         percDone = itersDone*rTotal;
     }
-    
+
     //   Method: Show
     //
     //   Purpose: display progress bar

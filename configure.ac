@@ -291,10 +291,20 @@ AS_IF([test "x$with_mic" != xno],
             [
                 AC_MSG_RESULT([yes])
 
-                AC_MSG_CHECKING([whether we can link MIC programs with C++ driver])
+                #If we know definitively that we are using an Intel compiler use xiar and xild to link and archive
+                AC_CHECK_TOOL([LD], [xild], [:])
+                if hash xiar 2>/dev/null; then 
+                  AR=xiar
+                fi
+      
+                AC_MSG_CHECKING([whether we can link MIC programs with C++ driver or xild])
                 MIC_OFFLOAD_LDFLAGS="$MIC_OFFLOAD_CXXFLAGS -parallel -mkl -lscif -lmicmgmt"
+                #For older Intel compilers the intrinsics library must be included for functions like "intel_fast_memcmp"
+                INTEL_INTR_LDFLAGS="-lirc"
                 savedLDFLAGS=$LDFLAGS
                 LDFLAGS="$LDFLAGS $MIC_OFFLOAD_LDFLAGS"
+                #Adds irc lib to MIC and OpenCL builds
+                LIBS="$LIBS $INTEL_INTR_LDFLAGS"
 
                 AC_LINK_IFELSE(
                     [
@@ -512,6 +522,8 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/fft/epmpi/Makefile
                  src/cuda/level1/md/Makefile
                  src/cuda/level1/md/epmpi/Makefile
+                 src/cuda/level1/md5hash/Makefile
+                 src/cuda/level1/md5hash/epmpi/Makefile
                  src/cuda/level1/reduction/Makefile
                  src/cuda/level1/reduction/epmpi/Makefile
                  src/cuda/level1/reduction/tpmpi/Makefile
@@ -566,6 +578,8 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level1/fft/epmpi/Makefile
                  src/opencl/level1/md/Makefile
                  src/opencl/level1/md/epmpi/Makefile
+                 src/opencl/level1/md5hash/Makefile
+                 src/opencl/level1/md5hash/epmpi/Makefile
                  src/opencl/level1/reduction/Makefile
                  src/opencl/level1/reduction/epmpi/Makefile
                  src/opencl/level1/reduction/tpmpi/Makefile

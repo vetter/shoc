@@ -60,7 +60,7 @@ const cl_event* Event::CLEvents() const
 }
 
 
-bool Event::FillTimingInfo(const int idx)
+void Event::FillTimingInfo(const int idx)
 {
     int sidx, eidx;
     if (idx == ALL_EVENTS) {

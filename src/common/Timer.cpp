@@ -15,8 +15,8 @@ static double
 DiffTime(const struct TIMEINFO &startTime, const struct TIMEINFO &endTime)
 {
 #if defined(_WIN32)
-    // 
-    // Figure out how many milliseconds between start and end times 
+    //
+    // Figure out how many milliseconds between start and end times
     //
     int ms = (int) difftime(endTime.time, startTime.time);
     if (ms == 0)
@@ -31,14 +31,14 @@ DiffTime(const struct TIMEINFO &startTime, const struct TIMEINFO &endTime)
 
     double seconds = (ms/1000.);
 #elif defined(HAVE_CLOCK_GETTIME) && defined(HAVE_CLOCK_PROCESS_CPUTIME_ID)
-    double seconds = double(endTime.tv_sec - startTime.tv_sec) + 
+    double seconds = double(endTime.tv_sec - startTime.tv_sec) +
                     double(endTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
 
 #elif defined(HAVE_GETTIMEOFDAY)
 
-    double seconds = double(endTime.tv_sec - startTime.tv_sec) + 
+    double seconds = double(endTime.tv_sec - startTime.tv_sec) +
                      double(endTime.tv_usec - startTime.tv_usec) / 1000000.;
-                     
+
 #else
 #   error No supported timer available.
 #endif
@@ -78,7 +78,7 @@ Timer::Timer()
 }
 
 // ****************************************************************************
-//  Destructor:  
+//  Destructor:
 //
 //  Programmer:  Jeremy Meredith
 //  Creation:    August  9, 2004
@@ -96,7 +96,7 @@ Timer::~Timer()
 //    Return the timer singleton.
 //
 //  Arguments:
-//    
+//
 //
 //  Programmer:  Jeremy Meredith
 //  Creation:    August  9, 2004

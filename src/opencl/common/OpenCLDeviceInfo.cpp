@@ -148,7 +148,7 @@ namespace SHOC {
         ,"RoundToInf"
         ,"FusedMultiplyAdds"
     };
-    
+
     int typePropertiesList[] = {
         CL_DEVICE_TYPE_CPU
         ,CL_DEVICE_TYPE_GPU
@@ -162,7 +162,7 @@ namespace SHOC {
         ,"Accelerator"
         ,"default"
     };
-    
+
     int addressBitsPropertiesList[] = {
 #ifdef CL_DEVICE_ADDRESS_32_BITS
         CL_DEVICE_ADDRESS_32_BITS,
@@ -174,7 +174,7 @@ namespace SHOC {
         "32bitAddressSpace"
         ,"64bitAddressSpace"
     };
-    
+
     int cacheTypePropertiesList[] = {
         CL_NONE
         ,CL_READ_ONLY_CACHE
@@ -196,7 +196,7 @@ namespace SHOC {
         "LocalSRAM"
         ,"Global"
     };
-    
+
     int execPropertiesList[] = {
         CL_EXEC_KERNEL
         ,CL_EXEC_NATIVE_KERNEL
@@ -206,7 +206,7 @@ namespace SHOC {
         "OpenCL"
         ,"Native"
     };
-    
+
     int queuePropertiesList[] = {
         CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
         ,CL_QUEUE_PROFILING_ENABLE
@@ -223,17 +223,17 @@ using namespace SHOC;
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::OpenCLDeviceInfo
 //
-// Purpose: 
-//   Constructor. Creates a new OpenCLDeviceInfo object that is either 
+// Purpose:
+//   Constructor. Creates a new OpenCLDeviceInfo object that is either
 //   instantiated with data for the device with the specified ID, or
 //   left uninitialized if the device ID is not set.
 //
 // Arguments:
 //   deviceId : the OpenCL device ID.
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -250,9 +250,9 @@ OpenCLDeviceInfo::OpenCLDeviceInfo (cl_device_id deviceId) : id(deviceId)
     numBoolValues = 0;
     numStringValues = 0;
     maxKeyLength = 10;
-    
+
     hashKey = 0;
-    
+
     for (i=0 ; clIntCharacteristics[i]!=END_ENUMERATION_MARKER ; ++i) {
         numIntValues += 1;
         if (maxKeyLength<(len=strlen(clIntCharacteristicsNames[i])))
@@ -282,17 +282,17 @@ OpenCLDeviceInfo::OpenCLDeviceInfo (cl_device_id deviceId) : id(deviceId)
         if (maxKeyLength<(len=strlen(clStringCharacteristicsNames[i])))
             maxKeyLength = len;
     }
-        
+
     // allocate space for the values of all these characteristics
     intValues = new cl_uint[numIntValues];
     sizeTValues = new size_t[numSizeTValues];
     longValues = new cl_ulong[numLongValues];
     boolValues = new cl_bool[numBoolValues];
     stringValues = new string[numStringValues];
-    
+
     numDimensions = 1;
     maxWorkSizes = 0;
-    
+
 #ifdef CL_DEVICE_HALF_FP_CONFIG
     hasHalfFp = 1;
 #else
@@ -307,16 +307,16 @@ OpenCLDeviceInfo::OpenCLDeviceInfo (cl_device_id deviceId) : id(deviceId)
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::OpenCLDeviceInfo
 //
-// Purpose: 
+// Purpose:
 //   Copy constructor: creates a new OpenCL device that is a copy
 //   of the specified device.
 //
 // Arguments:
 //   fdi : the OpenCLDeviceInfo object to be cloned.
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -329,31 +329,31 @@ OpenCLDeviceInfo::OpenCLDeviceInfo(const OpenCLDeviceInfo& fdi)
     int i;
     id = fdi.id;
     hashKey = fdi.hashKey;
-    
+
     numIntValues = fdi.numIntValues;
     numSizeTValues = fdi.numSizeTValues;
     numLongValues = fdi.numLongValues;
     numBoolValues = fdi.numBoolValues;
     numStringValues = fdi.numStringValues;
     maxKeyLength = fdi.maxKeyLength;
-    
+
     // allocate space for the values of all these characteristics
     intValues = new cl_uint[numIntValues];
     sizeTValues = new size_t[numSizeTValues];
     longValues = new cl_ulong[numLongValues];
     boolValues = new cl_bool[numBoolValues];
     stringValues = new string[numStringValues];
-    
+
     for (i=0 ; i<numIntValues ; ++i) intValues[i] = fdi.intValues[i];
     for (i=0 ; i<numSizeTValues ; ++i) sizeTValues[i] = fdi.sizeTValues[i];
     for (i=0 ; i<numLongValues ; ++i) longValues[i] = fdi.longValues[i];
     for (i=0 ; i<numBoolValues ; ++i) boolValues[i] = fdi.boolValues[i];
     for (i=0 ; i<numStringValues ; ++i) stringValues[i] = fdi.stringValues[i];
-    
+
     numDimensions = fdi.numDimensions;
     if (fdi.maxWorkSizes) {
         maxWorkSizes = new size_t[numDimensions];
-        for (i=0 ; i<numDimensions ; ++i) 
+        for (i=0 ; i<numDimensions ; ++i)
             maxWorkSizes[i] = fdi.maxWorkSizes[i];
     }
     else
@@ -361,7 +361,7 @@ OpenCLDeviceInfo::OpenCLDeviceInfo(const OpenCLDeviceInfo& fdi)
 
     hasHalfFp = fdi.hasHalfFp;
     hasDoubleFp = fdi.hasDoubleFp;
-    
+
     // copy also all the string values
     typeValue = fdi.typeValue;
     addrBitsValue = fdi.addrBitsValue;
@@ -373,11 +373,11 @@ OpenCLDeviceInfo::OpenCLDeviceInfo(const OpenCLDeviceInfo& fdi)
     singleFpValue = fdi.singleFpValue;
     doubleFpValue = fdi.doubleFpValue;
 }
-        
+
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::operator=
 //
-// Purpose: 
+// Purpose:
 //   Copy operator: copy the details of the specified device into
 //   this object.
 //
@@ -386,7 +386,7 @@ OpenCLDeviceInfo::OpenCLDeviceInfo(const OpenCLDeviceInfo& fdi)
 //
 // Returns: a reference to this device object
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -394,13 +394,13 @@ OpenCLDeviceInfo::OpenCLDeviceInfo(const OpenCLDeviceInfo& fdi)
 // Modifications:
 //
 // ****************************************************************************
-OpenCLDeviceInfo& 
+OpenCLDeviceInfo&
 OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
 {
     int i;
     id = fdi.id;
     hashKey = fdi.hashKey;
-    
+
     // allocate space for the values of all these characteristics
     if (numIntValues != fdi.numIntValues) {
         delete[] intValues;
@@ -427,7 +427,7 @@ OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
         numStringValues = fdi.numStringValues;
         stringValues = new string[numStringValues];
     }
-    
+
     maxKeyLength = fdi.maxKeyLength;
 
     for (i=0 ; i<numIntValues ; ++i) intValues[i] = fdi.intValues[i];
@@ -435,19 +435,19 @@ OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
     for (i=0 ; i<numLongValues ; ++i) longValues[i] = fdi.longValues[i];
     for (i=0 ; i<numBoolValues ; ++i) boolValues[i] = fdi.boolValues[i];
     for (i=0 ; i<numStringValues ; ++i) stringValues[i] = fdi.stringValues[i];
-    
+
     if (maxWorkSizes && (numDimensions!=fdi.numDimensions || !fdi.maxWorkSizes)) {
         delete[] maxWorkSizes;
-    } 
+    }
     numDimensions = fdi.numDimensions;
     if (fdi.maxWorkSizes) {
         maxWorkSizes = new size_t[numDimensions];
-        for (i=0 ; i<numDimensions ; ++i) 
+        for (i=0 ; i<numDimensions ; ++i)
             maxWorkSizes[i] = fdi.maxWorkSizes[i];
     }
     else
         maxWorkSizes = 0;
-    
+
     hasHalfFp = fdi.hasHalfFp;
     hasDoubleFp = fdi.hasDoubleFp;
 
@@ -468,7 +468,7 @@ OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::operator<
 //
-// Purpose: 
+// Purpose:
 //   Less operator: compares two OpenCLDeviceInfo objects based on
 //   an assumed ordering.
 //
@@ -478,7 +478,7 @@ OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
 // Returns: true - if this device precedes the specified device
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -486,7 +486,7 @@ OpenCLDeviceInfo::operator= (const OpenCLDeviceInfo& fdi)
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLDeviceInfo::operator< (const OpenCLDeviceInfo& fdi) const
 {
 #define LESS_VAR(x) do{\
@@ -518,11 +518,11 @@ OpenCLDeviceInfo::operator< (const OpenCLDeviceInfo& fdi) const
     }
     LESS_VAR (hasHalfFp);
     LESS_VAR (hasDoubleFp);
-    
+
     for (i=0 ; i<numStringValues ; ++i) {
         LESS_VAR (stringValues[i]);
     }
-    
+
     LESS_VAR (typeValue);
     LESS_VAR (addrBitsValue);
     LESS_VAR (cacheTypeValue);
@@ -539,7 +539,7 @@ OpenCLDeviceInfo::operator< (const OpenCLDeviceInfo& fdi) const
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::operator>
 //
-// Purpose: 
+// Purpose:
 //   Greater operator: compares two OpenCLDeviceInfo objects based on
 //   an assumed ordering.
 //
@@ -549,7 +549,7 @@ OpenCLDeviceInfo::operator< (const OpenCLDeviceInfo& fdi) const
 // Returns: true - if this device succeedes the specified device
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -557,7 +557,7 @@ OpenCLDeviceInfo::operator< (const OpenCLDeviceInfo& fdi) const
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLDeviceInfo::operator> (const OpenCLDeviceInfo& fdi) const
 {
 #define GREATER_VAR(x) do{\
@@ -589,11 +589,11 @@ OpenCLDeviceInfo::operator> (const OpenCLDeviceInfo& fdi) const
     }
     GREATER_VAR (hasHalfFp);
     GREATER_VAR (hasDoubleFp);
-    
+
     for (i=0 ; i<numStringValues ; ++i) {
         GREATER_VAR (stringValues[i]);
     }
-    
+
     GREATER_VAR (typeValue);
     GREATER_VAR (addrBitsValue);
     GREATER_VAR (cacheTypeValue);
@@ -610,7 +610,7 @@ OpenCLDeviceInfo::operator> (const OpenCLDeviceInfo& fdi) const
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::operator==
 //
-// Purpose: 
+// Purpose:
 //   Equality operator: compares two OpenCLDeviceInfo objects based on
 //   an assumed ordering.
 //
@@ -620,7 +620,7 @@ OpenCLDeviceInfo::operator> (const OpenCLDeviceInfo& fdi) const
 // Returns: true - if this device is equal to the specified device
 //          false - otherwise
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -628,7 +628,7 @@ OpenCLDeviceInfo::operator> (const OpenCLDeviceInfo& fdi) const
 // Modifications:
 //
 // ****************************************************************************
-bool 
+bool
 OpenCLDeviceInfo::operator== (const OpenCLDeviceInfo& fdi) const
 {
 #define EQUAL_VAR(name) if (name != fdi.name) return (false)
@@ -657,11 +657,11 @@ OpenCLDeviceInfo::operator== (const OpenCLDeviceInfo& fdi) const
     }
     EQUAL_VAR (hasHalfFp);
     EQUAL_VAR (hasDoubleFp);
-    
+
     for (i=0 ; i<numStringValues ; ++i) {
         EQUAL_VAR (stringValues[i]);
     }
-    
+
     EQUAL_VAR (typeValue);
     EQUAL_VAR (addrBitsValue);
     EQUAL_VAR (cacheTypeValue);
@@ -678,14 +678,14 @@ OpenCLDeviceInfo::operator== (const OpenCLDeviceInfo& fdi) const
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::~OpenCLDeviceInfo
 //
-// Purpose: 
+// Purpose:
 //   Destructor: frees memory occupied by this device object
 //
 // Arguments:
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -700,7 +700,7 @@ OpenCLDeviceInfo::~OpenCLDeviceInfo ()
     delete[] longValues;
     delete[] boolValues;
     delete[] stringValues;
-    
+
     if (maxWorkSizes)
        delete[] maxWorkSizes;
 }
@@ -708,15 +708,15 @@ OpenCLDeviceInfo::~OpenCLDeviceInfo ()
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::FillDeviceInformation
 //
-// Purpose: 
+// Purpose:
 //   Queries the OpenCL run-time system and initializes all information
 //   for this device object.
 //
 // Arguments:
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -724,13 +724,13 @@ OpenCLDeviceInfo::~OpenCLDeviceInfo ()
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLDeviceInfo::FillDeviceInformation ()
 {
     char buf[4096];
     int i;
     size_t len;
-    
+
     // read all properties in order. Start with the String properties
     for (i=0 ; i<numStringValues ; ++i)
     {
@@ -738,7 +738,7 @@ OpenCLDeviceInfo::FillDeviceInformation ()
         clGetDeviceInfo (id, clStringCharacteristics[i], 4096, buf, &len);
         stringValues[i] = buf;
     }
-    
+
     for (i=0 ; i<numIntValues ; ++i)
     {
         clGetDeviceInfo (id, clIntCharacteristics[i],
@@ -746,29 +746,29 @@ OpenCLDeviceInfo::FillDeviceInformation ()
         if (clIntCharacteristics[i] == CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)
             numDimensions = intValues[i];
     }
-    
+
     for (i=0 ; i<numSizeTValues ; ++i)
     {
         clGetDeviceInfo (id, clSizeTCharacteristics[i],
                          sizeof(size_t), &sizeTValues[i], NULL);
     }
-    
+
     for (i=0 ; i<numLongValues ; ++i)
     {
         clGetDeviceInfo (id, clLongCharacteristics[i],
                          sizeof(cl_long), &longValues[i], NULL);
     }
-    
+
     for (i=0 ; i<numBoolValues ; ++i)
     {
         clGetDeviceInfo (id, clBoolCharacteristics[i],
                          sizeof(cl_bool), &boolValues[i], NULL);
     }
-    
+
     maxWorkSizes = new size_t[numDimensions];
-    clGetDeviceInfo (id, CL_DEVICE_MAX_WORK_ITEM_SIZES, 
+    clGetDeviceInfo (id, CL_DEVICE_MAX_WORK_ITEM_SIZES,
                      sizeof(size_t)*numDimensions, maxWorkSizes, NULL);
-    
+
     // temporary bitfield values; final values are stored in strings
     cl_device_type type;
     cl_bitfield addressBits;
@@ -776,7 +776,7 @@ OpenCLDeviceInfo::FillDeviceInformation ()
     cl_device_local_mem_type localMemType;
     cl_device_exec_capabilities execCapabilities;
     cl_command_queue_properties queueProperties;
-       
+
     cl_device_fp_config halfFpConfig;
     cl_device_fp_config singleFpConfig;
     cl_device_fp_config doubleFpConfig;
@@ -786,36 +786,36 @@ OpenCLDeviceInfo::FillDeviceInformation ()
     for (i=0 ; typePropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (typePropertiesList[i] & type)
             typeValue = typeValue + typePropertiesNames[i] + " ";
-    
+
     clGetDeviceInfo (id, CL_DEVICE_ADDRESS_BITS, sizeof(cl_bitfield),
                   &addressBits, NULL);
     addrBitsValue = string("");
     for (i=0 ; addressBitsPropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (addressBitsPropertiesList[i] & addressBits)
             addrBitsValue = addrBitsValue + addressBitsPropertiesNames[i] + " ";
-    
-    clGetDeviceInfo (id, CL_DEVICE_GLOBAL_MEM_CACHE_TYPE, 
+
+    clGetDeviceInfo (id, CL_DEVICE_GLOBAL_MEM_CACHE_TYPE,
                   sizeof(cl_device_mem_cache_type), &memCacheType, NULL);
     cacheTypeValue = string("");
     for (i=0 ; cacheTypePropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (cacheTypePropertiesList[i] & memCacheType)
             cacheTypeValue = cacheTypeValue + cacheTypePropertiesNames[i] + " ";
-    
-    clGetDeviceInfo (id, CL_DEVICE_LOCAL_MEM_TYPE, 
+
+    clGetDeviceInfo (id, CL_DEVICE_LOCAL_MEM_TYPE,
                   sizeof(cl_device_local_mem_type), &localMemType, NULL);
     localMemValue = string("");
     for (i=0 ; localMemTypePropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (localMemTypePropertiesList[i] & localMemType)
             localMemValue = localMemValue + localMemTypePropertiesNames[i] + " ";
-    
-    clGetDeviceInfo (id, CL_DEVICE_EXECUTION_CAPABILITIES, 
+
+    clGetDeviceInfo (id, CL_DEVICE_EXECUTION_CAPABILITIES,
                   sizeof(cl_device_exec_capabilities), &execCapabilities, NULL);
     execCapabilitiesValue = string("");
     for (i=0 ; execPropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (execPropertiesList[i] & execCapabilities)
             execCapabilitiesValue = execCapabilitiesValue + execPropertiesNames[i] + " ";
-    
-    clGetDeviceInfo (id, CL_DEVICE_QUEUE_PROPERTIES, 
+
+    clGetDeviceInfo (id, CL_DEVICE_QUEUE_PROPERTIES,
                   sizeof(cl_command_queue_properties), &queueProperties, NULL);
     queuePropertiesValue = string("");
     for (i=0 ; queuePropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
@@ -824,13 +824,13 @@ OpenCLDeviceInfo::FillDeviceInformation ()
 
     halfFpValue = string("");
 #ifdef CL_DEVICE_HALF_FP_CONFIG
-    clGetDeviceInfo (id, CL_DEVICE_HALF_FP_CONFIG, 
+    clGetDeviceInfo (id, CL_DEVICE_HALF_FP_CONFIG,
                   sizeof(cl_device_fp_config), &halfFpConfig, NULL);
     for (i=0 ; fpPropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
         if (fpPropertiesList[i] & halfFpConfig)
             halfFpValue = halfFpValue + fpPropertiesNames[i] + " ";
 #endif
-    clGetDeviceInfo (id, CL_DEVICE_SINGLE_FP_CONFIG, 
+    clGetDeviceInfo (id, CL_DEVICE_SINGLE_FP_CONFIG,
                   sizeof(cl_device_fp_config), &singleFpConfig, NULL);
     singleFpValue = string("");
     for (i=0 ; fpPropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
@@ -840,11 +840,11 @@ OpenCLDeviceInfo::FillDeviceInformation ()
     doubleFpValue = string("");
     if (hasDoubleFp
 #ifdef CL_DEVICE_DOUBLE_FP_CONFIG
-         || 1
+         || true
 #endif
        )
     {
-       clGetDeviceInfo (id, CL_DEVICE_DOUBLE_FP_CONFIG, 
+       clGetDeviceInfo (id, CL_DEVICE_DOUBLE_FP_CONFIG,
                      sizeof(cl_device_fp_config), &doubleFpConfig, NULL);
        for (i=0 ; fpPropertiesList[i]!=END_ENUMERATION_MARKER ; ++i)
            if (fpPropertiesList[i] & doubleFpConfig)
@@ -855,15 +855,15 @@ OpenCLDeviceInfo::FillDeviceInformation ()
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::Print
 //
-// Purpose: 
+// Purpose:
 //   Pretty prints the attributes of this device
 //
 // Arguments:
 //   os: stream used for writing
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -871,86 +871,86 @@ OpenCLDeviceInfo::FillDeviceInformation ()
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLDeviceInfo::Print(ostream &os) const
 {
     int i;
     os << "--> Device id=" << id << " <--" << endl;
-    
+
     for (i=0 ; i<numStringValues ; ++i)
     {
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
-           << clStringCharacteristicsNames[i] << " = " 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
+           << clStringCharacteristicsNames[i] << " = "
            << stringValues[i] << endl;
     }
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "DeviceType" << " = " << typeValue << endl;
 
     for (i=0 ; i<numIntValues ; ++i)
     {
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
-           << clIntCharacteristicsNames[i] << " = " 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
+           << clIntCharacteristicsNames[i] << " = "
            << intValues[i] << endl;
     }
 
     for (i=0 ; i<numSizeTValues ; ++i)
     {
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
-           << clSizeTCharacteristicsNames[i] << " = " 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
+           << clSizeTCharacteristicsNames[i] << " = "
            << sizeTValues[i] << endl;
     }
-    
+
     // print the maximum Work Sizes on each dimension
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "MaxWorkItemSizes" << " = (" << maxWorkSizes[0];
     for (i=1 ; i<numDimensions ; ++i)
         os << "," << maxWorkSizes[i];
     os << ")" << endl;
-    
+
     for (i=0 ; i<numLongValues ; ++i)
     {
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
-           << clLongCharacteristicsNames[i] << " = " 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
+           << clLongCharacteristicsNames[i] << " = "
            << HumanReadable(longValues[i], 0) << "B" << endl;
     }
-    
+
     for (i=0 ; i<numBoolValues ; ++i)
     {
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
-           << clBoolCharacteristicsNames[i] << " = " 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
+           << clBoolCharacteristicsNames[i] << " = "
            << (boolValues[i]?"yes":"no") << endl;
     }
 
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "SupportedAddressSpaces" << " = " << addrBitsValue << endl;
-    
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "GlobalMemoryCacheType" << " = " << cacheTypeValue << endl;
-    
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "TypeLocalMemory" << " = " << localMemValue << endl;
-    
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "ExecutionCapabilities" << " = " << execCapabilitiesValue << endl;
-    
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "SupportedQueueProperties" << " = " << queuePropertiesValue << endl;
-    
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "HalfFpSupport" << " = " << (hasHalfFp?"yes":"no") << endl;
     if (hasHalfFp)
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
            << "HalfFpCapabilities" << " = " << halfFpValue << endl;
 
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "SingleFpSupport" << " = " << "yes" << endl;
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "SingleFpCapabilities" << " = " << singleFpValue << endl;
 
-    os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+    os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
        << "DoubleFpSupport" << " = " << (hasDoubleFp?"yes":"no") << endl;
     if (hasDoubleFp)
-        os << "   " << setiosflags(ios::left) << setw(maxKeyLength) 
+        os << "   " << setiosflags(ios::left) << setw(maxKeyLength)
            << "DoubleFpCapabilities" << " = " << doubleFpValue << endl;
     os << endl;
 }
@@ -958,16 +958,16 @@ OpenCLDeviceInfo::Print(ostream &os) const
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::writeObject
 //
-// Purpose: 
+// Purpose:
 //   Implements the serialization method of the SerializeObject interface.
 //
 // Arguments:
-//   oss: output string stream object used for writing the serialized 
+//   oss: output string stream object used for writing the serialized
 //        representation of the object
 //
-// Returns: 
+// Returns:
 //
-// Note: 
+// Note:
 //
 // Programmer: Gabriel Marin
 // Creation: August 21, 2009
@@ -975,7 +975,7 @@ OpenCLDeviceInfo::Print(ostream &os) const
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLDeviceInfo::writeObject(ostringstream &oss) const
 {
     int i;
@@ -989,7 +989,7 @@ OpenCLDeviceInfo::writeObject(ostringstream &oss) const
         << " " << numDimensions
         << " " << hasHalfFp
         << " " << hasDoubleFp;
-    
+
     for (i=0 ; i<numIntValues ; ++i)
     {
         oss << " " << intValues[i];
@@ -999,16 +999,16 @@ OpenCLDeviceInfo::writeObject(ostringstream &oss) const
     {
         oss << " " << sizeTValues[i];
     }
-    
+
     // serialize the maximum Work Sizes on each dimension
     for (i=0 ; i<numDimensions ; ++i)
         oss << " " << maxWorkSizes[i];
-    
+
     for (i=0 ; i<numLongValues ; ++i)
     {
         oss << " " << longValues[i];
     }
-    
+
     for (i=0 ; i<numBoolValues ; ++i)
     {
         oss << " " << boolValues[i];
@@ -1036,16 +1036,16 @@ OpenCLDeviceInfo::writeObject(ostringstream &oss) const
 // ****************************************************************************
 // Method: OpenCLDeviceInfo::readObject
 //
-// Purpose: 
+// Purpose:
 //   Implements the unserialization method of the SerializeObject interface.
 //
 // Arguments:
-//   iss: input string stream object used for reading the serialized 
+//   iss: input string stream object used for reading the serialized
 //        representation of the object
 //
-// Returns: 
+// Returns:
 //
-// Note:  It overwrittes the current device information with the data read 
+// Note:  It overwrittes the current device information with the data read
 //    from the input stream.
 //
 // Programmer: Gabriel Marin
@@ -1054,17 +1054,17 @@ OpenCLDeviceInfo::writeObject(ostringstream &oss) const
 // Modifications:
 //
 // ****************************************************************************
-void 
+void
 OpenCLDeviceInfo::readObject(istringstream &iss)
 {
     int i;
     int receivedKey = 0;
     int oldNumDimensions = numDimensions;
-    
+
     iss >> receivedKey;
     if (receivedKey != MAGIC_KEY_DEVICE_INFO)  // wrong magic key
     {
-        cerr << "Wrong magic key received " << receivedKey 
+        cerr << "Wrong magic key received " << receivedKey
              << " while unserializing an OpenCLDeviceInfo object." << endl;
         exit (-2);
     }
@@ -1077,7 +1077,7 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
     iss >> numDimensions
         >> hasHalfFp
         >> hasDoubleFp;
-    
+
     for (i=0 ; i<numIntValues ; ++i)
     {
         iss >> intValues[i];
@@ -1087,7 +1087,7 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
     {
         iss >> sizeTValues[i];
     }
-    
+
     // serialize the maximum Work Sizes on each dimension
     // do I need to reallocate memory for maxWorkSizes?
     if (maxWorkSizes && numDimensions!=oldNumDimensions)
@@ -1097,23 +1097,23 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
     }
     if (!maxWorkSizes)
         maxWorkSizes = new size_t[numDimensions];
-    
+
     for (i=0 ; i<numDimensions ; ++i)
         iss >> maxWorkSizes[i];
-    
+
     for (i=0 ; i<numLongValues ; ++i)
     {
         iss >> longValues[i];
     }
-    
+
     for (i=0 ; i<numBoolValues ; ++i)
     {
         iss >> boolValues[i];
     }
-    
+
     string dummy;
     getline (iss, dummy);  // read the newline before the first string value
-    
+
     // strings are one per line, \n is the separator
     for (i=0 ; i<numStringValues ; ++i)
     {
@@ -1136,7 +1136,7 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
 // ****************************************************************************
 // Method: ListDevicesAndGetDevice
 //
-// Purpose: 
+// Purpose:
 //   Get the OpenCL device ID for the device with the specified index on
 //   the specified platform.
 //
@@ -1157,72 +1157,91 @@ OpenCLDeviceInfo::readObject(istringstream &iss)
 //   Improved output to include device name and index.
 //
 // ****************************************************************************
-cl_device_id 
-ListDevicesAndGetDevice(int platform, int device, bool output)
+cl_device_id
+ListDevicesAndGetDevice(int platformIdx, int deviceIdx, bool output)
 {
     cl_int err;
-    vector<cl::Platform> platforms;
 
-    err = cl::Platform::get( &platforms );
+    // TODO remove duplication between this function and GetNumOclDevices.
+    cl_uint nPlatforms = 0;
+    err = clGetPlatformIDs(0, NULL, &nPlatforms);
     CL_CHECK_ERROR(err);
 
-    long nPlatforms = (long)platforms.size();
     if (nPlatforms <= 0)
     {
         cerr << "No OpenCL platforms found. Exiting." << endl;
         exit(0);
     }
-    if (platform<0 || platform>=nPlatforms)  // platform ID out of range
+    if (platformIdx<0 || platformIdx>=nPlatforms)  // platform ID out of range
     {
-        cerr << "Platform index " << platform << " is out of range. "
-             << "Specify a platform index between 0 and " 
+        cerr << "Platform index " << platformIdx << " is out of range. "
+             << "Specify a platform index between 0 and "
              << nPlatforms-1 << endl;
         exit(-4);
     }
 
-    string platformName = platforms[platform].getInfo<CL_PLATFORM_NAME>();
-    string platformVersion = platforms[platform].getInfo<CL_PLATFORM_VERSION>();
-    // cout << "OpenCL platform name = '" << platformName << "'" << endl;
-    // cout << "OpenCL platform version = '" << platformVersion << "'" << endl;
+    cl_platform_id* platformIDs = new cl_platform_id[nPlatforms];
+    err = clGetPlatformIDs(nPlatforms, platformIDs, NULL);
+    CL_CHECK_ERROR(err);
 
     // query devices
-    std::vector<cl::Device> devs;
-    err = platforms[platform].getDevices( CL_DEVICE_TYPE_ALL, &devs );
-    // I should not report an error here if no devices are found.
-    // CL_CHECK_ERROR( err );
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs(platformIDs[platformIdx],
+                        CL_DEVICE_TYPE_ALL,
+                        0,
+                        NULL,
+                        &nDevices );
+    CL_CHECK_ERROR(err);
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs(platformIDs[platformIdx],
+                        CL_DEVICE_TYPE_ALL,
+                        nDevices,
+                        devIDs,
+                        NULL );
+    CL_CHECK_ERROR(err);
 
-    // for( vector<cl::Device>::iterator diter = devs.begin();
-    //    diter != devs.end();
-    //    diter++ )
-    // {
-    //    OpenCLDeviceInfo di((*diter)());
-    //    di.Print(cout);
-    //}
-
-    long nDevs = (long)devs.size();
-    if (nDevs <= 0)
+    if (nDevices <= 0)
     {
         cerr << "No OpenCL devices found. Exiting." << endl;
         exit(0);
     }
-    if (device<0 || device>=nDevs)  // platform ID out of range
+    if (deviceIdx<0 || deviceIdx>=nDevices)  // platform ID out of range
     {
-        cerr << "Device index " << device << " is out of range. "
-             << "Specify a device index between 0 and " << nDevs-1
+        cerr << "Device index " << deviceIdx << " is out of range. "
+             << "Specify a device index between 0 and " << nDevices-1
              << endl;
         exit(-5);
     }
 
-    cl::Device &clDevice = devs[device];
-    cl_device_id retval = clDevice();
+    cl_device_id retval = devIDs[deviceIdx];
     if( output )
     {
+        size_t nBytesNeeded = 0;
+        err = clGetDeviceInfo( retval,
+                                CL_DEVICE_NAME,
+                                0,
+                                NULL,
+                                &nBytesNeeded );
+        CL_CHECK_ERROR(err);
+        char* devName = new char[nBytesNeeded+1];
+        err = clGetDeviceInfo( retval,
+                                CL_DEVICE_NAME,
+                                nBytesNeeded+1,
+                                devName,
+                                NULL );
+        
         cout << "Chose device:"
-             << " name='"<<clDevice.getInfo<CL_DEVICE_NAME>()<<"'"
-             << " index="<<device
+             << " name='"<< devName <<"'"
+             << " index="<<deviceIdx
              << " id="<<retval
              << endl;
+
+        delete[] devName;
     }
+
+    delete[] platformIDs;
+    delete[] devIDs;
+
     return retval;
 }
 
@@ -1246,33 +1265,52 @@ ListDevicesAndGetDevice(int platform, int device, bool output)
 //
 // ****************************************************************************
 int
-GetNumOclDevices(int platform)
+GetNumOclDevices(int platformIndex)
 {
     cl_int err;
-    vector<cl::Platform> platforms;
 
-    err = cl::Platform::get( &platforms );
+    
+    cl_uint nPlatforms = 0;
+    err = clGetPlatformIDs(0, NULL, &nPlatforms);   // determine number of platforms available
     CL_CHECK_ERROR(err);
 
-    long nPlatforms = (long)platforms.size();
     if (nPlatforms <= 0)
     {
         cerr << "No OpenCL platforms found. Exiting." << endl;
         exit(-1);
     }
-    if (platform<0 || platform>=nPlatforms)  // platform ID out of range
+    if (platformIndex<0 || platformIndex>=nPlatforms)  // platform index out of range
     {
-        cerr << "Platform index " << platform << " is out of range. "
+
+        cerr << "Platform index " << platformIndex << " is out of range. "
              << "Specify a platform index between 0 and "
              << nPlatforms-1 << endl;
         exit(-4);
     }
 
-    // query devices
-    std::vector<cl::Device> devs;
-    err = platforms[platform].getDevices( CL_DEVICE_TYPE_ALL, &devs );
+    cl_platform_id* platformIDs = new cl_platform_id[nPlatforms];
+    err = clGetPlatformIDs(nPlatforms, platformIDs, NULL);
+    CL_CHECK_ERROR(err);
 
-    int nDevs = (int)devs.size();
-    return nDevs;
+    // query devices for the indicated platform
+    cl_uint nDevices = 0;
+    err = clGetDeviceIDs( platformIDs[platformIndex],
+                            CL_DEVICE_TYPE_ALL,
+                            0,
+                            NULL,
+                            &nDevices );
+    CL_CHECK_ERROR(err);
+    cl_device_id* devIDs = new cl_device_id[nDevices];
+    err = clGetDeviceIDs( platformIDs[platformIndex],
+                            CL_DEVICE_TYPE_ALL,
+                            nDevices,
+                            devIDs,
+                            NULL );
+    CL_CHECK_ERROR(err);
+
+    delete[] platformIDs;
+    delete[] devIDs;
+
+    return (int)nDevices;
 }
 
