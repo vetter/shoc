@@ -645,7 +645,6 @@ CC
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
-am__nodep
 AMDEPBACKSLASH
 AMDEP_FALSE
 AMDEP_TRUE
@@ -753,7 +752,11 @@ CPPFLAGS
 CCC
 CC
 CFLAGS
-CXXCPP'
+LDFLAGS
+LIBS
+CPPFLAGS
+CXXCPP
+CPPFLAGS'
 
 
 # Initialize some variables set by options.
@@ -2887,11 +2890,11 @@ MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 
 # We need awk for the "check" target.  The system "awk" is bad on
 # some platforms.
-# Always define AMTAR for backward compatibility.  Yes, it's still used
-# in the wild :-(  We should find a proper way to deprecate it ...
-AMTAR='$${TAR-tar}'
+# Always define AMTAR for backward compatibility.
 
-am__tar='$${TAR-tar} chof - "$$tardir"' am__untar='$${TAR-tar} xf -'
+AMTAR=${AMTAR-"${am_missing_run}tar"}
+
+am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
@@ -3475,7 +3478,6 @@ fi
 if test "x$enable_dependency_tracking" != xno; then
   am_depcomp="$ac_aux_dir/depcomp"
   AMDEPBACKSLASH='\'
-  am__nodep='_no'
 fi
  if test "x$enable_dependency_tracking" != xno; then
   AMDEP_TRUE=
@@ -3500,7 +3502,6 @@ else
   # instance it was reported that on HP-UX the gcc test will end up
   # making a dummy file named `D' -- because `-MD' means `put the output
   # in D'.
-  rm -rf conftest.dir
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -3560,7 +3561,7 @@ else
 	break
       fi
       ;;
-    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
+    msvisualcpp | msvcmsys)
       # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
@@ -4168,7 +4169,6 @@ else
   # instance it was reported that on HP-UX the gcc test will end up
   # making a dummy file named `D' -- because `-MD' means `put the output
   # in D'.
-  rm -rf conftest.dir
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -4228,7 +4228,7 @@ else
 	break
       fi
       ;;
-    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
+    msvisualcpp | msvcmsys)
       # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
@@ -6252,7 +6252,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/md5hash/Makefile src/cuda/level1/md5hash/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/gemm/Makefile src/cuda/level1/gemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/md5hash/Makefile src/opencl/level1/md5hash/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/gemm/Makefile src/opencl/level1/gemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
+ac_config_files="$ac_config_files Makefile config/common.mk config/config.mk config/dirtargets.mk config/targets.mk doc/Makefile src/Makefile src/common/Makefile src/cuda/Makefile src/cuda/level0/Makefile src/cuda/level0/epmpi/Makefile src/cuda/level1/Makefile src/cuda/level1/bfs/Makefile src/cuda/level1/bfs/epmpi/Makefile src/cuda/level1/fft/Makefile src/cuda/level1/fft/epmpi/Makefile src/cuda/level1/md/Makefile src/cuda/level1/md/epmpi/Makefile src/cuda/level1/md5hash/Makefile src/cuda/level1/md5hash/epmpi/Makefile src/cuda/level1/neuralnet/Makefile src/cuda/level1/neuralnet/epmpi/Makefile src/cuda/level1/reduction/Makefile src/cuda/level1/reduction/epmpi/Makefile src/cuda/level1/reduction/tpmpi/Makefile src/cuda/level1/scan/Makefile src/cuda/level1/scan/epmpi/Makefile src/cuda/level1/scan/tpmpi/Makefile src/cuda/level1/gemm/Makefile src/cuda/level1/gemm/epmpi/Makefile src/cuda/level1/sort/Makefile src/cuda/level1/sort/epmpi/Makefile src/cuda/level1/spmv/Makefile src/cuda/level1/spmv/epmpi/Makefile src/cuda/level1/stencil2d/Makefile src/cuda/level1/stencil2d/tpmpi/Makefile src/cuda/level1/triad/Makefile src/cuda/level1/triad/epmpi/Makefile src/cuda/level2/Makefile src/cuda/level2/qtclustering/Makefile src/cuda/level2/qtclustering/tpmpi/Makefile src/cuda/level2/s3d/Makefile src/cuda/level2/s3d/epmpi/Makefile src/mpi/Makefile src/mpi/common/Makefile src/mpi/contention/Makefile src/mpi/contention/cuda/Makefile src/mpi/contention/opencl/Makefile src/mpi/contention-mt/Makefile src/mpi/contention-mt/cuda/Makefile src/mpi/contention-mt/opencl/Makefile src/opencl/Makefile src/opencl/common/Makefile src/opencl/level0/Makefile src/opencl/level0/epmpi/Makefile src/opencl/level1/Makefile src/opencl/level1/bfs/Makefile src/opencl/level1/bfs/epmpi/Makefile src/opencl/level1/fft/Makefile src/opencl/level1/fft/epmpi/Makefile src/opencl/level1/md/Makefile src/opencl/level1/md/epmpi/Makefile src/opencl/level1/md5hash/Makefile src/opencl/level1/md5hash/epmpi/Makefile src/opencl/level1/reduction/Makefile src/opencl/level1/reduction/epmpi/Makefile src/opencl/level1/reduction/tpmpi/Makefile src/opencl/level1/scan/Makefile src/opencl/level1/scan/epmpi/Makefile src/opencl/level1/scan/tpmpi/Makefile src/opencl/level1/gemm/Makefile src/opencl/level1/gemm/epmpi/Makefile src/opencl/level1/sort/Makefile src/opencl/level1/sort/epmpi/Makefile src/opencl/level1/spmv/Makefile src/opencl/level1/spmv/epmpi/Makefile src/opencl/level1/stencil2d/Makefile src/opencl/level1/stencil2d/tpmpi/Makefile src/opencl/level1/triad/Makefile src/opencl/level1/triad/epmpi/Makefile src/opencl/level2/Makefile src/opencl/level2/s3d/Makefile src/opencl/level2/s3d/epmpi/Makefile src/stability/Makefile src/stability/epmpi/Makefile tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -7029,6 +7029,8 @@ do
     "src/cuda/level1/md/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md/epmpi/Makefile" ;;
     "src/cuda/level1/md5hash/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md5hash/Makefile" ;;
     "src/cuda/level1/md5hash/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/md5hash/epmpi/Makefile" ;;
+    "src/cuda/level1/neuralnet/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/neuralnet/Makefile" ;;
+    "src/cuda/level1/neuralnet/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/neuralnet/epmpi/Makefile" ;;
     "src/cuda/level1/reduction/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/Makefile" ;;
     "src/cuda/level1/reduction/epmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/epmpi/Makefile" ;;
     "src/cuda/level1/reduction/tpmpi/Makefile") CONFIG_FILES="$CONFIG_FILES src/cuda/level1/reduction/tpmpi/Makefile" ;;
