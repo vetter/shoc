@@ -551,6 +551,7 @@ AC_CONFIG_FILES([Makefile
                  src/mic/level1/fft/Makefile
                  src/mic/level1/gemm/Makefile
                  src/mic/level1/md/Makefile
+                 src/mic/level1/neuralnet/Makefile
                  src/mic/level1/reduction/Makefile
                  src/mic/level1/scan/Makefile
                  src/mic/level1/sort/Makefile
