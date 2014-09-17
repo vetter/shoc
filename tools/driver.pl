@@ -688,7 +688,7 @@ sub findanymax {
       }
    }
    close(LOGFILE);
-   return (checkError($best), $unit);
+   return (checkError($numDevices*$best), $unit);
 }
 
 # Subroutine: findmean(fileName, testName)
@@ -747,7 +747,7 @@ sub findanymean {
       }
    }
    close(LOGFILE);
-   return (checkError($best), $unit);
+   return (checkError($numDevices*$best), $unit);
 }
 
 # Subroutine: buildCommand(testName, deviceNum, istp)
