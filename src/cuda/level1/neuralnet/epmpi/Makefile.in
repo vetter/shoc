@@ -34,8 +34,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-epcuda_PROGRAMS = Reduction$(EXEEXT)
-subdir = src/cuda/level1/reduction/epmpi
+epcuda_PROGRAMS = NeuralNet$(EXEEXT)
+subdir = src/cuda/level1/neuralnet/epmpi
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -47,10 +47,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(epcudadir)"
 PROGRAMS = $(epcuda_PROGRAMS)
-am_Reduction_OBJECTS = main.$(OBJEXT)
-Reduction_OBJECTS = $(am_Reduction_OBJECTS)
+am_NeuralNet_OBJECTS = main.$(OBJEXT)
+NeuralNet_OBJECTS = $(am_NeuralNet_OBJECTS)
 am__DEPENDENCIES_1 =
-Reduction_DEPENDENCIES = Reduction.o $(am__DEPENDENCIES_1)
+NeuralNet_DEPENDENCIES = NeuralNet.o $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -59,8 +59,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(Reduction_SOURCES)
-DIST_SOURCES = $(Reduction_SOURCES)
+SOURCES = $(NeuralNet_SOURCES)
+DIST_SOURCES = $(NeuralNet_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -195,8 +195,8 @@ AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 epcudadir = $(bindir)/EP/CUDA
 
 # How to build those programs?
-Reduction_SOURCES = main.cpp
-Reduction_LDADD = Reduction.o $(CUDA_LIBS) $(LIBS)
+NeuralNet_SOURCES = main.cpp
+NeuralNet_LDADD = NeuralNet.o $(CUDA_LIBS) $(LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -210,9 +210,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/reduction/epmpi/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cuda/level1/neuralnet/epmpi/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/cuda/level1/reduction/epmpi/Makefile
+	  $(AUTOMAKE) --foreign src/cuda/level1/neuralnet/epmpi/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -268,9 +268,9 @@ uninstall-epcudaPROGRAMS:
 
 clean-epcudaPROGRAMS:
 	-test -z "$(epcuda_PROGRAMS)" || rm -f $(epcuda_PROGRAMS)
-Reduction$(EXEEXT): $(Reduction_OBJECTS) $(Reduction_DEPENDENCIES) 
-	@rm -f Reduction$(EXEEXT)
-	$(CXXLINK) $(Reduction_OBJECTS) $(Reduction_LDADD) $(LIBS)
+NeuralNet$(EXEEXT): $(NeuralNet_OBJECTS) $(NeuralNet_DEPENDENCIES) 
+	@rm -f NeuralNet$(EXEEXT)
+	$(CXXLINK) $(NeuralNet_OBJECTS) $(NeuralNet_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
