@@ -2,13 +2,17 @@
 #include <iostream>
 #include "OptionParser.h"
 #include "ResultDatabase.h"
-#include "Spmv.h"
 #include "Spmv/util.h"
 #include <math.h>
 #include "Event.h"
 #include "support.h"
 
 using namespace std;
+
+// Default Block size -- note this may be adjusted
+// at runtime if it's not compatible with the device's
+// capabilities
+static const int BLOCK_SIZE = 128;
 
 extern const char *cl_source_spmv;
 
@@ -564,6 +568,10 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
 
       csrVector = clCreateKernel(prog, "spmv_csr_vector_kernel", &err);
 
+      // Get preferred SIMD width
+      int vecWidth = getPreferredWorkGroupSizeMultiple(ctx, csrVector);
+      CL_CHECK_ERROR(err);
+
       CL_CHECK_ERROR(err);
       err = clSetKernelArg(csrVector, 0, sizeof(cl_mem), (void*) &d_val);
       CL_CHECK_ERROR(err);
@@ -576,7 +584,9 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       CL_CHECK_ERROR(err);
       err = clSetKernelArg(csrVector, 4, sizeof(cl_int), (void*) &numRows);
       CL_CHECK_ERROR(err);
-      err = clSetKernelArg(csrVector, 5, sizeof(cl_mem), (void*) &d_out);
+      err = clSetKernelArg(csrVector, 5, sizeof(cl_int), (void*) &vecWidth);
+      CL_CHECK_ERROR(err);
+      err = clSetKernelArg(csrVector, 6, sizeof(cl_mem), (void*) &d_out);
       CL_CHECK_ERROR(err);
 
       // Append correct suffix to resultsDB entry
@@ -641,9 +651,9 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       cout << "CSR Vector Kernel\n";
       // Verify Local work group size
       size_t maxLocal = getMaxWorkGroupSize(ctx, csrVector);
-      if (maxLocal < 32)
+      if (maxLocal < vecWidth)
       {
-         cout << "Warning: CSRVector requires a work group size >= 32" << endl;
+         cout << "Warning: CSRVector requires a work group size >= " << vecWidth << endl;
          cout << "Skipping this kernel." << endl;
          err = clReleaseMemObject(d_rowDelimiters);
          CL_CHECK_ERROR(err);
@@ -663,13 +673,13 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          CL_CHECK_ERROR(err);
          return;
       }
-      localWorkSize = VECTOR_SIZE;
-      while (localWorkSize+VECTOR_SIZE <= maxLocal &&
-          localWorkSize+VECTOR_SIZE <= BLOCK_SIZE)
+      localWorkSize = vecWidth;
+      while (localWorkSize+vecWidth <= maxLocal &&
+          localWorkSize+vecWidth <= BLOCK_SIZE)
       {
-         localWorkSize += VECTOR_SIZE;
+         localWorkSize += vecWidth;
       }
-      const size_t vectorGlobalWSize = numRows * VECTOR_SIZE; // 1 warp per row
+      const size_t vectorGlobalWSize = numRows * vecWidth; // 1 warp per row
 
       for (int k = 0; k < passes; k++)
       {
