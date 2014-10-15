@@ -385,6 +385,7 @@ while (scalar(@ARGV) > 0) {
         die "Please choose one of '-cuda', '-opencl', '-mic' to set the operating mode.\n"
           if ($mode ne "");
         $mode = "mic";
+    }
     elsif ($arg eq "-benchmark")
     {
         $singlebench = shift;
