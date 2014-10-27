@@ -86,6 +86,7 @@ class ResultDatabase
                     const vector<double> &values);
     vector<Result>        GetResultsForTest(const string &test);
     const vector<Result> &GetResults() const;
+    void ClearAllResults();
     void DumpDetailed(ostream&);
     void DumpSummary(ostream&);
     void DumpCsv(string fileName);

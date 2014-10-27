@@ -326,6 +326,27 @@ void ResultDatabase::DumpSummary(ostream &out)
 }
 
 // ****************************************************************************
+//  Method:  ResultDatabase::ClearAllResults
+//
+//  Purpose:
+//    Clears all existing results from the ResultDatabase; used for multiple passes
+//    of the same test or multiple tests.
+//
+//  Arguments:
+//
+//  Programmer:  Jeffrey Young
+//  Creation:    September 10th, 2014
+//
+//  Modifications:
+//
+//
+// ****************************************************************************
+void ResultDatabase::ClearAllResults()
+{
+	results.clear();	
+}
+
+// ****************************************************************************
 //  Method:  ResultDatabase::DumpCsv
 //
 //  Purpose:
@@ -354,8 +375,6 @@ void ResultDatabase::DumpCsv(string fileName)
     //Open file and append by default
     ofstream out;
     out.open(fileName.c_str(), std::ofstream::out | std::ofstream::app); 
-
-    cout<<"fileEmpty is "<<emptyFile<<endl;
 
     //Add headers only for empty files
     if(emptyFile)
@@ -402,6 +421,7 @@ void ResultDatabase::DumpCsv(string fileName)
 
         out << endl;
     }
+    out << endl;
 
     out.close();
 }
@@ -437,8 +457,8 @@ bool ResultDatabase::IsFileEmpty(string fileName)
       {
         fileEmpty = (bool)(file.peek() == ifstream::traits_type::eof());
         file.close();
-        cout<<"CSV - fileEmpty is "<<fileEmpty<<endl;
-        return fileEmpty;
+        
+	return fileEmpty;
       }
   
       //Otherwise, return false  
