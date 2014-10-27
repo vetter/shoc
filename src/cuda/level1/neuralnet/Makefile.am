@@ -20,5 +20,5 @@ serialcuda_PROGRAMS = NeuralNet
 
 # How to build those programs?
 NeuralNet_SOURCES = main.cpp
-NeuralNet_LDADD = NeuralNet.o $(CUDA_LIBS) $(LIBS)
+NeuralNet_LDADD = NeuralNet.o $(CUDA_LIBS) $(LIBS) -lcublas
 
