@@ -1,4 +1,4 @@
-device,day,vendor,peakspflops,peakdpflops,peakmembw,fab,coreclock,numcores,shaderclock,memsize,memclock,PCIe gen,tdp
+device,introduction date,vendor,peakspflops,peakdpflops,peakmembw,fab,coreclock,numcores,shaderclock,memsize,memclock,PCIe gen,tdp
 c1060,5/2/2010,nvidia,933.12,77.76,102.4,40,602,240,1300,4096,1600,,187.8
 c1060,5/1/2010,nvidia,933.12,77.76,102.4,40,602,240,1300,4096,1600,,187.8
 c2050noecc,5/2/2010,nvidia,1030,515,144,40,575,448,1150,3072,3000,,247
