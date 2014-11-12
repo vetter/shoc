@@ -1,0 +1,42 @@
+The data directory is meant to serve as a resource for SHOC runs using the
+shocdriver on different devices and platforms. Results can be contributed
+either by emailing a SHOC development member, issuing a pull request, or
+committing an update (for those with write access). If you would like to 
+report a result for a device that is not listed, please provide the 
+following:
+
+devices.csv: 
+-----------
+For a particular discrete accelerator, it is helpful to have the host system
+information to make comparisons between different devices and replicate 
+tests. New results should include not just the device name and vendor 
+but also the host platform used for testing. 
+
+On a Linux system the CPU, memory size and speed, and motherboard can be 
+found using dmidecode or lshw. In certain cases dmesg can also be used to
+find the specific motherboard model number. For OS, the Linux kernel version 
+from uname is preferred or the common name (OSX 10.6) can suffice for other
+OSes.
+
+specs.csv:
+-----------
+For a particular accelerator, the key specifications for the device are
+reported. PCIe Gen (2.0, 3.0, etc.) and introduction date (or first sale date)
+are new fields that have been added.
+
+For devices with a boost clock (e.g. NVIDIA Maxwell), report the
+boost clock instead of the base clock. (This boost clock is the
+average clock speed at which the device actually runs, not
+the absolute maximum clockspeed the device supports, and so should
+most closely represent the card's real-life performance.)
+
+platforms.csv:
+--------------
+Here the software platforms for a particular set of experiments are added. 
+
+results.csv:
+------------
+Results from a SHOC run using shocdriver are added to the results CSV and
+are correlated with the device and platform. New fields include the test
+size (4 is recommended) and the test date which should be the date when 
+the test was last run for the listed results.
