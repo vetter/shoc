@@ -39,7 +39,7 @@ void __gpu_sync(int blocks_to_synch , volatile __global unsigned int *g_mutex)
     // only thread 0 is used for synchronization
     if (tid_in_block == 0)
     {
-        atom_add(g_mutex, 1);
+        atomic_add(g_mutex, 1);
         //only when all blocks add 1 to g_mutex will
         //g_mutex equal to blocks_to_synch
         while(g_mutex[0] < blocks_to_synch)
@@ -139,16 +139,16 @@ __kernel void BFS_kernel_one_block(
                 //get neighbor
                 unsigned int nid=edgeArrayAux[offset];
                 //get its cost
-                unsigned int v=atom_min(&cost[nid],cost[node_to_process]+1);
+                unsigned int v=atomic_min(&cost[nid],cost[node_to_process]+1);
                 //if cost is less than previously set add to frontier
                 if(v>cost[node_to_process]+1)
                 {
-                    int is_in_frontier=atom_xchg(&visited[nid],1);
+                    int is_in_frontier=atomic_xchg(&visited[nid],1);
                     //if node already in frontier do nothing
                     if(is_in_frontier==0)
                     {
                             //increment the local queue size
-                            unsigned int t=atom_add(&b_q_length[0],1);
+                            unsigned int t=atomic_add(&b_q_length[0],1);
                             if(t< max_local_mem)
                             {
                                 b_q2[t]=nid;
@@ -156,7 +156,7 @@ __kernel void BFS_kernel_one_block(
                             //write to global memory if shared memory full
                             else
                             {
-                                int off=atom_add(&b_offset[0],1);
+                                int off=atomic_add(&b_offset[0],1);
                                 frontier[off]=nid;
                             }
                         }
@@ -293,16 +293,16 @@ __kernel void BFS_kernel_SM_block(
                 //get neighbor
                 unsigned int nid=edgeArrayAux[offset];
                 //get its cost
-                unsigned int v=atom_min(&cost[nid],cost[node_to_process]+1);
+                unsigned int v=atomic_min(&cost[nid],cost[node_to_process]+1);
                 //if cost is less than previously set add to frontier
                 if(v>cost[node_to_process]+1)
                 {
-                    int is_in_frontier=atom_xchg(&visited[nid],1);
+                    int is_in_frontier=atomic_xchg(&visited[nid],1);
                     //if node already in frontier do nothing
                     if(is_in_frontier==0)
                     {
                         //increment the warp queue size
-                        unsigned int t=atom_add(&b_q_length[0],1);
+                        unsigned int t=atomic_add(&b_q_length[0],1);
                         if(t<max_local_mem)
                         {
                             b_q[t]=nid;
@@ -310,7 +310,7 @@ __kernel void BFS_kernel_SM_block(
                         //write to global memory if shared memory full
                         else
                         {
-                            int off=atom_add(g_q_offsets,1);
+                            int off=atomic_add(g_q_offsets,1);
                             if(loop_index==0)
                                 frontier2[off]=nid;
                             else
@@ -330,7 +330,7 @@ __kernel void BFS_kernel_SM_block(
             {
                 b_q_length[0] = max_local_mem;
             }
-            b_offset[0]=atom_add(g_q_offsets,b_q_length[0]);
+            b_offset[0]=atomic_add(g_q_offsets,b_q_length[0]);
         }
 
         //global barrier
@@ -456,16 +456,16 @@ __kernel void BFS_kernel_multi_block(
             //get neighbor
             unsigned int nid=edgeArrayAux[offset];
             //get its cost
-            unsigned int v=atom_min(&cost[nid],cost[node_to_process]+1);
+            unsigned int v=atomic_min(&cost[nid],cost[node_to_process]+1);
             //if cost is less than previously set add to frontier
             if(v>cost[node_to_process]+1)
             {
-                int is_in_frontier=atom_xchg(&visited[nid],1);
+                int is_in_frontier=atomic_xchg(&visited[nid],1);
                 //if node already in frontier do nothing
                 if(is_in_frontier==0)
                 {
                         //increment the warp queue size
-                        unsigned int t=atom_add(&b_q_length[0],1);
+                        unsigned int t=atomic_add(&b_q_length[0],1);
                         if(t<max_local_mem)
                         {
                             b_q[t]=nid;
@@ -473,7 +473,7 @@ __kernel void BFS_kernel_multi_block(
                         //write to global memory if shared memory full
                         else
                         {
-                            int off=atom_add(frontier_length,1);
+                            int off=atomic_add(frontier_length,1);
                             frontier2[off]=nid;
                         }
                 }
@@ -490,7 +490,7 @@ __kernel void BFS_kernel_multi_block(
         {
                 b_q_length[0]=max_local_mem;
         }
-        b_offset[0]=atom_add(frontier_length,b_q_length[0]);
+        b_offset[0]=atomic_add(frontier_length,b_q_length[0]);
     }
 
     barrier(CLK_LOCAL_MEM_FENCE|CLK_GLOBAL_MEM_FENCE);

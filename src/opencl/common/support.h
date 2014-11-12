@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else
@@ -182,6 +183,41 @@ getMaxWorkGroupSize (cl_context &ctx, cl_kernel &ker)
                 &maxGroupSize, &retSize);
     CL_CHECK_ERROR(err);
     return (maxGroupSize);
+}
+
+// ****************************************************************************
+// Method:  getPreferredWorkGroupSizeMultiple
+//
+// Purpose:
+//   Finds the preferred work group size mulitple for the specified kernel and
+//   OpenCL context.  This is actually a hint about the SIMD width, since the
+//   workgroup should want to be a multiple of the SIMD width.
+//
+// Arguments:
+//       ctx         OpenCL context
+//       ker         OpenCL kernel
+//
+// Programmer:  Graham Lopez
+// Creation:    September 24, 2014
+//
+// ****************************************************************************
+inline size_t
+getPreferredWorkGroupSizeMultiple (cl_context &ctx, cl_kernel &ker)
+{
+    int err;
+    // Find the maximum work group size
+    size_t retSize = 0;
+    size_t prefGroupSize = 0;
+    // we must find the device asociated with this context first
+    cl_device_id devid;   // we create contexts with a single device only
+    err = clGetContextInfo (ctx, CL_CONTEXT_DEVICES, sizeof(devid), &devid, &retSize);
+    CL_CHECK_ERROR(err);
+    if (retSize < sizeof(devid))  // we did not get any device, pass 0 to the function
+       devid = 0;
+    err = clGetKernelWorkGroupInfo (ker, devid, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, 
+                sizeof(size_t), &prefGroupSize, &retSize);
+    CL_CHECK_ERROR(err);
+    return (prefGroupSize);
 }
 
 // ****************************************************************************
@@ -422,7 +458,7 @@ checkExtension( cl_device_id devID, const std::string& ext )
     size_t nBytesNeeded = 0;
     err = clGetDeviceInfo( devID,
                         CL_DEVICE_EXTENSIONS,
-                        NULL,
+                        0,
                         NULL,
                         &nBytesNeeded );
     CL_CHECK_ERROR(err);

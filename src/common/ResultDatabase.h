@@ -4,10 +4,13 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <cfloat>
 using std::string;
 using std::vector;
 using std::ostream;
+using std::ofstream;
+using std::ifstream;
 
 
 // ****************************************************************************
@@ -83,8 +86,14 @@ class ResultDatabase
                     const vector<double> &values);
     vector<Result>        GetResultsForTest(const string &test);
     const vector<Result> &GetResults() const;
+    void ClearAllResults();
     void DumpDetailed(ostream&);
     void DumpSummary(ostream&);
+    void DumpCsv(string fileName);
+
+  private:
+    bool IsFileEmpty(string fileName);
+
 };
 
 

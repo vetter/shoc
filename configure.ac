@@ -400,6 +400,8 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/md/epmpi/Makefile
                  src/cuda/level1/md5hash/Makefile
                  src/cuda/level1/md5hash/epmpi/Makefile
+                 src/cuda/level1/neuralnet/Makefile
+                 src/cuda/level1/neuralnet/epmpi/Makefile
                  src/cuda/level1/reduction/Makefile
                  src/cuda/level1/reduction/epmpi/Makefile
                  src/cuda/level1/reduction/tpmpi/Makefile

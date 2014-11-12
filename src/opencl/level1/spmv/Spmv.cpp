@@ -2,13 +2,17 @@
 #include <iostream>
 #include "OptionParser.h"
 #include "ResultDatabase.h"
-#include "Spmv.h"
 #include "Spmv/util.h"
 #include <math.h>
 #include "Event.h"
 #include "support.h"
 
 using namespace std;
+
+// Default Block size -- note this may be adjusted
+// at runtime if it's not compatible with the device's
+// capabilities
+static const int BLOCK_SIZE = 128;
 
 extern const char *cl_source_spmv;
 
@@ -271,7 +275,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     if (devSupportsImages)
     {
         size_t offset[3]={0};
-        size_t size[3]={maxImgWidth,imgHeight,1};
+        size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
         err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
             0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
         CL_CHECK_ERROR(err);
@@ -343,7 +347,7 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
          err = clFinish(queue);
          CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
-         double oTransferTime = outTransfer.FillTimingInfo();
+         double oTransferTime = outTransfer.StartEndRuntime();
 
         // Compare reference solution to GPU result
         if (! verifyResults(refOut, h_out, numRows, k)) {
@@ -381,7 +385,9 @@ void ellPackTest(cl_device_id dev, cl_context ctx, string compileFlags,
     CL_CHECK_ERROR(err);
 
     // Free host memory
-    delete[] h_rowLengths, h_valcm, h_colscm;
+    delete[] h_rowLengths;
+    delete[] h_valcm;
+    delete[] h_colscm;
 }
 // ****************************************************************************
 // Function: csrTest
@@ -502,7 +508,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       if (devSupportsImages)
       {
           size_t offset[3]={0};
-          size_t size[3]={maxImgWidth,imgHeight,1};
+          size_t size[3]={maxImgWidth,(size_t)imgHeight,1};
           err = clEnqueueWriteImage(queue,d_vec, true, offset, size,
               0, 0, h_vec, 0, NULL, &vecTransfer.CLEvent());
           CL_CHECK_ERROR(err);
@@ -562,6 +568,10 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
 
       csrVector = clCreateKernel(prog, "spmv_csr_vector_kernel", &err);
 
+      // Get preferred SIMD width
+      int vecWidth = getPreferredWorkGroupSizeMultiple(ctx, csrVector);
+      CL_CHECK_ERROR(err);
+
       CL_CHECK_ERROR(err);
       err = clSetKernelArg(csrVector, 0, sizeof(cl_mem), (void*) &d_val);
       CL_CHECK_ERROR(err);
@@ -574,7 +584,9 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       CL_CHECK_ERROR(err);
       err = clSetKernelArg(csrVector, 4, sizeof(cl_int), (void*) &numRows);
       CL_CHECK_ERROR(err);
-      err = clSetKernelArg(csrVector, 5, sizeof(cl_mem), (void*) &d_out);
+      err = clSetKernelArg(csrVector, 5, sizeof(cl_int), (void*) &vecWidth);
+      CL_CHECK_ERROR(err);
+      err = clSetKernelArg(csrVector, 6, sizeof(cl_mem), (void*) &d_out);
       CL_CHECK_ERROR(err);
 
       // Append correct suffix to resultsDB entry
@@ -615,7 +627,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
           err = clFinish(queue);
           CL_CHECK_ERROR(err);
           outTransfer.FillTimingInfo();
-          double oTransferTime = outTransfer.FillTimingInfo();
+          double oTransferTime = outTransfer.StartEndRuntime();
 
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
@@ -639,9 +651,9 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
       cout << "CSR Vector Kernel\n";
       // Verify Local work group size
       size_t maxLocal = getMaxWorkGroupSize(ctx, csrVector);
-      if (maxLocal < 32)
+      if (maxLocal < vecWidth)
       {
-         cout << "Warning: CSRVector requires a work group size >= 32" << endl;
+         cout << "Warning: CSRVector requires a work group size >= " << vecWidth << endl;
          cout << "Skipping this kernel." << endl;
          err = clReleaseMemObject(d_rowDelimiters);
          CL_CHECK_ERROR(err);
@@ -661,13 +673,13 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          CL_CHECK_ERROR(err);
          return;
       }
-      localWorkSize = VECTOR_SIZE;
-      while (localWorkSize+VECTOR_SIZE <= maxLocal &&
-          localWorkSize+VECTOR_SIZE <= BLOCK_SIZE)
+      localWorkSize = vecWidth;
+      while (localWorkSize+vecWidth <= maxLocal &&
+          localWorkSize+vecWidth <= BLOCK_SIZE)
       {
-         localWorkSize += VECTOR_SIZE;
+         localWorkSize += vecWidth;
       }
-      const size_t vectorGlobalWSize = numRows * VECTOR_SIZE; // 1 warp per row
+      const size_t vectorGlobalWSize = numRows * vecWidth; // 1 warp per row
 
       for (int k = 0; k < passes; k++)
       {
@@ -692,7 +704,7 @@ void csrTest(cl_device_id dev, cl_context ctx, string compileFlags,
          err = clFinish(queue);
          CL_CHECK_ERROR(err);
          outTransfer.FillTimingInfo();
-         double oTransferTime = outTransfer.FillTimingInfo();
+         double oTransferTime = outTransfer.StartEndRuntime();
 
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
@@ -909,8 +921,15 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
              h_rowDelimiters, h_vec, h_out, numRows, nItems,
              refOut, false, paddedSize, 0);
     }
-    delete[] h_val, h_cols, h_rowDelimiters, h_vec, h_out;
-    delete[] h_valPad, h_colsPad, h_rowDelimitersPad;
+
+    delete[] h_val;
+    delete[] h_cols;
+    delete[] h_rowDelimiters;
+    delete[] h_vec;
+    delete[] h_out;
+    delete[] h_valPad;
+    delete[] h_colsPad;
+    delete[] h_rowDelimitersPad;
 }
 
 // ****************************************************************************

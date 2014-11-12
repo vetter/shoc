@@ -42,7 +42,7 @@ libspec=`$NVCC -dryrun bogus.cu 2>&1 | grep LIBRARIES | sed 's/^.*LIBRARIES=//'`
 #echo "libspec=$libspec"
 if [ $cudart_flag_supported -eq 1 ]
 then
-    cudalibs=`$NVCC -dryrun bogus.cu 2>&1 | tail -1 | sed "s#^.*-o \"a.out\"##" | sed 's#"[a-zA-Z0-9/_-]*\.o"##' | sed 's/-Wl,--start-group//' | sed 's/-Wl,--end-group//'`
+    cudalibs=`$NVCC -dryrun bogus.cu 2>&1 | tail -1 | sed "s#^.*-o \"a.out\"##" | sed 's#"[a-zA-Z0-9/_-]*\.o"##g' | sed 's/-Wl,--start-group//' | sed 's/-Wl,--end-group//'`
 else
     cudalibs=$libspec
 fi
