@@ -24,6 +24,12 @@ For a particular accelerator, the key specifications for the device are
 reported. PCIe Gen (2.0, 3.0, etc.) and introduction date (or first sale date)
 are new fields that have been added.
 
+For devices with a boost clock (e.g. NVIDIA Maxwell), report the
+boost clock instead of the base clock. (This boost clock is the
+average clock speed at which the device actually runs, not
+the absolute maximum clockspeed the device supports, and so should
+most closely represent the card's real-life performance.)
+
 platforms.csv:
 --------------
 Here the software platforms for a particular set of experiments are added. 
