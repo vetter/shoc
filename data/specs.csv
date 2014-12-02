@@ -1,4 +1,4 @@
-device,introduction date,vendor,peakspflops,peakdpflops,peakmembw,fab,coreclock,numcores,shaderclock,memsize,memclock,PCIe gen,tdp
+device,introduction date,vendor,peakspflops,peakdpflops,peakmembw (MBps),fab,coreclock,numcores,shaderclock,memsize,memclock,PCIe gen,tdp
 c1060,5/2/2010,nvidia,933.12,77.76,102.4,40,602,240,1300,4096,1600,,187.8
 c1060,5/1/2010,nvidia,933.12,77.76,102.4,40,602,240,1300,4096,1600,,187.8
 c2050noecc,5/2/2010,nvidia,1030,515,144,40,575,448,1150,3072,3000,,247
@@ -45,7 +45,8 @@ nehalem,5/2/2010,intel,72.64,36.32,25.6,40,2270,8,0,16384,1066,,80
 nehalem,5/1/2010,intel,72.64,36.32,25.6,40,2270,8,0,16384,1066,,80
 sb00,5/2/2010,intel,217.6,108.8,21,32,3400,4,850,32768,1333,,95
 sb00,5/1/2010,intel,217.6,108.8,21,32,3400,4,850,32768,1333,,95
-haswell,8/19/2014,intel,,,,,,,,,,,
+haswell,6/2/2013,intel,,,25.6,22,3400/3900,4,,16384,1600,3,84
+haswell gt2,6/2/2013,intel,,,25.6,22,350/1200,20,,16384,1600,,84
 gtxtitan,5/2/2010,nvidia,4500,1500,288.4,28,837,2688,837,6144,1502,,250
 jetsontk1,5/1/2010,nvidia,365,,17,28,852,192,852,1746,924,,
 K40,2/1/2014,nvidia,4291,1430,288,28,745,2880,745,12228,6000,3,235

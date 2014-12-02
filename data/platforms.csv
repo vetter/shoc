@@ -18,4 +18,5 @@ amdocl26,AMD OpenCL 2.6
 amdocl29,AMD OpenCL 2.9
 intel15,Intel OpenCL SDK 1.5
 intel44,Intel OpenCL SDK 4.4
+intelbgnt1,Intel Beignet 1.0.0
 best,Best Available Result
