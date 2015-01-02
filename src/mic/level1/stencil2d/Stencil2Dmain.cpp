@@ -112,7 +112,8 @@ DoTest( const char* timerDesc, ResultDatabase& resultDB, OptionParser& opts )
         }
         if (arrayDims[0] == 0) // User has not specified a custom size
         {
-            const int probSizes[4] = { 768, 1408, 2048, 4096 };
+            const int probSizes[4] = { 512, 1024, 2048, 4096 };
+            //const int probSizes[4] = { 768, 1408, 2048, 4096 };
             int sizeClass = opts.getOptionInt("size");
             if (!(sizeClass >= 0 && sizeClass < 5))
             {
@@ -380,7 +381,6 @@ RunBenchmark(OptionParser& opts, ResultDatabase& resultDB )
 #if defined(PARALLEL)
     }
 #endif // defined(PARALLEL)
-    //omp_set_num_threads(124);
     DoTest<float>( "SP_Sten2D", resultDB, opts );
 
     // check if we can run double precision tests
@@ -396,7 +396,6 @@ RunBenchmark(OptionParser& opts, ResultDatabase& resultDB )
 #if defined(PARALLEL)
         }
 #endif // defined(PARALLEL)
-	//omp_set_num_threads(93);
         DoTest<double>( "DP_Sten2D", resultDB, opts );
     }
     else
