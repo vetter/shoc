@@ -82,6 +82,7 @@ T reduceGold(const T *data, int size)
 }
 
 
+//Device kernel to perform reduction
 template <typename T>
 __declspec(target(mic)) T reductionKernel(T *data, size_t size)
 {
@@ -139,6 +140,27 @@ void addBenchmarkSpecOptions(OptionParser& op)
             "specify reduction iterations");
 }
 
+// ****************************************************************************
+// Function: RunTest
+//
+// Purpose:
+//   Primary method for the reduction benchmark
+//
+// Arguments:
+//   testName: the name of the test currently being executed (specifying SP or
+//             DP)
+//   resultDB: results from the benchmark are stored in this db
+//   op: the options parser / parameter database
+//
+// Returns:  nothing
+//
+// Programmer: Kyle Spafford
+// Creation: August 13, 2009
+//
+// Modifications:
+//
+// ****************************************************************************
+
 template <typename T>
 void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op) 
 {
@@ -148,7 +170,9 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
     const int micdev = op.getOptionInt("device");
 
     // Get Problem Size
-    int probSizes[4] = { 4, 8, 32, 64 };
+    //Note that performance for probSize=1 might not saturate the device, leading
+    //to low performance. probSize=4 should be used to fully saturate KNC
+    int probSizes[4] = { 1, 8, 32, 64 };
     int N = probSizes[op.getOptionInt("size")-1];
     N = (N * 1024 * 1024) / sizeof(T);
 
@@ -174,23 +198,28 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
     sprintf(atts, "%d_items",N);
 
     cout<< "Running Benchmark\n";
+    
+    //Allocate input and output buffer on the card
+    #pragma offload target(mic:micdev) \
+    nocopy(indata:length(N)  align(4*1024*1024) alloc_if(1) free_if(0)) \
+    nocopy(outdata:length(64)  align(4*1024*1024) alloc_if(1) free_if(0))
+    {
+    }
 
     for (int k = 0; k < passes; k++)
     {
         T result;
 
+        // Warm up input buffer by performing a transfer to the device
         #pragma offload target(mic:micdev) \
-        in(outdata:length(64)  align(4*1024*1024) alloc_if(1) free_if(0))
-        {
-        }
-        // Warm up
-        #pragma offload target(mic:micdev) \
-        in(indata:length(N)  align(4*1024*1024) alloc_if(1) free_if(0))
+        in(indata:length(N)  align(4*1024*1024) alloc_if(0) free_if(0))
         {
         }
 
+        //Transfer data to MIC
         int txToCardTimerHandle = Timer::Start();
 
+        //Copy input data to the card
         #pragma offload target(mic:micdev) \
         in(indata:length(N)  alloc_if(0) free_if(0))
         {
@@ -198,6 +227,8 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
         double transferTime = Timer::Stop(txToCardTimerHandle, "tx to device");
 
         int reductionTimerHandle = Timer::Start();
+
+        //Don't move any data but run the kernel
         #pragma offload target(mic:micdev) nocopy(indata:length(N) \
                 align(4*1024) alloc_if(0) free_if(0))
         {
@@ -209,21 +240,16 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
 
         double avgTime = Timer::Stop(reductionTimerHandle, "reduce") / (double)iterations;
 
-
+        //Copy output back to host
         int txFromCardTimerHandle = Timer::Start();
         #pragma offload target(mic:micdev) \
-                out(outdata:length(64) alloc_if(0) free_if(1) )
+                out(outdata:length(64) alloc_if(0) free_if(0) )
         {
         }
         transferTime += Timer::Stop(txFromCardTimerHandle, "tx from device");
 
         check(result, ref);
 
-        // Free buffer on card
-        #pragma offload target(mic:micdev) nocopy(indata:length(N) \
-                align(4*1024*1024) alloc_if(0) free_if(1))
-        {
-        }
 
         double gbytes = (double)(N*sizeof(T))/(1000.*1000.*1000.);
         resultDB.AddResult(testName, atts, "GB/s", gbytes / avgTime);
@@ -232,9 +258,38 @@ void RunTest(string testName, ResultDatabase& resultDB, OptionParser& op)
         resultDB.AddResult(testName+"_Parity", atts, "N",
                 transferTime / avgTime);
     }
+    
+    // Free buffer on card
+    #pragma offload target(mic:micdev) \
+    nocopy(indata:length(N) free_if(1)) \
+    nocopy(outdata:length(64) free_if(1)) 
+    {
+    }
     _mm_free( indata);
     _mm_free( outdata);
 }
+
+
+
+// ****************************************************************************
+// Function: RunBenchmark
+//
+// Purpose:
+//   Driver for the reduction benchmark.  Detects double precision capability
+//   and calls the RunTest function appropriately
+//
+// Arguments:
+//   resultDB: results from the benchmark are stored in this db
+//   op: the options parser / parameter database
+//
+// Returns:  nothing
+//
+// Programmer: 
+// Creation: 
+//
+// Modifications:
+//
+// ****************************************************************************
 
 /*
  * Best performance with:

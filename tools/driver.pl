@@ -161,7 +161,7 @@ my @SerialBenchmarks = (
 [ "MD5Hash",           1, 1, 0,
   ["md5hash",                     \&findmax,     "MD5Hash"]
 ],
-[ "Reduction",         1, 1, 0,
+[ "Reduction",         1, 1, 1, 0,
   ["reduction",                   \&findmax,     "Reduction"],
   ["reduction_pcie",              \&findmax,     "Reduction_PCIe"],
   ["reduction_dp",                \&findmax,     "Reduction-DP"],
