@@ -1,4 +1,4 @@
-#define VECTOR_SIZE 32
+//#define VECTOR_SIZE 32
 
 #ifdef SINGLE_PRECISION
 #define FPTYPE float
@@ -97,6 +97,7 @@ spmv_csr_scalar_kernel( __global const FPTYPE * restrict val,
 //                  last element is the index one past the last
 //                  element of the matrix
 //   dim: number of rows in the matrix
+//   vecWidth: preferred simd width to use
 //   out: output - result from the spmv calculation
 //
 // Returns:  nothing
@@ -117,15 +118,15 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
 #endif
                        __global const int * restrict cols,
                        __global const int * restrict rowDelimiters,
-                       const int dim, __global FPTYPE * restrict out)
+                       const int dim, const int vecWidth, __global FPTYPE * restrict out)
 {
     // Thread ID in block
     int t = get_local_id(0);
     // Thread ID within warp
-    int id = t & (VECTOR_SIZE-1);
+    int id = t & (vecWidth-1);
     // One row per warp
-    int vecsPerBlock = get_local_size(0) / VECTOR_SIZE;
-    int myRow = (get_group_id(0) * vecsPerBlock) + (t / VECTOR_SIZE);
+    int vecsPerBlock = get_local_size(0) / vecWidth;
+    int myRow = (get_group_id(0) * vecsPerBlock) + (t / vecWidth);
 
     __local volatile FPTYPE partialSums[128];
     partialSums[t] = 0;
@@ -136,7 +137,7 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
         int vecEnd = rowDelimiters[myRow+1];
         FPTYPE mySum = 0;
         for (int j= vecStart + id; j < vecEnd;
-             j+=VECTOR_SIZE)
+             j+=vecWidth)
         {
             int col = cols[j];
 #ifdef USE_TEXTURE
@@ -150,18 +151,13 @@ spmv_csr_vector_kernel(__global const FPTYPE * restrict val,
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // Reduce partial sums
-        // Needs to be modified if there is a change in vector
-        // length
-        if (id < 16) partialSums[t] += partialSums[t+16];
-        barrier(CLK_LOCAL_MEM_FENCE);
-        if (id <  8) partialSums[t] += partialSums[t+ 8];
-        barrier(CLK_LOCAL_MEM_FENCE);
-        if (id <  4) partialSums[t] += partialSums[t+ 4];
-        barrier(CLK_LOCAL_MEM_FENCE);
-        if (id <  2) partialSums[t] += partialSums[t+ 2];
-        barrier(CLK_LOCAL_MEM_FENCE);
-        if (id <  1) partialSums[t] += partialSums[t+ 1];
-        barrier(CLK_LOCAL_MEM_FENCE);
+	int bar = vecWidth / 2;
+	while(bar > 0)
+	{
+	    if (id < bar) partialSums[t] += partialSums[t+ bar];
+	    barrier(CLK_LOCAL_MEM_FENCE);
+	    bar = bar / 2;
+	}
 
         // Write result
         if (id == 0)

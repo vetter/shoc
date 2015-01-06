@@ -1348,6 +1348,15 @@ void RunBenchmark(cl_device_id device,
         //Load simple k-way tree
         //prob size specifies number of vertices
         cl_uint prob_sizes[4] = { 1000,10000,100000,1000000 };
+       
+        //Check for a valid size option and exit if not found
+        if((op.getOptionInt("size") > 4) || (op.getOptionInt("size") <= 0))
+        {
+          cout<<"Please use a size between 1 and 4"<<endl;
+          cout<<"Exiting..."<<endl;
+          return;
+        }
+
         numVerts = prob_sizes[op.getOptionInt("size")-1];
         int avg_degree = op.getOptionInt("degree");
         if(avg_degree<1)

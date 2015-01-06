@@ -519,6 +519,11 @@ foreach my $bench (@$benchmarks)
              ($program ne $singlebench));
 
 
+    # check if they specified a single benchmark before proceeding
+    next if (($singlebench ne "") and
+             ($program ne $singlebench));
+
+
     if ((!$incuda   and ($mode eq "cuda")) or
         (!$inopencl and ($mode eq "opencl")) or
         (!$inmic and ($mode eq "mic")))
@@ -753,7 +758,7 @@ sub findanymean {
       if ( $header_found eq 1 && $tokens[0] =~ /$pattern/ ) {
          $unit = $tokens[2];
          if ( $tokens[4] > $best ) {
-            $best = $tokens[7];
+            $best = $tokens[4];
          }
       }
       if ( $tokens[0] eq "test" ) {
