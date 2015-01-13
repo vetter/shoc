@@ -88,9 +88,19 @@ void RunBenchmark(ResultDatabase &resultDB,
     size_t maxGroupSize = 512;
     size_t globalWorkSize = 32768;  // 64 * maxGroupSize = 64 * 512;
     unsigned int memSize       = 64*1024*1024;  // 64MB buffer
-    const long availMem = findAvailBytes();
-    while (memSize*2 > availMem)
-       memSize >>= 1;   // keep it a power of 2
+    void *testmem;
+    cudaMalloc(&testmem, memSize*2);
+    while (cudaGetLastError() != cudaSuccess && memSize != 0)
+    {
+        memSize >>= 1; // keept it a power of 2
+        cudaMalloc(&testmem, memSize*2);
+    }
+    cudaFree(testmem);
+    if(memSize == 0)
+    {
+        printf("Not able to allocate device memory. Exiting!\n");
+        exit(-1);
+    }
 
     const unsigned int numWordsFloat = memSize / sizeof(float);
 

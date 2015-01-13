@@ -180,6 +180,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
         CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
         cudaEventElapsedTime(&oTransferTime, start, stop);
+        oTransferTime *= 1.e-3;
 
         // Only add output transfer time once
         if (k == 0)

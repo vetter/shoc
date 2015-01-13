@@ -1,0 +1,22 @@
+platform,name
+cuda32,CUDA 3.2
+cuda40,"CUDA 4.0	"
+cuda41,CUDA 4.1
+cuda50,CUDA 5.0
+cuda42,CUDA 4.2
+cuda60,CUDA 6.0
+cuda65,CUDA 6.5
+nvocl32,NV OpenCL 3.2
+nvocl40,NV OpenCL 4.0
+nvocl41,NV OpenCL 4.1
+nvocl42,NV OpenCL 4.2
+nvocl50,NV OpenCL 5.0
+nvocl60,NV OpenCL 6.0
+nvocl65,NV OpenCL 6.5
+amdocl24,AMD OpenCL 2.4
+amdocl26,AMD OpenCL 2.6
+amdocl29,AMD OpenCL 2.9
+intel15,Intel OpenCL SDK 1.5
+intel44,Intel OpenCL SDK 4.4
+intelbgnt1,Intel Beignet 1.0.0
+best,Best Available Result

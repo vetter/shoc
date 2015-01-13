@@ -94,6 +94,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //
 // Purpose:
 //   Runs sparse matrix vector multiplication on the CPU
+//   M is assumed to be square.
 //
 // Arguements:
 //   val: array holding the non-zero values for the matrix
@@ -157,8 +158,10 @@ bool verifyResults(const floatType *cpuResults, const floatType *gpuResults,
         if (fabs(cpuResults[i] - gpuResults[i]) / cpuResults[i]
             > MAX_RELATIVE_ERROR)
         {
-//            cout << "Mismatch at i: "<< i << " ref: " << cpuResults[i] <<
-//                " dev: " << gpuResults[i] << endl;
+#ifdef VERBOSE_OUTPUT
+            cout << "Mismatch at i: "<< i << " ref: " << cpuResults[i] <<
+                " dev: " << gpuResults[i] << endl;
+#endif
             passed = false;
         }
     }
@@ -493,26 +496,19 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
     // We can read the matrix from a MatrixMarket input file,
     // or generate a random matrix.
     string inFileName = op.getOptionString("mm_filename");
-    if (inFileName == "random")
+   
+    if( inFileName != "random" )
     {
-        numRows = nRows;
-        nItems = numRows * numRows / 100; // 1% of entries will be non-zero
-        float maxval = op.getOptionFloat("maxval");
-        CUDA_SAFE_CALL(cudaMallocHost(&h_val, nItems * sizeof(floatType)));
-        CUDA_SAFE_CALL(cudaMallocHost(&h_cols, nItems * sizeof(int)));
-        CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimiters, (numRows + 1) * sizeof(int)));
-        fill(h_val, nItems, maxval);
-        initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows);
-    }
-    else
-    {
-        int numCols;
+        int numCols = -1;
 
-        char filename[FIELD_LENGTH];
-        strcpy(filename, inFileName.c_str());
-        readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
-                &nItems, &numRows, &numCols);
-
+        // We have been asked to read the matrix A from a file.
+        readMatrix( inFileName.c_str(),
+                    &h_val,
+                    &h_cols,
+                    &h_rowDelimiters,
+                    &nItems,
+                    &numRows,
+                    &numCols );
         if( numRows != numCols )
         {
             // We read a matrix that was not square, but we can only
@@ -523,13 +519,38 @@ void RunTest(ResultDatabase &resultDB, OptionParser &op, int nRows=0)
                 << std::endl;
             exit( 1 );
         }
+        nRows = numRows;
     }
+    else
+    {
+        // We are not using a matrix from a file.
+        // Use the number of rows provided as an argument to this function,
+        // and construct a square matrix A in CSR form with random values.
+        numRows = nRows; 
 
+        
+        // determine the number of non-zeros in the matrix
+        // Our target is 1% of the entries (with a minimum of 1) will be
+        // non-zero.
+        nItems = numRows * numRows / 100;
+        if( nItems == 0 )
+        {
+            nItems = 1;
+        }
+
+        float maxval = op.getOptionFloat("maxval"); 
+        CUDA_SAFE_CALL(cudaMallocHost(&h_val, nItems * sizeof(floatType)));
+        CUDA_SAFE_CALL(cudaMallocHost(&h_cols, nItems * sizeof(int)));
+        CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimiters, (numRows + 1) * sizeof(int)));
+        initRandomVector(h_val, nItems, maxval); 
+        initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows); 
+    }
+    
     // Set up remaining host data
     CUDA_SAFE_CALL(cudaMallocHost(&h_vec, numRows * sizeof(floatType)));
     refOut = new floatType[numRows];
     CUDA_SAFE_CALL(cudaMallocHost(&h_rowDelimitersPad, (numRows + 1) * sizeof(int)));
-    fill(h_vec, numRows, op.getOptionFloat("maxval"));
+    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval")); 
 
     // Set up the padded data structures
     int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);
