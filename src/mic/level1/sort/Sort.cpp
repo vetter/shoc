@@ -52,7 +52,8 @@
 #include <pthread.h>
 #endif
 
-#define ALIGN (4096)
+#define ALIGN (64)
+//#define ALIGN (2*1024*1024)
 #define BLOCK 768
 
 using namespace std;
@@ -96,13 +97,14 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Programmer: Kyle Spafford
 // Creation: August 13, 2009
 //
-// Modifications:
+// Modifications: 
+// Jan. 5, 2015 - Jeff Young - Modified device memory allocations to reuse
+// memory and remove allocation from timed transfer
 //
 // ****************************************************************************
 void
 RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
-    int device;
 
     cout << "Running test with unsigned int" << endl;
     RunTest<unsigned int>("Sort-Rate", resultDB, op);
@@ -114,7 +116,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 {
     int probSizes[4] = { 1, 8, 48, 96 };
 
-    int size = probSizes[op.getOptionInt("size")-1];
+    unsigned int size = (unsigned int)probSizes[op.getOptionInt("size")-1];
     
     // Convert to MiB
     size = (size*1024*1024)/sizeof(T);
@@ -139,31 +141,34 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     srand(time(NULL));
     for (int i = 0; i < size; i++)
     {
-        hkey[i] = hvalue[i]= (i+255) % 1089; // Fill with some pattern
+        hkey[i] = hvalue[i] = i % 1024;
     }
 
-    int micdev = op.getOptionInt("device");
+    const int micdev = op.getOptionInt("device");
     int iters = op.getOptionInt("passes");
     int numThreads = op.getOptionInt("nthreads");
 
     cout << "nthreads   = " <<numThreads<< endl;
+    
+    // Allocating buffers on card - note that nocopy flag indicates
+    // allocation but no data transfer
+    #pragma offload target(mic:micdev) \
+    nocopy(hkey:length(size) align(ALIGN) alloc_if(1) free_if(0)) \
+    nocopy(hvalue:length(size) align(ALIGN) alloc_if(1) free_if(0))\
+    nocopy(outkey:length(size) align(ALIGN) alloc_if(1) free_if(0))\
+    nocopy(outvalue:length(size) align(ALIGN) alloc_if(1) free_if(0))
+    {
+    }
 
     cout << "Running benchmark" << endl;
     for(int it=0;it<iters;it++)
     {
-
-        // Allocating buffer on card
-        #pragma offload target(mic:micdev) in(hkey:length(size)  free_if(0)) \
-                in(hvalue:length(size) free_if(0))\
-                out(outkey:length(size) free_if(0))\
-                out(outvalue:length(size) free_if(0))
-        {
-        }
-
         int txToDevTimerHandle = Timer::Start();
-        // Get data transfer time
-        #pragma offload target(mic:micdev) in(hkey:length(size) alloc_if(0) \
-                free_if(0)) in(hvalue:length(size) alloc_if(0) free_if(0))
+
+        // Transfer input and get data transfer time
+        #pragma offload target(mic:micdev) \
+        in(hkey:length(size) alloc_if(0) free_if(0)) \
+        in(hvalue:length(size) alloc_if(0) free_if(0))
         {
         }
         double transferTime = Timer::Stop(txToDevTimerHandle, "tx to device");
@@ -179,13 +184,16 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
             sortKernel<T>(hkey, hvalue, outkey, outvalue, size, numThreads);
         }
         double totalRunTime = Timer::Stop(kernelTimerHandle, "sort");
-
+        
+        //Transfer data out but don't delete device memory since it
+        //is reused for multiple iterations
         int txFromDevTimerHandle = Timer::Start();
+        
         #pragma offload target(mic:micdev) nocopy(hkey:length(size) \
-                alloc_if(0) free_if(1))                             \
-                nocopy(hvalue:length(size) alloc_if(0) free_if(1))  \
-                out(outkey:length(size) alloc_if(0))                \
-                out(outvalue:length(size) alloc_if(0))
+                alloc_if(0) free_if(0))                             \
+                nocopy(hvalue:length(size) alloc_if(0) free_if(0))  \
+                out(outkey:length(size) alloc_if(0) free_if(0))                \
+                out(outvalue:length(size) alloc_if(0) free_if(0))
         {
         }
         transferTime += Timer::Stop(txFromDevTimerHandle, "tx from device" );
@@ -207,10 +215,19 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                 transferTime / avgTime);
 
     }
-    // Clean up
+    // Clean up host allocations
     _mm_free(hkey);
     _mm_free(hvalue);
+    _mm_free(outkey);
+    _mm_free(outvalue);
 
+    //And device allocations
+    #pragma offload target(mic:micdev) \
+    nocopy(hkey:length(size) alloc_if(0) free_if(1)) \
+    nocopy(hvalue:length(size) alloc_if(0) free_if(1)) \
+    nocopy(outkey:length(size) alloc_if(0) free_if(1)) \
+    nocopy(outvalue:length(size) alloc_if(0) free_if(1))    
+    {}
 }
 
 template <class T>
