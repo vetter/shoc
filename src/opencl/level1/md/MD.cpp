@@ -127,6 +127,7 @@ bool checkResults(forceVecType* d_force, posVecType *position,
 void
 addBenchmarkSpecOptions(OptionParser &op)
 {
+    op.addOption("nAtom", OPT_INT, "0", "number of atoms");
     op.addOption("iterations", OPT_INT, "8",
             "specify MD kernel iterations", 'r');
 }
@@ -208,6 +209,12 @@ void runTest(const string& testName, cl_device_id dev, cl_context ctx,
     int sizeClass = op.getOptionInt("size");
     assert(sizeClass >= 0 && sizeClass < 5);
     int nAtom = probSizes[sizeClass - 1];
+    
+    // If a custom number of atoms is specified on command line...
+    if (op.getOptionInt("nAtom") != 0)
+    {
+       nAtom = op.getOptionInt("nAtom");
+    }
 
     // Allocate problem data on host
     cl_mem h_pos, h_force, h_neigh;

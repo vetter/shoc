@@ -249,6 +249,8 @@ bool checkResults(forceVecType* d_force, posVecType *position,
 void
 addBenchmarkSpecOptions(OptionParser &op)
 {
+   // Problem Constants
+    op.addOption("nAtom", OPT_INT, "0", "number of atoms");
     op.addOption("iterations", OPT_INT, "1",
                      "specify MD kernel iterations", 'r');
 }
@@ -312,6 +314,12 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
     int sizeClass = op.getOptionInt("size");
     assert(sizeClass >= 0 && sizeClass < 5);
     int nAtom = probSizes[sizeClass - 1];
+    
+    // If a custom number of atoms is specified on command line...
+    if (op.getOptionInt("nAtom") != 0)
+    {
+       nAtom = op.getOptionInt("nAtom");
+    }
 
     // Allocate problem data on host
     posVecType*   position;
@@ -428,6 +436,7 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
     if (!checkResults<T, forceVecType, posVecType>
             (force, position, neighborList, nAtom))
     {
+        cerr << "Correctness check failed, skipping perf tests." << endl;
         return;
     }
 
@@ -500,6 +509,7 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
     CUDA_SAFE_CALL(cudaEventDestroy(kernel_start));
     CUDA_SAFE_CALL(cudaEventDestroy(kernel_stop));
 }
+
 // ********************************************************
 // Function: distance
 //

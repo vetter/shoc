@@ -325,18 +325,47 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
             " pairs within cutoff distance = " <<
             100.0 * ((double)totalPairs / (nAtom*maxNeighbors)) << " %" << endl;
 
+    //Pick one device when a system has multiple cards
+    const int micdev = op.getOptionInt("device");
 
 
-    // Warm up the kernel and check correctness
+    // Do device memory allocation without transfer
     size_t nl_length = nAtom * maxNeighbors;
-    #pragma offload target(mic:0) if(useMIC) \
-        in(position:length(nAtom) alloc_if(1) free_if(0))         \
-        in(neighborList:length(nl_length) alloc_if(1)  free_if(0)) \
-        out(force:length(nAtom) alloc_if(1) free_if(0))
-    compute_lj_force<T, forceVecType, posVecType>
-                    (force, position, maxNeighbors, neighborList,
-                     cutsq, lj1, lj2, nAtom, maxNeighbors);
+    #pragma offload target(mic:micdev) if(useMIC) \
+        nocopy(position:length(nAtom) alloc_if(1) free_if(0))         \
+        nocopy(neighborList:length(nl_length) alloc_if(1)  free_if(0)) \
+        nocopy(force:length(nAtom) alloc_if(1) free_if(0))
+    {
+    }
 
+    // Time the transfer of input data to the GPU
+    int txToDevTimerHandle = Timer::Start();
+    #pragma offload target(mic:micdev) if(useMIC) \
+        in(position:length(nAtom) alloc_if(0) free_if(0))         \
+        in(neighborList:length(nl_length) alloc_if(0) free_if(0)) \
+        nocopy(force:length(nAtom) alloc_if(0) free_if(0))
+    {
+    }
+    double transferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
+    
+    // Warm up the kernel and check correctness
+    #pragma offload target(mic:micdev) if(useMIC) \
+        nocopy(position:length(nAtom) alloc_if(0) free_if(0))         \
+        nocopy(neighborList:length(nl_length) alloc_if(0) free_if(0)) \
+        nocopy(force:length(nAtom) alloc_if(0) free_if(0))
+    compute_lj_force<T, forceVecType, posVecType>
+                    (force, position, maxNeighbors, neighborList,cutsq, lj1, lj2, nAtom, maxNeighbors);
+    
+    // Copy back forces
+    int txFromDevTimerHandle = Timer::Start();
+    #pragma offload target(mic:micdev) if(useMIC) \
+        nocopy(position:length(nAtom) alloc_if(0) free_if(0))         \
+        nocopy(neighborList:length(nl_length) alloc_if(0) free_if(0)) \
+        out(force:length(nAtom) alloc_if(0) free_if(0))
+    {
+    }
+    transferTime += Timer::Stop(txFromDevTimerHandle, "tx from device" );
+    
     // If results are incorrect, skip the performance tests
     cout << "Performing Correctness Check (can take several minutes)\n";
     if (!checkResults<T, forceVecType, posVecType>
@@ -350,23 +379,16 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
 
     // Begin performance tests
     cout << "Starting Performance Tests" << endl;
+    
     int passes = op.getOptionInt("passes");
     int iter  = op.getOptionInt("iterations");
 
-    int txToDevTimerHandle = Timer::Start();
-    #pragma offload target(mic:0) if(useMIC) \
-        in(position:length(nAtom) alloc_if(0) free_if(0))         \
-        in(neighborList:length(nl_length) alloc_if(0) free_if(0)) \
-        out(force:length(nAtom) alloc_if(0) free_if(0))
-    {
-    }
-    double transferTime = Timer::Stop(txToDevTimerHandle, "tx to dev");
 
     for (int i = 0; i < passes; i++)
     {
         int kernelTimerHandle = Timer::Start();
 
-        #pragma offload target(mic:0) if(useMIC) \
+        #pragma offload target(mic:micdev) if(useMIC) \
             nocopy(position:length(nAtom) alloc_if(0) free_if(0))         \
             nocopy(neighborList:length(nl_length) alloc_if(0) free_if(0)) \
             nocopy(force:length(nAtom) alloc_if(0) free_if(0))
@@ -374,17 +396,12 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
             for (int j = 0; j < iter; j++)
             {
                 compute_lj_force<T, forceVecType, posVecType>
-                    (force, position, maxNeighbors, neighborList, cutsq,
-                     lj1, lj2, nAtom, maxNeighbors);
+                    (force, position, maxNeighbors, neighborList, cutsq,lj1, lj2, nAtom, maxNeighbors);
             }
         }
         double kernelTime = Timer::Stop(kernelTimerHandle, "md") / (double)iter;
         double totalTime = kernelTime + transferTime;
 
-        // TODO this version does not measure and include
-        // time required to transfer data in the same way as the
-        // other SHOC MD versions do.unlike other MD versions, this version does not
-        
         // Total number of flops
         // Every pair of atoms compute distance - 8 flops
         // totalPairs with distance < cutsq perform an additional 13
@@ -394,7 +411,8 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
         char atts[64];
         sprintf(atts, "%d_atoms", nAtom);
         resultDB.AddResult(testName, atts, "GFLOPS", gflops / kernelTime);
-        resultDB.AddResult(testName + "-PCIe", atts, "GFLOPS", gflops / totalTime);
+        resultDB.AddResult(testName + "-PCIe", atts, "GFLOPS", 
+            gflops / totalTime);
 
         int numPairs = nAtom * maxNeighbors;
         long int nbytes = (3 * sizeof(T) * (1+numPairs)) + // position data
@@ -411,8 +429,8 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
                 (transferTime) / kernelTime);
     }
     
-    // Clean up MIC
-    #pragma offload target(mic:0) if(useMIC) \
+    // Clean up MIC device memory
+    #pragma offload target(mic:micdev) if(useMIC) \
         in(position:length(nAtom) alloc_if(0) free_if(1))       \
         in(neighborList:length(nl_length) alloc_if(0) free_if(1)) \
         out(force:length(nAtom) alloc_if(0) free_if(1) )
@@ -527,6 +545,10 @@ inline void insertInOrder(list<T>& currDist, list<int>& currList,
 // Creation: July 26, 2010
 //
 // Modifications:
+//   Jeremy Meredith, Tue Oct  9 17:35:16 EDT 2012
+//   On some slow systems and without optimization, this
+//   could take a while.  Give users a rough completion
+//   percentage so they don't give up.
 //
 // ********************************************************
 template <class T, class posVecType>
@@ -534,9 +556,14 @@ inline int buildNeighborList(const int nAtom, const posVecType* position,
         int* neighborList, double cutsq, int maxNeighbors)
 {
     int totalPairs = 0;
+    // Build Neighbor List
     // Find the nearest N atoms to each other atom, where N = maxNeighbors
     for (int i = 0; i < nAtom; i++)
     {
+        // Print progress every 10% completion.
+        if (int((i+1)/(nAtom/10)) > int(i/(nAtom/10)))
+            cout << "  " << 10*int((i+1)/(nAtom/10)) << "% done\n";
+
         // Current neighbor list for atom i, initialized to -1
         list<int>   currList(maxNeighbors, -1);
         // Distance to those neighbors.  We're populating this with the
