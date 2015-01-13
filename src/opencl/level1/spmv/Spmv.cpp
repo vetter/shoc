@@ -38,6 +38,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
                  "which stores the matrix in Matrix Market format");
     op.addOption("maxval", OPT_FLOAT, "10", "Maximum value for random "
                  "matrices");
+    op.addOption("seed", OPT_INT, "24115438", "Seed for PRNG");
 }
 
 // ****************************************************************************
@@ -45,8 +46,9 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //
 // Purpose:
 //   Runs sparse matrix vector multiplication on the CPU
+//   M is assumed to be square.
 //
-// Arguements:
+// Arguments:
 //   val: array holding the non-zero values for the matrix
 //   cols: array of column indices for each element of A
 //   rowDelimiters: array of size dim+1 holding indices to rows of A;
@@ -818,29 +820,116 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
     int nItems;            // number of non-zero elements in the matrix
     int nItemsPadded;
     int numRows;           // number of rows in the matrix
+    
+    // Seed the random number generator used to initialize the 
+    // values in matrix A and vector v (we are computing u = Av).
+    unsigned int rngSeed = (unsigned int)op.getOptionInt("seed");
+    InitRNG( rngSeed );
 
-    // This benchmark either reads in a matrix market input file or
-    // generates a random matrix
+
+    // Obtain a square, sparse matrix A in CSR format.
+    // We can read the matrix from a MatrixMarket input file,
+    // or generate a random matrix.
     string inFileName = op.getOptionString("mm_filename");
-    if (inFileName == "random")
+
+    if( inFileName != "random" )
     {
-        // If we're not opening a file, the dimension of the matrix
-        // has been passed in as an argument
-        numRows = nRows;
-        nItems = numRows * numRows / 100; // 1% of entries will be non-zero
-        float maxval = op.getOptionFloat("maxval");
-        h_val = new floatType[nItems];
-        h_cols = new int[nItems];
-        h_rowDelimiters = new int[nRows+1];
-        initRandomVector(h_val, nItems, maxval);
-        initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows);
+        int numCols = -1;
+
+        // We have been asked to read the matrix A from a file.
+        readMatrix( inFileName.c_str(),
+                    &h_val,
+                    &h_cols,
+                    &h_rowDelimiters,
+                    &nItems,
+                    &numRows,
+                    &numCols );
+        if( numRows != numCols )
+        {
+            // We read a matrix that was not square, but we can only
+            // work with square matrices.
+            std::cerr << "This benchmark can only work with square matrices,\nbut file "
+                << inFileName << " contains a non-square matrix "
+                << "(nRows=" << numRows << ", nCols=" << numCols << ")."
+                << std::endl;
+            exit( 1 );
+        }
+        nRows = numRows;
     }
     else
-    {   char filename[FIELD_LENGTH];
-        strcpy(filename, inFileName.c_str());
-        readMatrix(filename, &h_val, &h_cols, &h_rowDelimiters,
-                &nItems, &numRows);
+    {
+        // We are not using a matrix from a file.
+        // Use the number of rows provided as an argument to this function,
+        // and construct a square matrix A in CSR form with random values.
+        numRows = nRows; 
+
+        
+        // determine the number of non-zeros in the matrix
+        // Our target is 1% of the entries (with a minimum of 1) will be
+        // non-zero.
+        nItems = numRows * numRows / 100;
+        if( nItems == 0 )
+        {
+            nItems = 1;
+        }
+
+        float maxval = op.getOptionFloat("maxval"); 
+        h_val = pmsAllocHostBuffer<floatType>(nItems);
+        h_cols = pmsAllocHostBuffer<int>(nItems);
+        h_rowDelimiters = pmsAllocHostBuffer<int>(nRows+1); 
+        initRandomVector(h_val, nItems, maxval); 
+        initRandomMatrix(h_cols, h_rowDelimiters, nItems, numRows); 
     }
+
+    // Build the matrix A in ELLPACK-R format.
+    // See header comment at spmvMicELLPACKR function for more
+    // information about ELLPACK-R format.
+    //
+    // First, we build the ELLPACK-R format's array of row lengths,
+    // keeping track of the maximum row length as we do so.
+    int* h_rowLengths = new int[numRows];
+    int maxRowLength = 0;
+    for( int r = 0; r < numRows; r++ )
+    {
+        h_rowLengths[r] = h_rowDelimiters[r+1] - h_rowDelimiters[r];
+        if( h_rowLengths[r] > maxRowLength )
+        {
+            maxRowLength = h_rowLengths[r];
+        }
+    }
+    assert( maxRowLength > 0 );
+
+    // Next, construct the ELLPACK-R array of non-zeros.
+    // This array is column-major and padded so that each row
+    // has maxRowLength values.
+    floatType* h_vals_ellpackr = new floatType[numRows * maxRowLength];
+    int* h_col_indices_ellpackr = new int[numRows * maxRowLength];
+    convertToColMajor( h_val,               // input: matrix in CSR format
+                        h_cols,             // ""
+                        numRows,            // ""
+                        h_rowDelimiters,    // ""
+                        h_vals_ellpackr,    // output: matrix in ELLPACK-R format
+                        h_col_indices_ellpackr, // ""
+                        h_rowLengths,       // ELLPACK-R row length array (already computed)
+                        maxRowLength,       // max value from ELLPACK-R row length array
+                        0 );                // CSR format is not padded
+    // We now have the matrix A in ELLPACK-R format
+    // h_vals_ellpackr is the numRows x maxRowLength array of non-zeros
+    // h_col_indices_ellpackr is the numRows x maxRowLength array of column 
+    //    indices associated with the items in h_vals_ellpackr
+    // h_rowLengths is the array holding the number of non-zeros in each row
+
+
+    // Set up remaining host data
+    h_vec = pmsAllocHostBuffer<floatType>(numRows);
+    refOut = pmsAllocHostBuffer<floatType>(numRows);
+    h_rowDelimitersPad = pmsAllocHostBuffer<int>(numRows+1);
+    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval")); 
+
+    // Set up the padded data structures
+    int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);
+    h_out = pmsAllocHostBuffer<floatType>(paddedSize);
+
 
     // Final Image Check -- Make sure the image format is supported.
     int imgHeight = (numRows+maxImgWidth-1)/maxImgWidth;
@@ -863,15 +952,6 @@ void RunTest(cl_device_id dev, cl_context ctx, cl_command_queue queue,
         clReleaseMemObject(d_vec);
     }
 
-    // Set up remaining host data
-    h_vec = new floatType[numRows];
-    refOut = new floatType[numRows];
-    h_rowDelimitersPad = new int[numRows+1];
-    initRandomVector(h_vec, numRows, op.getOptionFloat("maxval"));
-
-    // Set up the padded data structures
-    int paddedSize = numRows + (PAD_FACTOR - numRows % PAD_FACTOR);
-    h_out = new floatType[paddedSize];
     convertToPadded(h_val, h_cols, numRows, h_rowDelimiters, &h_valPad,
             &h_colsPad, h_rowDelimitersPad, &nItemsPadded);
 
