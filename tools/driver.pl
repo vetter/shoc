@@ -153,9 +153,13 @@ my @SerialBenchmarks = (
   ["dgemm_t_pcie",                \&findmax,     "DGEMM-T_PCIe"]
 ],
 [ "MD",                1, 1, 1, 0,
+  ["md_sp_flops",                 \&findmax,     "MD-LJ"],
   ["md_sp_bw",                    \&findmax,     "MD-LJ-Bandwidth"],
+  ["md_sp_flops_pcie",            \&findmax,     "MD-LJ_PCIe"],
   ["md_sp_bw_pcie",               \&findmax,     "MD-LJ-Bandwidth_PCIe"],
+  ["md_dp_flops",                 \&findmax,     "MD-LJ-DP"],
   ["md_dp_bw",                    \&findmax,     "MD-LJ-DP-Bandwidth"],
+  ["md_dp_flops_pcie",            \&findmax,     "MD-LJ-DP_PCIe"],
   ["md_dp_bw_pcie",               \&findmax,     "MD-LJ-DP-Bandwidth_PCIe"]
 ],
 [ "MD5Hash",           1, 1, 0,

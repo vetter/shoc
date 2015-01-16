@@ -263,11 +263,14 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
     #pragma offload target(MIC:micdev) \
         in(A:length(matrix_elements)  alloc_if(0) free_if(0)) \
         in(B:length(matrix_elements)  alloc_if(0) free_if(0)) \
-        out(C:length(matrix_elements) alloc_if(0) free_if(0))
+        nocopy(C:length(matrix_elements) alloc_if(0) free_if(0))
     {
     }
 
     double transfer_time = Timer::Stop(txToDevTimerHandle, "tx to dev");
+
+    //Flag for timing first output tranfer
+    bool first = true;
 
     // Begin main test loop
     for (; passes > 0; --passes)
@@ -294,6 +297,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                 in(C:length(matrix_elements)  alloc_if(0) free_if(0))  \
                 out(C:length(matrix_elements) alloc_if(0) free_if(0))
             {
+                //local declaration
                 const T alpha = 1;
                 const T beta = -1;
 
@@ -303,11 +307,10 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                         beta, C, ldc);
             }
 
-            // Time it takes for the actual gemm call
-            int kernelTimerHandle = Timer::Start();
-
             const T alpha = 1;
             const T beta = 0;
+            // Time it takes for the actual gemm call
+            int kernelTimerHandle = Timer::Start();
 
             #pragma offload target(MIC:micdev) \
                             nocopy(A)          \
@@ -322,6 +325,19 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
                 }
             }
             double blas_time = Timer::Stop(kernelTimerHandle, "gemm") / 4.0;
+    // Time transfer out for the first iteration 
+    if (first) {
+      int txFromDevTimerHandle = Timer::Start();
+      #pragma offload target(MIC:micdev) \
+        nocopy(A:length(matrix_elements)  alloc_if(0) free_if(0)) \
+        nocopy(B:length(matrix_elements)  alloc_if(0) free_if(0)) \
+        out(C:length(matrix_elements) alloc_if(0) free_if(0))
+      {
+      }
+      transfer_time += Timer::Stop(txFromDevTimerHandle, "tx from dev");
+      first = false;
+    }
+
 
             // Calculate GFLOPS
             double blas_gflops = 2. * m * n * k / blas_time / 1e9;
