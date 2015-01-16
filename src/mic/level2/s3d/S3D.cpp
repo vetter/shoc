@@ -146,11 +146,20 @@ template <class real, int MAXVL>
 void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
 {
     // Number of grid points (specified in header file)
-    const int probSizes[4] = { 16, 32, 40, 64 };
+    /*const int probSizes[4] = { 16, 32, 40, 64 };
     int sizeClass = op.getOptionInt("size") - 1;
     assert(sizeClass >= 0 && sizeClass < 4);
     sizeClass = probSizes[sizeClass];
-    int n = sizeClass * sizeClass * sizeClass;
+    int n = sizeClass * sizeClass * sizeClass;*/
+    
+    int probSizes_SP[4] = { 24, 32, 40, 48};
+    int probSizes_DP[4] = { 16, 24, 32, 40};
+    int *probSizes = (sizeof(real) == sizeof(double)) ? probSizes_DP : probSizes_SP;
+    int sizeClass = op.getOptionInt("size") - 1;
+    assert(sizeClass >= 0 && sizeClass < 4);
+    int size = probSizes[sizeClass];
+    int n = size * size * size;
+
 
     // Host variables
     __declspec(target(MIC) align(4096)) static real* host_t;
