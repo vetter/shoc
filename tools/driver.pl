@@ -74,7 +74,9 @@ my @CSVResults = (
 "bfs",
 "bfs_pcie",
 "bfs_teps",
-"md5hash"
+"md5hash",
+"nn_learning",
+"nn_learning_pcie"
 #"qtc",
 #"qtc_kernel"
 );
@@ -164,6 +166,10 @@ my @SerialBenchmarks = (
 ],
 [ "MD5Hash",           1, 1, 0,
   ["md5hash",                     \&findmax,     "MD5Hash"]
+],
+[ "NeuralNet",         1, 0, 0,
+  ["nn_learning",                 \&findmean,    "Learning-Rate"],
+  ["nn_learning_pcie",            \&findmean,    "Learning-Rate_PCIe"]
 ],
 [ "Reduction",         1, 1, 0,
   ["reduction",                   \&findmax,     "Reduction"],

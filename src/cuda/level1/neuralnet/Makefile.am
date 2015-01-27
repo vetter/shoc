@@ -30,12 +30,12 @@ if DATA_UNZIP
 #data_DATA = nn_data
 #nn_data: $(srcdir)/nn_data.zip
 #	$(UNZIP) -o $(srcdir)/nn_data.zip
-# cp -prf nn_data $(serialcudadir)/.
+# cp -prf nn_data $(bindir)/.
 
 #This overrides the default install-data command
 install-data-local:
 	$(UNZIP) -o $(srcdir)/nn_data.zip
-	cp -prf nn_data $(serialcudadir)/.
+	cp -prf nn_data $(bindir)/.
 endif
 
 clean: 
