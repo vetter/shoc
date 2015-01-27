@@ -22,3 +22,21 @@ serialcuda_PROGRAMS = NeuralNet
 NeuralNet_SOURCES = main.cpp
 NeuralNet_LDADD = NeuralNet.o $(CUDA_LIBS) $(LIBS) -lcublas
 
+# Unzip and move data to the bin directory, if supported
+if DATA_UNZIP
+#Adding these lines would cause automake to execute these lines
+#with install-data flags but this requires listing each file
+#separately; instead we use a custom command below
+#data_DATA = nn_data
+#nn_data: $(srcdir)/nn_data.zip
+#	$(UNZIP) -o $(srcdir)/nn_data.zip
+# cp -prf nn_data $(serialcudadir)/.
+
+#This overrides the default install-data command
+install-data-local:
+	$(UNZIP) -o $(srcdir)/nn_data.zip
+	cp -prf nn_data $(serialcudadir)/.
+endif
+
+clean: 
+	rm -rf nn_data NeuralNet

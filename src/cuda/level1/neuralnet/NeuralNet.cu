@@ -342,7 +342,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // Function: RunBenchmark
 //
 // Purpose:
-//   Executes the radix sort benchmark
+//   Executes the neural net benchmark
 //
 // Arguments:
 //   resultDB: results from the benchmark are stored in this db
@@ -350,8 +350,8 @@ void addBenchmarkSpecOptions(OptionParser &op)
 //
 // Returns:  nothing, results are stored in resultDB
 //
-// Programmer: Kyle Spafford
-// Creation: August 13, 2009
+// Programmer: Mitch Horton
+// Creation: December 1st, 2014
 //
 // Modifications:
 //
@@ -373,10 +373,17 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
 
   //printf("%d %d %f\n",num_epochs,MINI_BATCH_SIZE,ETA);
 
-  FILE *f_training_data_x = fopen("training_data_x","r");
-  FILE *f_training_data_y = fopen("training_data_y","r");
-  FILE *f_test_data_x = fopen("test_data_x","r");
-  FILE *f_test_data_y = fopen("test_data_y","r");
+
+  FILE *f_training_data_x = fopen("nn_data/training_data_x","r");
+  FILE *f_training_data_y = fopen("nn_data/training_data_y","r");
+  FILE *f_test_data_x = fopen("nn_data/test_data_x","r");
+  FILE *f_test_data_y = fopen("nn_data/test_data_y","r");
+
+  if(f_training_data_x == NULL)
+  {
+    cout<<"Input training file not found - please check data directory!"<<endl;
+    return;
+  }
 
   TRAINING_DATA_X=(float**)malloc(TRAINING_SIZE*sizeof(float*));
   for (i=0; i<TRAINING_SIZE; i++) {

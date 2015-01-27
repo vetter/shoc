@@ -25,6 +25,7 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AC_CHECK_TOOL([AR], [ar], [:])
 AC_PATH_PROG([PERL], [perl])
+AC_PATH_PROG([UNZIP], [unzip])
 
 
 # check whether special NVCXXFLAGS were specified
@@ -280,6 +281,34 @@ AS_IF([test "x$enable_builddoc" = xyes],
 )
 AM_CONDITIONAL([BUILD_DOC], [test "x$COND_BUILDDOC" = "xyes"])
 
+# Unzip and move data by default, just copy existing documentation
+AC_ARG_ENABLE([dataunzip],
+    [AS_HELP_STRING([--enable-data-unzip],
+        [Unzip and move SHOC data; requires unzip and cp @<:@default=enabled@:>@])],
+    [],
+    [enable_dataunzip=check]
+)
+
+COND_DATAUNZIP=no
+AS_IF([test "x$enable_dataunzip" != xno],
+    [
+        #Just test to make sure unzip exists
+        AS_IF([test "$UNZIP" != ''],
+            [
+                        # we have been asked to unzip and move data,
+                        # we have unzip 
+                        COND_DATAUNZIP=yes
+                    ]
+                )
+
+        AS_IF([test "x$COND_DATAUNZIP" != xyes],
+            [
+                AC_MSG_FAILURE([Data unzip requested, but required tools (unzip) were not all found])
+            ]
+        )
+    ]
+)
+AM_CONDITIONAL([DATA_UNZIP], [test "x$COND_DATAUNZIP" = "xyes"])
 
 # build stability tests? by default, enable if CUDA is enabled
 AC_ARG_ENABLE([stability],
