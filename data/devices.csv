@@ -30,3 +30,4 @@ gtxtitan, NV GeForce GTX Titan,,,,,,
 jetsontk1, NV Jetson TK1,,,,,,
 K40,NVIDIA K40c,Intel E5520 Nehalem 2.27 GHz ,12 GB DDR3,2,Supermicro X8DTG-QF,,
 gtx750TiSC,NVIDIA EVGA GeForce 750 Ti Superclocked,Intel Xeon W3505 2.53 GHz,12 GB DDR3-1333,2,,Ubuntu 12.04,NV 331.67
+w9100,AMD FirePro 9100,,,,,,
