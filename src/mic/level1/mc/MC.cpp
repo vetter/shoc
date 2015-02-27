@@ -215,10 +215,10 @@ addBenchmarkSpecOptions(OptionParser &op)
 // ****************************************************************************
 void RunBenchmark(OptionParser &op, ResultDatabase &resultDB)
 {
-    printf("Running single precision  version of MonteCarlo benchmark\n");
+    printf("Running single precision version of MonteCarlo benchmark\n");
     RunTest<float, 16>("MC-SP_16", resultDB, op);
 
-    printf("Running double precision verison of MonteCarlo benchmark\n");
+    printf("Running double precision version of MonteCarlo benchmark\n");
     RunTest<double, 8>("MC-DP_8", resultDB, op);
 }
 
