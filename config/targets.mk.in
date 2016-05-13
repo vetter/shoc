@@ -23,6 +23,9 @@
 %.o: %.cu
 	$(NVCC) ${CUDA_CPPFLAGS} $(CPPFLAGS) $(NVCXXFLAGS) -c $<
 
+%.o: %.cu
+	$(HIPCC) $(CPPFLAGS) $(HIP_CPPFLAGS) -c $<
+
 #%.d: %.cpp
 #	@echo "updating $@"; set -e; ${RM} $@; \
 #	$(CXX) -M $(CPPFLAGS) $< > $@.tmp; \
