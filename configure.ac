@@ -225,11 +225,46 @@ AS_IF([test "x$with_cuda" != xno],
                  dnl Note: cc 13 for Tesla
                  dnl Note: cc 20 for Fermi
                  dnl Note: cc 30 for Kepler
-                 CUDA_CPPFLAGS=["-gencode=arch=compute_12,code=sm_12 \
- -gencode=arch=compute_13,code=sm_13 \
- -gencode=arch=compute_20,code=sm_20 \
- -gencode=arch=compute_20,code=compute_20"]
-                 AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS])
+		 nvcc_version=`nvcc --version 2>&1 |sed -e '/release/s/.* \([0-9]\+\.[0-9]\+\).*/\1/p' -n`
+		 nvcc_major_version=`nvcc --version 2>&1 |sed -e '/release/s/.*release \([0-9]\+\)\.[0-9]\+.*/\1/p' -n`
+		 nvcc_minor_version=`nvcc --version 2>&1 |sed -e '/release/s/.*release [0-9]\+\.\([0-9]\+\).*/\1/p' -n`
+		 CUDA_CPPFLAGS=[]
+		 AS_IF([test $nvcc_major_version -lt "3"],
+
+		 	     	       [],
+
+						[AC_MSG_WARN([NVCC compiler version is NOT 3.0!])
+
+						])
+
+		 cuda_compute_1x=["-gencode arch=compute_10,code=sm_10 -gencode arch=compute_12,code=sm_12"]
+ 		 cuda_compute_2x=["-gencode arch=compute_20,code=sm_20"]
+		 cuda_compute_3x=["-gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_37,code=sm_37"]
+		 cuda_compute_5x=["-gencode arch=compute_50,code=sm_50 -gencode arch=compute_52,code=sm_52"]
+		 		 
+		 cuda_compute_6x=["-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_62,code=sm_62"]
+                 CUDA_CPPFLAGS=["-gencode arch=compute_20,code=sm_20 \
+-gencode arch=compute_30,code=sm_30 \
+-gencode arch=compute_35,code=sm_35 \
+-gencode arch=compute_37,code=sm_37 \
+-gencode arch=compute_50,code=sm_50 \
+-gencode arch=compute_52,code=sm_52 \
+-gencode arch=compute_60,code=sm_60 \
+-gencode arch=compute_61,code=sm_61 \
+-gencode arch=compute_62,code=sm_62 \
+-gencode arch=compute_60,code=compute_60"]
+
+		CUDA_XFLAGS=[""]
+		AS_IF([test $nvcc_major_version -eq "7" -a $nvcc_minor_version -eq "5"],
+			    [CUDA_XFLAGS=[$cuda_compute_2x $cuda_compute_3x $cuda_compute_5x]],
+			    []
+			    )
+		AS_IF([test $nvcc_major_version -eq "8" -a $nvcc_minor_version -eq "0"],
+			    [CUDA_XFLAGS=[$cuda_compute_2x $cuda_compute_3x $cuda_compute_5x $cuda_compute_6x]],
+			    []
+			    )
+                 AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS for cuda release $nvcc_major_version.$nvcc_minor_version])
+                  AC_MSG_NOTICE([using CUDA_XFLAGS=$CUDA_XFLAGS])
                  AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in CUDA_CPPFLAGS during the configure. ***])
                 ]
              )
