@@ -404,7 +404,7 @@ RunTest(ResultDatabase &resultDB,
     char sizeStr[128];
     T *hostMem, *hostMem2;
 
-    int realRepeats = (int)round(repeatF*20);
+    int realRepeats = (int)::round(repeatF*20);
     if (realRepeats < 2)
        realRepeats = 2;
 
