@@ -220,7 +220,7 @@ void runTest(const string& name, ResultDatabase &resultDB, OptionParser& op)
         // On the first iteration, time the copy the back to the host
         if (k == 0) {
           pcie_TH = Timer::Start();
-          copyFromDevice(work, source, used_bytes);
+          copyFromDevice(work, result, used_bytes);
           transfer_time += Timer::Stop(pcie_TH, "PCIe Transfer Time");
         }
 
