@@ -1,0 +1,50 @@
+# === Basics ===
+#CC       = gcc
+#CXX      = g++
+#LD       = g++
+#AR       = ar
+#RANLIB   = ranlib
+
+# In CPPFLAGS, note src/common is from the SHOC source tree, so we must
+# use $(srcdir).  In contrast, the files in config used in the build are
+# generated as part of the configuration, so we want to find them in the
+# build tree - hence we do not use $(srcdir) for that -I specification.
+#CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config 
+CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config
+#CFLAGS   += -g -O2
+#CXXFLAGS += -g -O2
+NVCXXFLAGS = -g -O2
+#ARFLAGS  = rcv
+#LDFLAGS  =  -L$(top_builddir)/src/common
+LDFLAGS  += -L$(top_builddir)/src/common
+LIBS     =  -lrt
+
+USE_MPI         = yes
+MPICXX          = /usr/bin/mpicxx
+MPI_CPPFLAGS	= -DPARALLEL
+
+OCL_CPPFLAGS    = -I$(top_srcdir)/src/opencl/common
+OCL_LDFLAGS		= -L$(top_builddir)/src/opencl/common
+OCL_LIBS        = -lSHOCCommonOpenCL -lSHOCCommon 
+
+NVCC            = /usr/local/cuda-7.5/bin/nvcc
+CUDA_CXX        = /usr/local/cuda-7.5/bin/nvcc
+CUDA_INC        = -I/usr/local/cuda-7.5/include -I$(top_srcdir)/src/cuda/common
+CUDA_LDFLAGS	= -L$(top_builddir)/src/cuda/common
+CUDA_CPPFLAGS   =  -gencode=arch=compute_20,code=sm_20  -gencode=arch=compute_20,code=compute_20 -I$(top_srcdir)/src/cuda/common
+
+HCC             = /opt/hcc/bin/hcc
+HIP_CXX        = /opt/hcc/bin/hcc
+HIP_INC        = -I$(top_srcdir)/src/hip/common
+HIP_LDFLAGS	= -L$(top_builddir)/src/hip/common
+HIP_CPPFLAGS   = -I$(top_srcdir)/src/cuda/common
+
+USE_CUDA        = yes
+ifeq ($(USE_CUDA),yes)
+CUDA_LIBS		:= -lSHOCCommon $(shell $(top_srcdir)/config/find_cuda_libs.sh /usr/local/cuda-7.5/bin/nvcc)
+else
+CUDA_LIBS       =
+endif
+
+
+

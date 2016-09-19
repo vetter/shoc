@@ -8,6 +8,9 @@ VPATH = $(srcdir)/..:$(top_srcdir)/src/cuda/common
 CXX = ${MPICXX}
 CXXLD = ${MPICXX}
 
+if BUILD_CUDA
+if BUILD_HIP
+else
 AM_LDFLAGS = $(CUDA_LDFLAGS)
 AM_CPPFLAGS = $(CUDA_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
 
@@ -21,4 +24,25 @@ epcuda_PROGRAMS = Stability_mpi
 Stability_mpi_SOURCES = Stability.cpp \
                 main.cpp
 Stability_mpi_LDADD = $(top_builddir)/src/cuda/level1/fft/fftlib.o $(CUDA_LIBS) -lcufft $(LIBS)
+endif
+endif
 
+
+if BUILD_HIP
+if BUILD_CUDA
+AM_LDFLAGS = $(HIP_LDFLAGS)
+AM_CPPFLAGS = $(HIP_INC) $(MPI_CPPFLAGS) -I$(top_srcdir)/src/mpi/common
+
+# What is the destination for programs built from this directory?
+ephipdir = $(bindir)/EP/HIP
+
+# What programs should be installed to that destination?
+ephip_PROGRAMS = Stability_mpi
+
+# How to build those programs?
+Stability_mpi_SOURCES = Stability.cpp \
+                main.cpp
+Stability_mpi_LDADD = $(top_builddir)/src/hip/level1/fft/fftlib.o $(HIP_LIBS) -lcufft $(LIBS)
+else
+endif
+endif

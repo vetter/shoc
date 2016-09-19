@@ -1,0 +1,48 @@
+# === Basics ===
+#CC       = @CC@
+#CXX      = @CXX@
+#LD       = @CXX@
+#AR       = @AR@
+#RANLIB   = @RANLIB@
+
+# In CPPFLAGS, note src/common is from the SHOC source tree, so we must
+# use $(srcdir).  In contrast, the files in config used in the build are
+# generated as part of the configuration, so we want to find them in the
+# build tree - hence we do not use $(srcdir) for that -I specification.
+#CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config @CPPFLAGS@
+CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config
+#CFLAGS   += @CFLAGS@
+#CXXFLAGS += @CXXFLAGS@
+NVCXXFLAGS = @NVCXXFLAGS@
+#ARFLAGS  = rcv
+#LDFLAGS  = @LDFLAGS@ -L$(top_builddir)/src/common
+LDFLAGS  += -L$(top_builddir)/src/common
+LIBS     = @LIBS@
+
+USE_MPI         = @USE_MPI@
+MPICXX          = @MPICXX@
+MPI_CPPFLAGS	= -DPARALLEL
+
+OCL_CPPFLAGS    = -I$(top_srcdir)/src/opencl/common
+OCL_LDFLAGS		= -L$(top_builddir)/src/opencl/common
+OCL_LIBS        = -lSHOCCommonOpenCL -lSHOCCommon @OPENCL_LIBS@
+
+NVCC            = @NVCC@
+CUDA_CXX        = @NVCC@
+CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/common
+CUDA_LDFLAGS	= -L$(top_builddir)/src/cuda/common
+CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/common
+
+HIPCC           = @HIPCC@
+HIP_CXX         = @HIPCC@
+HIP_INC         = -I@HIP_INCDIR@ -I$(top_srcdir)/src/hip/level0
+HIP_LDFLAGS	    = -L$(top_builddir)/src/hip/level0
+HIP_CPPFLAGS    = @HIP_CPPFLAGS@ -I$(top_srcdir)/src/hip/level0
+
+USE_CUDA        = @USE_CUDA@
+ifeq ($(USE_CUDA),yes)
+CUDA_LIBS		:= -lSHOCCommon $(shell $(top_srcdir)/config/find_cuda_libs.sh @NVCC@)
+else
+CUDA_LIBS       =
+endif
+

@@ -13,8 +13,8 @@ AC_CONFIG_HEADERS([config/config.h])
 AC_LANG([C++])
 
 # Because of the nature of SHOC (a collection of benchmark programs),
-# autoconf's default prefix (/usr/local) is not appropriate. 
-# Instead, we set the default installation location to be the build 
+# autoconf's default prefix (/usr/local) is not appropriate.
+# Instead, we set the default installation location to be the build
 # location.
 AC_PREFIX_DEFAULT(`pwd`)
 
@@ -26,7 +26,6 @@ AC_PROG_RANLIB
 AC_CHECK_TOOL([AR], [ar], [:])
 AC_PATH_PROG([PERL], [perl])
 AC_PATH_PROG([UNZIP], [unzip])
-
 
 # check whether special NVCXXFLAGS were specified
 # if not, set default flags based on whehter we are using g++ and whether our
@@ -54,7 +53,26 @@ else
 fi
 
 
-
+ac_save_HIPCCXXFLAGS=${HIPCCXXFLAGS}
+ac_test_HIPCCXXFLAGS=${HIPCCXXFLAGS+set}
+if test "$ac_test_HIPCCXXFLAGS" = set
+then
+    HIPCCXXFLAGS=$ac_save_HIPCCXXFLAGS
+elif test $ac_cv_prog_cxx_g = yes
+then
+    if test "$GXX" = yes; then
+        HIPCCXXFLAGS="-g -O2"
+    else
+        HIPCCXXFLAGS="-g"
+    fi
+else
+    if test "$GXX" = yes
+    then
+        HIPCCXXFLAGS="-O2 -D__HIP_PLATFORM_HCC__ -I$HIP_PATH/src/hip_hcc.cpp"
+    else
+        HIPCCXXFLAGS=
+    fi
+fi
 
 # on Linux, we expect that the clock_gettime function will be available,
 # but it seems to require the rt library
@@ -88,7 +106,7 @@ AS_IF([test "x$ac_cv_func_clock_gettime" = xyes],
                     [AC_MSG_RESULT([no])]
       )
     ]
-)    
+)
 
 
 
@@ -186,7 +204,6 @@ AS_IF([test "x$with_cuda" != xno],
               cudabindir=`AS_DIRNAME([$NVCC])`
               CUDA_INCDIR=`AS_DIRNAME([$cudabindir])`/include
               CPPFLAGS="$CPPFLAGS -I$CUDA_INCDIR"
-
               AC_CHECK_HEADERS([cuda.h cuda_runtime.h],[],
                 [NVCC=""]
               )
@@ -225,9 +242,7 @@ AS_IF([test "x$with_cuda" != xno],
                  dnl Note: cc 13 for Tesla
                  dnl Note: cc 20 for Fermi
                  dnl Note: cc 30 for Kepler
-                 CUDA_CPPFLAGS=["-gencode=arch=compute_12,code=sm_12 \
- -gencode=arch=compute_13,code=sm_13 \
- -gencode=arch=compute_20,code=sm_20 \
+                 CUDA_CPPFLAGS=[" -gencode=arch=compute_20,code=sm_20 \
  -gencode=arch=compute_20,code=compute_20"]
                  AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS])
                  AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in CUDA_CPPFLAGS during the configure. ***])
@@ -239,6 +254,94 @@ AS_IF([test "x$with_cuda" != xno],
     ]
 )
 AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda" = "xyes"])
+
+AC_MSG_NOTICE([$CPPFLAGS
+		$LIBS
+		$CXX
+		$CXXFLAGS
+		$LDFLAGS
+		$CUDA_CPPFLAGS])
+
+AC_SUBST(with_hip,[check])
+
+AC_ARG_WITH([hip],
+    [AS_HELP_STRING([--with-hip],
+        [build CUDA versions of SHOC benchmark programs @<:@default=check@:>@])],
+    [],
+    [with_hip=check])
+
+
+USE_HIP=no
+AC_MSG_NOTICE([$with_hip])
+
+AS_IF([test "x$with_hip = xyes"], [echo HIP Found])
+
+
+AS_IF([test "x$with_hip"!=xno],
+	[
+		AC_PATH_PROG([HIPCC],[hipcc],[])
+        AS_IF([test "x$HIPCC" != x],
+			[ AC_MSG_NOTICE([$HIPCC])
+	        savedCXX=$CXX
+    	    CXX=$HIPCC
+    	    savedLIBS=$LIBS
+    	    savedCPPFLAGS=$CPPFLAGS
+    	    savedCXXFLAGS=$CXXFLAGS
+    	    savedLDFLAGS=$LDFLAGS
+    	    CXXFLAGS=$HIPCCXXFLAGS
+    	    LDFLAGS=""
+
+    	    # find hip include path based on location of hcc command
+    	    hipbindir=`AS_DIRNAME([$HIPCC])`
+    	    CPPFLAGS="$CPPFLAGS -I$HIP_INCDIR"
+    	    AC_MSG_NOTICE([$HIP_INCDIR])
+			AC_MSG_NOTICE([$CPPFLAGS])
+              AC_CHECK_HEADERS([hip_runtime.h],[],
+                [HIPCC=""]
+              )
+			AC_PATH_PROG([HIPCC], [hipcc], [])
+			CPPFLAGS=$savedCPPFLAGS
+			LIBS=$savedLIBS
+			CXX=$savedCXX
+			CXXFLAGS=$savedCXXFLAGS
+			LDFLAGS=$savedLDFLAGS
+			],
+            [ if test "x$with_hip" != xcheck; then
+                AC_MSG_FAILURE([HIP support was requested, but no usable HIP installation found])
+              fi
+              HIPCC=""
+            ]
+		)
+
+        AS_IF([test "x$HIPCC" != x],
+            [with_hip=yes
+             USE_HIP=yes
+#             MPI_SUBDIRS="$MPI_SUBDIRS hip"
+             AC_SUBST([HIP_INCDIR])],
+            [AC_MSG_NOTICE([no usable HIP installation found])
+             with_hip=no
+            ]
+		)
+        AS_IF([test "x$with_hip" = xyes],
+            [AS_IF([test "x$HIP_CPPFLAGS" = x],
+                [dnl generate CUDA code for broad spectrum of devices
+                 dnl Note: cc 13 for Tesla
+                 dnl Note: cc 20 for Fermi
+                 dnl Note: cc 30 for Kepler
+                 HIP_CPPFLAGS=[""]
+                 AC_MSG_NOTICE([using HIP_CPPFLAGS=$HIP_CPPFLAGS])
+                 AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in HIP_CPPFLAGS during the configure. ***])
+				AC_MSG_WARN([using $CPPFLAGS])
+                ]
+             )
+             AC_SUBST([HIP_CPPFLAGS])
+            ]
+        )
+	]
+)
+AM_CONDITIONAL([BUILD_HIP], [test "x$with_hip" = "xyes"])
+
+
 
 # build documentation? by default, just copy existing documentation
 AC_ARG_ENABLE([builddoc],
@@ -296,7 +399,7 @@ AS_IF([test "x$enable_dataunzip" != xno],
         AS_IF([test "$UNZIP" != ''],
             [
                         # we have been asked to unzip and move data,
-                        # we have unzip 
+                        # we have unzip
                         COND_DATAUNZIP=yes
                     ]
                 )
@@ -335,7 +438,7 @@ AS_IF([test "x$enable_stability" = xyes],
         ]
         )]
     )]
-    
+
 )
 AM_CONDITIONAL([BUILD_STABILITY], [test "x$COND_STABILITY" = "xyes"])
 
@@ -350,7 +453,7 @@ AC_ARG_WITH([mpi],
 
 USE_MPI=no
 AS_IF([test "x$with_mpi" != xno],
-    [ 
+    [
         AC_PATH_PROGS([MPICXX], [[$MPICXX] mpicxx mpic++ mpiCC])
         savedCXX=$CXX
         CXX=$MPICXX
@@ -383,7 +486,7 @@ AS_IF([test "x$with_mpi" != xno],
         CXX=$savedCXX
 
         AS_IF([test "x$MPICXX" != "x"],
-            [ AS_IF([test "x$with_opencl" = xyes -o "x$with_cuda" = xyes],
+            [ AS_IF([test "x$with_opencl" != xyes -o "x$with_cuda" != xyes],
                   [ with_mpi=yes
                     USE_MPI=yes
                   ],
@@ -403,11 +506,32 @@ AS_IF([test "x$with_mpi" != xno],
 )
 AM_CONDITIONAL([BUILD_MPI], [test "x$with_mpi" = "xyes"])
 
+#AS_IF([test "x$USE_HIP" = "xyes"],
+#	AC_MSG_NOTICE([HIP Available]),
+#	AC_MSG_NOTICE([HIP Unavailable]))
+
+#AS_IF([test "x$USE_CUDA" = "xyes"],
+#	[AS_IF([test "x$USE_HIP" = "xyes"],
+#		[with_cuda=no
+#		AM_CONDITIONAL([BUILD_CUDA], [test "x$with_cuda"="xyes"])
+#		AC_MSG_NOTICE([CUDA Available and disabling])
+#		])
+#		],
+#	AC_MSG_NOTICE([CUDA UnAvailable])
+#)
+
+
+AC_MSG_NOTICE([$BUILD_HIP])
+AC_MSG_NOTICE([$BUILD_CUDA])
+AC_MSG_NOTICE([$BUILD_MPI])
+
 AC_SUBST([USE_MPI])
 AC_SUBST([MPICXX])
 AC_SUBST([USE_CUDA])
+AC_SUBST([USE_HIP])
 AC_SUBST([MPI_SUBDIRS])
 AC_SUBST([NVCXXFLAGS])
+AC_SUBST([HIPCCXXFLAGS])
 
 AC_CONFIG_FILES([Makefile
                  config/common.mk
@@ -452,12 +576,49 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level2/qtclustering/tpmpi/Makefile
                  src/cuda/level2/s3d/Makefile
                  src/cuda/level2/s3d/epmpi/Makefile
+                 src/hip/Makefile
+                 src/hip/level0/Makefile
+                 src/hip/level0/epmpi/Makefile
+                 src/hip/level1/Makefile
+                 src/hip/level1/bfs/Makefile
+                 src/hip/level1/bfs/epmpi/Makefile
+                 src/hip/level1/fft/Makefile
+                 src/hip/level1/fft/epmpi/Makefile
+                 src/hip/level1/md/Makefile
+                 src/hip/level1/md/epmpi/Makefile
+                 src/hip/level1/md5hash/Makefile
+                 src/hip/level1/md5hash/epmpi/Makefile
+                 src/hip/level1/neuralnet/Makefile
+                 src/hip/level1/neuralnet/epmpi/Makefile
+                 src/hip/level1/reduction/Makefile
+                 src/hip/level1/reduction/epmpi/Makefile
+                 src/hip/level1/reduction/tpmpi/Makefile
+                 src/hip/level1/scan/Makefile
+                 src/hip/level1/scan/epmpi/Makefile
+                 src/hip/level1/scan/tpmpi/Makefile
+                 src/hip/level1/gemm/Makefile
+                 src/hip/level1/gemm/epmpi/Makefile
+                 src/hip/level1/sort/Makefile
+                 src/hip/level1/sort/epmpi/Makefile
+                 src/hip/level1/spmv/Makefile
+                 src/hip/level1/spmv/epmpi/Makefile
+                 src/hip/level1/stencil2d/Makefile
+                 src/hip/level1/stencil2d/tpmpi/Makefile
+                 src/hip/level1/triad/Makefile
+                 src/hip/level1/triad/epmpi/Makefile
+                 src/hip/level2/Makefile
+                 src/hip/level2/qtclustering/Makefile
+                 src/hip/level2/qtclustering/tpmpi/Makefile
+                 src/hip/level2/s3d/Makefile
+                 src/hip/level2/s3d/epmpi/Makefile
                  src/mpi/Makefile
                  src/mpi/common/Makefile
                  src/mpi/contention/Makefile
                  src/mpi/contention/cuda/Makefile
+                 src/mpi/contention/hip/Makefile
                  src/mpi/contention/opencl/Makefile
                  src/mpi/contention-mt/Makefile
+                 src/mpi/contention-mt/hip/Makefile
                  src/mpi/contention-mt/cuda/Makefile
                  src/mpi/contention-mt/opencl/Makefile
                  src/opencl/Makefile

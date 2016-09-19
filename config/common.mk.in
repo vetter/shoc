@@ -10,7 +10,7 @@
 # generated as part of the configuration, so we want to find them in the
 # build tree - hence we do not use $(srcdir) for that -I specification.
 #CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config @CPPFLAGS@
-CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config
+CPPFLAGS += -I$(top_srcdir)/src/common -I$(top_builddir)/config -std=c++11
 #CFLAGS   += @CFLAGS@
 #CXXFLAGS += @CXXFLAGS@
 NVCXXFLAGS = @NVCXXFLAGS@
@@ -21,7 +21,7 @@ LIBS     = @LIBS@
 
 USE_MPI         = @USE_MPI@
 MPICXX          = @MPICXX@
-MPI_CPPFLAGS	= -DPARALLEL
+MPI_CPPFLAGS	= -DPARALLEL -std=c++11
 
 OCL_CPPFLAGS    = -I$(top_srcdir)/src/opencl/common
 OCL_LDFLAGS		= -L$(top_builddir)/src/opencl/common
@@ -33,6 +33,12 @@ CUDA_INC        = -I@CUDA_INCDIR@ -I$(top_srcdir)/src/cuda/common
 CUDA_LDFLAGS	= -L$(top_builddir)/src/cuda/common
 CUDA_CPPFLAGS   = @CUDA_CPPFLAGS@ -I$(top_srcdir)/src/cuda/common
 
+HIPCC           = @HIPCC@
+HIP_CXX         = @HIPCC@
+HIP_INC         = -I@HIP_INCDIR@ -I$(top_srcdir)/src/hip/common -I/opt/hsa/include
+HIP_LDFLAGS	    = -L$(top_builddir)/src/hip/common
+HIP_CPPFLAGS    = @HIP_CPPFLAGS@ -I$(top_srcdir)/src/hip/common
+
 USE_CUDA        = @USE_CUDA@
 ifeq ($(USE_CUDA),yes)
 CUDA_LIBS		:= -lSHOCCommon $(shell $(top_srcdir)/config/find_cuda_libs.sh @NVCC@)
@@ -40,5 +46,11 @@ else
 CUDA_LIBS       =
 endif
 
+USE_HIP        = @USE_CUDA@
+ifeq ($(USE_HIP),yes)
+HIP_LIBS		:= -lSHOCCommon $(shell $(top_srcdir)/config/find_cuda_libs.sh @NVCC@)
+else
+HIP_LIBS       =
+endif
 
 
