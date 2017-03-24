@@ -636,7 +636,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     }
     free(ACTIVATIONS);
 
-    for (i=0; i<NUM_LAYERS; i++) {
+    for (i=0; i<(NUM_LAYERS-1); i++) {
       free(ZS[i]);
     }
     free(ZS);
@@ -646,12 +646,12 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     }
     free(D__ACTIVATIONS_2D_TRAINING);
 
-    for (i=1; i<NUM_LAYERS; i++) {
+    for (i=1; i<(NUM_LAYERS-1); i++) {
       CUDA_SAFE_CALL(cudaFree(D__ZS_2D_TEST[i]));
     }
     free(D__ZS_2D_TEST);
 
-    for (i=1; i<NUM_LAYERS; i++) {
+    for (i=1; i<(NUM_LAYERS-1); i++) {
       CUDA_SAFE_CALL(cudaFree(D__ZS_2D_TRAINING[i]));
     }
     free(D__ZS_2D_TRAINING);
