@@ -196,6 +196,13 @@ AS_IF([test "x$with_cuda" != xno],
               AC_CHECK_LIB([cufft], [cufftPlan1d], [],
                 [NVCC=""]
               )
+              
+              # get list of supported archs
+              supported_NVCC_archs=""
+              for i in `$NVCC --help | grep -o "compute_[[0-9]][[0-9]]" | sed 's,compute,,' | sort | uniq`
+              do
+                supported_NVCC_archs+="-gencode=arch=compute$i,code=sm$i "
+              done
 
               CPPFLAGS=$savedCPPFLAGS
               LIBS=$savedLIBS
@@ -222,13 +229,7 @@ AS_IF([test "x$with_cuda" != xno],
         AS_IF([test "x$with_cuda" = xyes],
             [AS_IF([test "x$CUDA_CPPFLAGS" = x],
                 [dnl generate CUDA code for broad spectrum of devices
-                 dnl Note: cc 13 for Tesla
-                 dnl Note: cc 20 for Fermi
-                 dnl Note: cc 30 for Kepler
-                 CUDA_CPPFLAGS=["-gencode=arch=compute_12,code=sm_12 \
- -gencode=arch=compute_13,code=sm_13 \
- -gencode=arch=compute_20,code=sm_20 \
- -gencode=arch=compute_20,code=compute_20"]
+                 CUDA_CPPFLAGS="$supported_NVCC_archs"
                  AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS])
                  AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in CUDA_CPPFLAGS during the configure. ***])
                 ]
