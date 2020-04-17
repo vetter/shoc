@@ -5,7 +5,8 @@
 #ifdef _WIN32
 #define restrict __restrict
 #else
-#include "config.h"
+#include "shoci.h"
+#define restrict 
 #endif
 
 #include "PMSMemMgr.h"
