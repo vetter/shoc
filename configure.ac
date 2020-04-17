@@ -137,7 +137,7 @@ AS_IF([test "x$with_opencl" != xno],
                     [AC_MSG_RESULT($OPENCL_LIBS)],
                     [AC_MSG_RESULT([no])
                      if test "x$with_opencl" != xcheck; then
-                         AC_MSG_FAILURE([OpenCL support was requested, but no usable OpenCL library was fund])
+                         AC_MSG_FAILURE([OpenCL support was requested, but no usable OpenCL library was found])
                      fi
                     ]
                  )

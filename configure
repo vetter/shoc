@@ -5528,7 +5528,7 @@ $as_echo "no" >&6; }
                      if test "x$with_opencl" != xcheck; then
                          { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "OpenCL support was requested, but no usable OpenCL library was fund
+as_fn_error $? "OpenCL support was requested, but no usable OpenCL library was found
 See \`config.log' for more details" "$LINENO" 5; }
                      fi
 
