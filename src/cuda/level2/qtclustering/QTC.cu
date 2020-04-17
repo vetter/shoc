@@ -311,7 +311,9 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     void *Ai_mask, *cardnl, *ungrpd_pnts_indr, *clustered_pnts_mask, *result, *dist_to_clust;
     void *indr_mtrx, *degrees;
     int *indr_mtrx_host, *ungrpd_pnts_indr_host, *cardinalities, *output;
-    bool save_clusters, be_verbose, can_use_texture, synthetic_data;
+    bool save_clusters = false;
+    bool be_verbose = false;
+    bool synthetic_data = true;
     cudaArray *distance_matrix_txt;
     void *distance_matrix_gmem, *distance_matrix;
     float *dist_source, *pnts;
@@ -334,7 +336,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         save_clusters = false;
     }
 
-    can_use_texture = !!(matrix_type & TEXTUR_MEMORY);
+    bool can_use_texture = !!(matrix_type & TEXTUR_MEMORY);
 
     // TODO - only deal with this size-switch once
     int def_size = op.getOptionInt("size");
@@ -345,37 +347,22 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
             // (i.e., -s 1 is the default)
             point_count     = 4*1024;
             threshold       = 1;
-            save_clusters   = false;
-            be_verbose      = false;
-            synthetic_data  = true;
             break;
         case 2:
             point_count    = 8*1024;
             threshold      = 1;
-            save_clusters  = false;
-            be_verbose     = false;
-            synthetic_data = true;
             break;
         case 3:
             point_count    = 16*1024;
             threshold      = 1;
-            save_clusters  = false;
-            be_verbose     = false;
-            synthetic_data = true;
             break;
         case 4:
             point_count    = 16*1024;
             threshold      = 4;
-            save_clusters  = false;
-            be_verbose     = false;
-            synthetic_data = true;
             break;
         case 5:
             point_count    = 26*1024;
             threshold      = 1;
-            save_clusters  = false;
-            be_verbose     = false;
-            synthetic_data = true;
             break;
         default:
             fprintf( stderr, "unsupported size %d given; terminating\n", def_size );

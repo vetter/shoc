@@ -89,6 +89,10 @@ information about configuring, building, and using the SHOC Benchmark Suite.
 5. Install the benchmark programs into $DEST_ROOT.  (You did specify
    a $DEST_ROOT using --prefix in step 3, didn't you?)
 
+        $ make install
+        $ ls $DEST_ROOT/bin
+        Serial    shocdriver
+
    Program executables will be left in the $DEST_ROOT/bin directory. The
    bin directory contains subdirectories for different versions of the
    benchmarks.  Serial, EP (Embarrassingly Parallel), and TP (Truly Parallel).

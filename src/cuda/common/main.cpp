@@ -16,7 +16,6 @@
 #include "ResultDatabase.h"
 #include "OptionParser.h"
 #include "Utility.h"
-#include "InvalidArgValue.h"
 
 #ifdef PARALLEL
 #include <ParallelResultDatabase.h>
@@ -228,11 +227,6 @@ int main(int argc, char *argv[])
         }
 #endif
 
-    }
-    catch( InvalidArgValue& e )
-    {
-        std::cerr << e.what() << ": " << e.GetMessage() << std::endl;
-        ret = 1;
     }
     catch( std::exception& e )
     {

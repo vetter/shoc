@@ -25,6 +25,7 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AC_CHECK_TOOL([AR], [ar], [:])
 AC_PATH_PROG([PERL], [perl])
+AC_PATH_PROG([UNZIP], [unzip])
 
 
 # check whether special NVCXXFLAGS were specified
@@ -136,7 +137,7 @@ AS_IF([test "x$with_opencl" != xno],
                     [AC_MSG_RESULT($OPENCL_LIBS)],
                     [AC_MSG_RESULT([no])
                      if test "x$with_opencl" != xcheck; then
-                         AC_MSG_FAILURE([OpenCL support was requested, but no usable OpenCL library was fund])
+                         AC_MSG_FAILURE([OpenCL support was requested, but no usable OpenCL library was found])
                      fi
                     ]
                  )
@@ -195,6 +196,13 @@ AS_IF([test "x$with_cuda" != xno],
               AC_CHECK_LIB([cufft], [cufftPlan1d], [],
                 [NVCC=""]
               )
+              
+              # get list of supported archs
+              supported_NVCC_archs=""
+              for i in `$NVCC --help | grep -o "compute_[[0-9]][[0-9]]" | sed 's,compute,,' | sort | uniq`
+              do
+                supported_NVCC_archs+="-gencode=arch=compute$i,code=sm$i "
+              done
 
               CPPFLAGS=$savedCPPFLAGS
               LIBS=$savedLIBS
@@ -221,13 +229,7 @@ AS_IF([test "x$with_cuda" != xno],
         AS_IF([test "x$with_cuda" = xyes],
             [AS_IF([test "x$CUDA_CPPFLAGS" = x],
                 [dnl generate CUDA code for broad spectrum of devices
-                 dnl Note: cc 13 for Tesla
-                 dnl Note: cc 20 for Fermi
-                 dnl Note: cc 30 for Kepler
-                 CUDA_CPPFLAGS=["-gencode=arch=compute_12,code=sm_12 \
- -gencode=arch=compute_13,code=sm_13 \
- -gencode=arch=compute_20,code=sm_20 \
- -gencode=arch=compute_20,code=compute_20"]
+                 CUDA_CPPFLAGS="$supported_NVCC_archs"
                  AC_MSG_NOTICE([using CUDA_CPPFLAGS=$CUDA_CPPFLAGS])
                  AC_MSG_WARN([*** SHOC programs may fail if these -gencode values do not apply to your GPU.  If they don't apply, or if you want to shorten SHOC's compile time, determine the -gencode options that apply for your GPU and re-configure SHOC explicitly specifying only those options in CUDA_CPPFLAGS during the configure. ***])
                 ]
@@ -457,6 +459,34 @@ AS_IF([test "x$enable_builddoc" = xyes],
 )
 AM_CONDITIONAL([BUILD_DOC], [test "x$COND_BUILDDOC" = "xyes"])
 
+# Unzip and move data by default, just copy existing documentation
+AC_ARG_ENABLE([dataunzip],
+    [AS_HELP_STRING([--enable-data-unzip],
+        [Unzip and move SHOC data; requires unzip and cp @<:@default=enabled@:>@])],
+    [],
+    [enable_dataunzip=check]
+)
+
+COND_DATAUNZIP=no
+AS_IF([test "x$enable_dataunzip" != xno],
+    [
+        #Just test to make sure unzip exists
+        AS_IF([test "$UNZIP" != ''],
+            [
+                        # we have been asked to unzip and move data,
+                        # we have unzip 
+                        COND_DATAUNZIP=yes
+                    ]
+                )
+
+        AS_IF([test "x$COND_DATAUNZIP" != xyes],
+            [
+                AC_MSG_FAILURE([Data unzip requested, but required tools (unzip) were not all found])
+            ]
+        )
+    ]
+)
+AM_CONDITIONAL([DATA_UNZIP], [test "x$COND_DATAUNZIP" = "xyes"])
 
 # build stability tests? by default, enable if CUDA is enabled
 AC_ARG_ENABLE([stability],
@@ -580,6 +610,8 @@ AC_CONFIG_FILES([Makefile
                  src/cuda/level1/md/epmpi/Makefile
                  src/cuda/level1/md5hash/Makefile
                  src/cuda/level1/md5hash/epmpi/Makefile
+                 src/cuda/level1/neuralnet/Makefile
+                 src/cuda/level1/neuralnet/epmpi/Makefile
                  src/cuda/level1/reduction/Makefile
                  src/cuda/level1/reduction/epmpi/Makefile
                  src/cuda/level1/reduction/tpmpi/Makefile

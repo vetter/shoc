@@ -2,20 +2,16 @@
 #define INVALIDARGVALUE_H
 
 #include <stdexcept>
+#include <string>
 
 // Exception for command line argument value errors
-class InvalidArgValue : public std::exception
+class InvalidArgValue : public std::runtime_error
 {
 private:
-    static const char* defMsg;
-    char* msg;
+    static std::string GenerateErrorMessage( const std::string& _msg );
 
 public:
-    InvalidArgValue( const char* _msg );
-    virtual ~InvalidArgValue( void ) throw();
-    virtual char const* what( void ) const throw();
-
-    const char* GetMessage( void ) const    { return (msg != NULL) ? msg : defMsg; }
+    InvalidArgValue( const std::string& _msg );
 };
 
 #endif // INVALIDARGVALUE_H
