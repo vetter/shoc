@@ -776,8 +776,19 @@ sub buildCommand {
    # Parallel; start with mpirun and maybe a hostfile
    if ($numTasks > 1)
    {
-       $command .= "mpirun -np $numTasks ";
-       $command .= "-hostfile $hostfile " if ($hostfile ne "");
+       # determine what system we are on
+       # so we use the correct run command
+       my $host = `hostname -A`;
+
+       # check if we're on summit
+       if (index($host, "summit.olcf")) {
+           # summit uses jsrun
+           $command .= "jsrun -n $numTasks -a 1 -c 1 -g $numDevices ";
+       } else {
+           # assume mpirun if unknown
+           $command .= "mpirun -np $numTasks ";
+           $command .= "-hostfile $hostfile " if ($hostfile ne "");
+       }
    }
 
    # Construct the program path
