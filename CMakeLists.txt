@@ -1,23 +1,66 @@
 cmake_minimum_required(VERSION 3.8)
+project(SHOC 
+		VERSION 3.0.1.202004
+		DESCRIPTION "Scalable Heterogeneous Computing Benchmark Suite"
+		LANGUAGES CXX)
 
 include(CMakePrintHelpers)
+set(cmake_verbose 1)          # set to 1 if you need to debug the cmake build
 
-project(SHOC 
-	VERSION 3.0.1.202004
-	DESCRIPTION "Scalable Heterogeneous Computing Benchmark Suite"
-	LANGUAGES CXX)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+if(${cmake_verbose})
+	cmake_print_variables(CMAKE_BUILD_TYPE)
+endif()
 
-option(ENABLE_CUDA    "Cuda"    OFF)
-option(ENABLE_OPENMP  "OpenMP"  OFF)
-option(ENABLE_OPENACC "OpenACC" OFF)
-option(ENABLE_OPENCL  "OpenCL"  OFF)
-option(ENABLE_SYCL    "SYCL"    OFF)
-
-set(SHOC_SRC_DIR ${PROJECT_SOURCE_DIR}/src)
-set(SHOC_INC_DIR ${PROJECT_BINARY_DIR}/include/shoc)
-#cmake_print_variables(PROJECT_SOURCE_DIR)
+set(SHOC_SRC_DIR 	 ${PROJECT_SOURCE_DIR}/src)
+set(SHOC_INC_DIR 	 ${PROJECT_SOURCE_DIR}/include/shoc)
+set(SHOC_INSTALL_DIR ${PROJECT_BINARY_DIR})
+set(CMAKE_INSTALL_PREFIX ${SHOC_INSTALL_DIR})
 
 include_directories(${SHOC_INC_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/src/common)
+
+if(${cmake_verbose})
+	cmake_print_variables(PROJECT_SOURCE_DIR)
+	cmake_print_variables(PROJECT_BINARY_DIR)
+	cmake_print_variables(PROJECT_INSTALL_DIR)
+	cmake_print_variables(SHOC_INC_DIR)
+endif()
+
+option(ENABLE_CUDA    	"CUDA"    	OFF)
+option(ENABLE_OPENACC 	"OpenACC" 	OFF)
+option(ENABLE_OPENCL  	"OpenCL"  	ON)
+option(ENABLE_OPENMP  	"OpenMP"  	OFF )
+option(ENABLE_MPI     	"MPI"    	ON )
+option(ENABLE_triSYCL   "triSYCL"	OFF)
+if(${cmake_verbose})
+	cmake_print_variables(ENABLE_CUDA   )
+	cmake_print_variables(ENABLE_OPENACC)
+	cmake_print_variables(ENABLE_OPENCL )
+	cmake_print_variables(ENABLE_OPENMP )
+	cmake_print_variables(ENABLE_MPI )
+	cmake_print_variables(ENABLE_triSYCL   )
+endif()
+
+if(${ENABLE_CUDA})
+	find_package(CUDAToolkit REQUIRED)
+endif()
+if(${ENABLE_OPENACC})
+	find_package(OpenACC REQUIRED)
+endif()
+if(${ENABLE_OPENCL})
+	find_package(OpenCL REQUIRED)
+endif()
+if(${ENABLE_OPENMP})
+	find_package(OpenMP REQUIRED)
+endif()
+if(${ENABLE_MPI})
+	find_package(MPI REQUIRED)
+endif()
+if(${ENABLE_triSYCL})
+	find_package(TriSYCL REQUIRED)
+endif()
 
 add_subdirectory(src)
 add_subdirectory(docs)
@@ -38,3 +81,5 @@ configure_file (
     "${PROJECT_SOURCE_DIR}/include/shoc/shoci.h.in"
     "${SHOC_INC_DIR}/shoci.h"
 )
+
+# eof

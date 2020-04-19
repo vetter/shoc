@@ -26,3 +26,4 @@ Stencil2D_SOURCES = CUDAStencil.cpp \
                 main.cpp
 Stencil2D_LDADD = CUDAStencilKernel.o $(CUDA_LIBS) $(LIBS)
 
+ 

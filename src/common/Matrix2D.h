@@ -6,6 +6,7 @@
 #define restrict __restrict
 #else
 #include "shoci.h"
+// JSV - fix below
 #define restrict 
 #endif
 
