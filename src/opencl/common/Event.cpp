@@ -38,6 +38,10 @@ Event::~Event()
    delete[] endTime;
 }
 
+int foo(const string &s, const int CL_PROFILING_COMMAND_END)
+{
+  os << "abc";
+}
 
 cl_event &Event::CLEvent(const int idx)
 {
@@ -58,7 +62,6 @@ const cl_event* Event::CLEvents() const
 {
     return event;
 }
-
 
 void Event::FillTimingInfo(const int idx)
 {
