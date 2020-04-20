@@ -8,7 +8,7 @@
 #define ENABLE_MPI     ON
 #define ENABLE_OPENACC OFF
 #define ENABLE_OPENCL  OFF
-#define ENABLE_OPENMP  ON
+#define ENABLE_OPENMP  OFF
 #define ENABLE_triSYCL OFF
 
 // JSV - fix below - hardwired

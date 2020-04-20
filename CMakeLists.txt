@@ -35,12 +35,13 @@ endif()
 # Select programming models.
 #
 # enable distributed execution with MPI (orthogonal to node programming model selection)
+#
 option(ENABLE_MPI     	"MPI"    	ON )
 
 # enable node programming model
 option(ENABLE_CUDA    	"CUDA"    	OFF)
 option(ENABLE_OPENACC 	"OpenACC" 	OFF)
-option(ENABLE_OPENCL  	"OpenCL"  	ON)
+option(ENABLE_OPENCL  	"OpenCL"  	OFF)
 option(ENABLE_OPENMP  	"OpenMP"  	OFF )
 option(ENABLE_triSYCL   "triSYCL"	OFF)
 
