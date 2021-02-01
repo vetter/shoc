@@ -80,7 +80,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
 // OpenCL compiler options -- default is to enable
 // all optimizations
 static const char* opts = "-cl-mad-enable -cl-no-signed-zeros "
-                          "-cl-unsafe-math-optimizations -cl-finite-math-only";
+                          "-cl-finite-math-only";
 
 // Forward Declarations
 // generate simple precision and double precision versions of the benchmarks
