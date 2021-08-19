@@ -631,7 +631,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
     free(TEST_DATA_Y);
     free(TRAINING_DATA_Y);
 
-    for (i=0; i<NUM_LAYERS; i++) {
+    for (i=1; i<NUM_LAYERS; i++) {
       free(ACTIVATIONS[i]);
     }
     free(ACTIVATIONS);
