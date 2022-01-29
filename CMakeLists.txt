@@ -7,7 +7,7 @@ project(SHOC
 include(CMakePrintHelpers)
 set(cmake_verbose 1)          # set to 1 if you need to debug the cmake build
 
-
+########################
 #
 # Set up some global build variables
 #
@@ -30,7 +30,7 @@ if(${cmake_verbose})
 	cmake_print_variables(CMAKE_BUILD_TYPE)
 endif()
 
-
+########################
 #
 # Select programming models.
 #
@@ -73,6 +73,7 @@ if(${ENABLE_triSYCL})
 	find_package(TriSYCL REQUIRED)
 endif()
 
+########################
 #
 # Add our subdirs
 #
@@ -82,6 +83,7 @@ add_subdirectory(scripts)
 add_subdirectory(tests)
 add_subdirectory(tools)
 
+########################
 #
 # Create our internal header file based on our config.
 #
