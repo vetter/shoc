@@ -1,0 +1,232 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "cuda-only",
+      "displayName": "CUDA Only",
+      "description": "Build only CUDA benchmarks (fastest, for NVIDIA GPUs)",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "ON",
+        "SHOC_BUILD_OPENCL": "OFF",
+        "SHOC_BUILD_MPI": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-cuda"
+      }
+    },
+    {
+      "name": "cuda-mpi",
+      "displayName": "CUDA with MPI",
+      "description": "Build CUDA benchmarks with MPI support for multi-GPU",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "ON",
+        "SHOC_BUILD_OPENCL": "OFF",
+        "SHOC_BUILD_MPI": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-cuda-mpi"
+      }
+    },
+    {
+      "name": "opencl-only",
+      "displayName": "OpenCL Only",
+      "description": "Build only OpenCL benchmarks (portable, works with any GPU)",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "OFF",
+        "SHOC_BUILD_OPENCL": "ON",
+        "SHOC_BUILD_MPI": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-opencl"
+      }
+    },
+    {
+      "name": "opencl-mpi",
+      "displayName": "OpenCL with MPI",
+      "description": "Build OpenCL benchmarks with MPI support for multi-GPU",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "OFF",
+        "SHOC_BUILD_OPENCL": "ON",
+        "SHOC_BUILD_MPI": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-opencl-mpi"
+      }
+    },
+    {
+      "name": "full",
+      "displayName": "Full Build (CUDA + OpenCL + MPI)",
+      "description": "Build everything - all benchmarks and variants",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "ON",
+        "SHOC_BUILD_OPENCL": "ON",
+        "SHOC_BUILD_MPI": "ON",
+        "SHOC_BUILD_STABILITY": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-full"
+      }
+    },
+    {
+      "name": "minimal",
+      "displayName": "Minimal Build",
+      "description": "Smallest build - CUDA only, no MPI, no extras",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "ON",
+        "SHOC_BUILD_OPENCL": "OFF",
+        "SHOC_BUILD_MPI": "OFF",
+        "SHOC_BUILD_STABILITY": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-minimal"
+      }
+    },
+    {
+      "name": "dev-debug",
+      "displayName": "Development (Debug)",
+      "description": "Debug build for development with all features",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "ON",
+        "SHOC_BUILD_OPENCL": "ON",
+        "SHOC_BUILD_MPI": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-debug",
+        "CMAKE_CUDA_FLAGS": "-g -G",
+        "CMAKE_CXX_FLAGS": "-g -O0"
+      }
+    },
+    {
+      "name": "dev-asan",
+      "displayName": "Development (AddressSanitizer)",
+      "description": "Build with AddressSanitizer for memory error detection",
+      "inherits": "base",
+      "cacheVariables": {
+        "SHOC_BUILD_CUDA": "OFF",
+        "SHOC_BUILD_OPENCL": "ON",
+        "SHOC_BUILD_MPI": "OFF",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install-asan",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer -g"
+      }
+    },
+    {
+      "name": "cuda-arch-ampere",
+      "displayName": "CUDA for Ampere GPUs (RTX 30xx, A100)",
+      "description": "Optimized for NVIDIA Ampere architecture (compute capability 8.x)",
+      "inherits": "cuda-only",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "80;86"
+      }
+    },
+    {
+      "name": "cuda-arch-turing",
+      "displayName": "CUDA for Turing GPUs (RTX 20xx, T4)",
+      "description": "Optimized for NVIDIA Turing architecture (compute capability 7.5)",
+      "inherits": "cuda-only",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "75"
+      }
+    },
+    {
+      "name": "cuda-arch-volta",
+      "displayName": "CUDA for Volta GPUs (V100)",
+      "description": "Optimized for NVIDIA Volta architecture (compute capability 7.0)",
+      "inherits": "cuda-only",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "70"
+      }
+    },
+    {
+      "name": "cuda-arch-pascal",
+      "displayName": "CUDA for Pascal GPUs (GTX 10xx, P100)",
+      "description": "Optimized for NVIDIA Pascal architecture (compute capability 6.x)",
+      "inherits": "cuda-only",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "60;61"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "cuda-only",
+      "configurePreset": "cuda-only",
+      "displayName": "Build CUDA Only",
+      "description": "Build using the cuda-only configuration"
+    },
+    {
+      "name": "cuda-mpi",
+      "configurePreset": "cuda-mpi",
+      "displayName": "Build CUDA with MPI"
+    },
+    {
+      "name": "opencl-only",
+      "configurePreset": "opencl-only",
+      "displayName": "Build OpenCL Only"
+    },
+    {
+      "name": "opencl-mpi",
+      "configurePreset": "opencl-mpi",
+      "displayName": "Build OpenCL with MPI"
+    },
+    {
+      "name": "full",
+      "configurePreset": "full",
+      "displayName": "Build Everything",
+      "description": "Build all benchmarks and variants"
+    },
+    {
+      "name": "minimal",
+      "configurePreset": "minimal",
+      "displayName": "Build Minimal"
+    },
+    {
+      "name": "dev-debug",
+      "configurePreset": "dev-debug",
+      "displayName": "Build Debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "cuda-only",
+      "configurePreset": "cuda-only",
+      "displayName": "Test CUDA Benchmarks",
+      "description": "Run tests for CUDA benchmarks",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "opencl-only",
+      "configurePreset": "opencl-only",
+      "displayName": "Test OpenCL Benchmarks",
+      "description": "Run tests for OpenCL benchmarks",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "full",
+      "configurePreset": "full",
+      "displayName": "Test All Benchmarks",
+      "description": "Run all benchmark tests",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
