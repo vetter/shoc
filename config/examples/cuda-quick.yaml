@@ -1,0 +1,15 @@
+# SHOC Driver Configuration - Quick CUDA Test
+# Usage: ./tools/shocdriver.py --config config/examples/cuda-quick.yaml
+
+backend: cuda
+size: 1  # Small problem size for quick testing
+devices: "0"
+platform: "0"
+num_nodes: 1
+bin_dir: ./install-cuda/bin
+log_dir: ./Logs
+parallel_execution: false
+max_workers: 1
+
+# Optional: Run only specific benchmark
+# benchmark: FFT

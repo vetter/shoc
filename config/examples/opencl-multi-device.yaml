@@ -1,0 +1,12 @@
+# SHOC Driver Configuration - OpenCL Multi-Device
+# Usage: ./tools/shocdriver.py --config config/examples/opencl-multi-device.yaml
+
+backend: opencl
+size: 2
+devices: "0,1"  # Use two GPUs
+platform: "0"
+num_nodes: 1
+bin_dir: ./install-opencl/bin
+log_dir: ./Logs/opencl-multi
+parallel_execution: false
+max_workers: 1

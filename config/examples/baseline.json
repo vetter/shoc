@@ -1,0 +1,12 @@
+{
+  "backend": "cuda",
+  "size": 2,
+  "devices": "0",
+  "platform": "0",
+  "num_nodes": 1,
+  "bin_dir": "./install-cuda/bin",
+  "log_dir": "./Logs/baseline",
+  "parallel_execution": true,
+  "max_workers": 8,
+  "comment": "Baseline configuration for performance tracking"
+}

@@ -1,0 +1,12 @@
+# SHOC Driver Configuration - Full CUDA Benchmark Suite
+# Usage: ./tools/shocdriver.py --config config/examples/cuda-full.yaml
+
+backend: cuda
+size: 3  # Large problem size
+devices: "0"
+platform: "0"
+num_nodes: 1
+bin_dir: ./install-cuda/bin
+log_dir: ./Logs/cuda-full
+parallel_execution: true  # Run benchmarks in parallel to save time
+max_workers: 4  # Run up to 4 benchmarks concurrently
