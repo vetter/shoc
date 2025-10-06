@@ -1,0 +1,73 @@
+# Experiment Workflow Configuration
+# Multi-phase experiment with different objectives per phase
+
+type: experiment
+name: "Performance Characterization Study"
+output_dir: ./results/experiment
+
+phases:
+  # Phase 1: Device Capabilities
+  - name: "Device Characterization"
+    defaults:
+      backend: cuda
+      size: 2
+      devices: "0"
+      bin_dir: ./install-cuda/bin
+      log_dir: ./Logs/experiment/phase1
+
+    benchmarks:
+      - name: "Peak FLOPS"
+        benchmark: MaxFlops
+
+      - name: "Memory Bandwidth"
+        benchmark: DeviceMemory
+
+      - name: "PCIe Bandwidth"
+        benchmark: BusSpeedDownload
+
+  # Phase 2: Algorithm Performance
+  - name: "Algorithm Benchmarks"
+    defaults:
+      backend: cuda
+      size: 3
+      devices: "0"
+      bin_dir: ./install-cuda/bin
+      log_dir: ./Logs/experiment/phase2
+
+    benchmarks:
+      - name: "FFT"
+        benchmark: FFT
+
+      - name: "GEMM"
+        benchmark: GEMM
+
+      - name: "Reduction"
+        benchmark: Reduction
+
+      - name: "Scan"
+        benchmark: Scan
+
+      - name: "Sort"
+        benchmark: Sort
+
+  # Phase 3: Application Kernels
+  - name: "Application Performance"
+    defaults:
+      backend: cuda
+      size: 3
+      devices: "0"
+      bin_dir: ./install-cuda/bin
+      log_dir: ./Logs/experiment/phase3
+
+    benchmarks:
+      - name: "Molecular Dynamics"
+        benchmark: MD
+
+      - name: "Graph BFS"
+        benchmark: BFS
+
+      - name: "S3D Chemistry"
+        benchmark: S3D
+
+      - name: "Stencil Computation"
+        benchmark: Stencil2D

@@ -1,0 +1,46 @@
+# Benchmark Suite Configuration
+# Run a curated set of benchmarks with shared defaults
+
+type: suite
+name: "Core Performance Suite"
+
+# Defaults applied to all benchmarks in suite
+defaults:
+  backend: cuda
+  size: 2
+  devices: "0"
+  bin_dir: ./install-cuda/bin
+  log_dir: ./Logs/suite
+  output_dir: ./results/suite
+
+# List of benchmarks to run
+benchmarks:
+  - name: "Device Bandwidth"
+    benchmark: DeviceMemory
+
+  - name: "PCIe Transfer"
+    benchmark: BusSpeedDownload
+
+  - name: "FFT Single Precision"
+    benchmark: FFT
+
+  - name: "GEMM Single Precision"
+    benchmark: GEMM
+
+  - name: "Molecular Dynamics"
+    benchmark: MD
+
+  - name: "Reduction"
+    benchmark: Reduction
+
+  - name: "Scan"
+    benchmark: Scan
+
+  - name: "Sort"
+    benchmark: Sort
+
+  - name: "BFS Graph Traversal"
+    benchmark: BFS
+
+  - name: "S3D Application"
+    benchmark: S3D

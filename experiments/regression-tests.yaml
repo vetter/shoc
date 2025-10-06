@@ -1,0 +1,41 @@
+# Regression Test Suite
+# Quick smoke tests for CI/CD
+
+type: suite
+name: "Regression Test Suite"
+
+defaults:
+  backend: cuda
+  size: 1  # Small size for fast testing
+  devices: "0"
+  bin_dir: ./install-cuda/bin
+  log_dir: ./Logs/regression
+  output_dir: ./results/regression
+
+benchmarks:
+  # Level 0 - Basic device tests
+  - name: "reg-maxflops"
+    benchmark: MaxFlops
+
+  - name: "reg-busspeed"
+    benchmark: BusSpeedDownload
+
+  - name: "reg-devmem"
+    benchmark: DeviceMemory
+
+  # Level 1 - Core algorithms (subset)
+  - name: "reg-fft"
+    benchmark: FFT
+
+  - name: "reg-gemm"
+    benchmark: GEMM
+
+  - name: "reg-reduction"
+    benchmark: Reduction
+
+  - name: "reg-sort"
+    benchmark: Sort
+
+  # Level 2 - One application kernel
+  - name: "reg-s3d"
+    benchmark: S3D

@@ -1,0 +1,24 @@
+# Parameter Sweep Configuration
+# Automatically run all combinations of parameters
+
+type: sweep
+name: "Size Class Sweep"
+
+# Base configuration for all runs
+base:
+  backend: cuda
+  devices: "0"
+  benchmark: GEMM
+  bin_dir: ./install-cuda/bin
+  log_dir: ./Logs/sweep
+  output_dir: ./results/sweep
+
+# Parameters to sweep (will generate all combinations)
+parameters:
+  size: [1, 2, 3, 4]
+
+# This will generate 4 runs:
+#   - size=1
+#   - size=2
+#   - size=3
+#   - size=4

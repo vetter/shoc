@@ -1,0 +1,22 @@
+# Multi-GPU Scaling Sweep
+# Test scaling across different GPU counts
+
+type: sweep
+name: "GPU Scaling Analysis"
+
+base:
+  backend: cuda
+  size: 3
+  benchmark: GEMM
+  bin_dir: ./install-cuda/bin
+  log_dir: ./Logs/gpu-scaling
+  output_dir: ./results/gpu-scaling
+
+# Sweep over device configurations
+parameters:
+  devices: ["0", "0,1", "0,1,2,3"]
+
+# This will generate 3 runs testing:
+#   - 1 GPU
+#   - 2 GPUs
+#   - 4 GPUs

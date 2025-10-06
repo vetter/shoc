@@ -1,0 +1,54 @@
+# Optimization Comparison Experiment
+# Compare performance before and after code changes
+
+type: experiment
+name: "Before/After Optimization"
+output_dir: ./results/optimization
+
+phases:
+  # Phase 1: Baseline (before optimization)
+  - name: "Baseline"
+    defaults:
+      backend: cuda
+      size: 3
+      devices: "0"
+      bin_dir: ./install-baseline/bin  # Build from main branch
+      log_dir: ./Logs/optimization/baseline
+
+    benchmarks:
+      - name: "baseline-fft"
+        benchmark: FFT
+
+      - name: "baseline-gemm"
+        benchmark: GEMM
+
+      - name: "baseline-md"
+        benchmark: MD
+
+      - name: "baseline-reduction"
+        benchmark: Reduction
+
+  # Phase 2: Optimized (after changes)
+  - name: "Optimized"
+    defaults:
+      backend: cuda
+      size: 3
+      devices: "0"
+      bin_dir: ./install-optimized/bin  # Build from feature branch
+      log_dir: ./Logs/optimization/optimized
+
+    benchmarks:
+      - name: "optimized-fft"
+        benchmark: FFT
+
+      - name: "optimized-gemm"
+        benchmark: GEMM
+
+      - name: "optimized-md"
+        benchmark: MD
+
+      - name: "optimized-reduction"
+        benchmark: Reduction
+
+# After running, compare with:
+# ./tools/shocviz.py results/optimization/baseline-*.csv results/optimization/optimized-*.csv --speedup --output speedup.png

@@ -1,0 +1,13 @@
+# Single Benchmark Configuration
+# Run one specific benchmark
+
+type: single
+name: "FFT Performance Test"
+
+backend: cuda
+size: 2
+devices: "0"
+benchmark: FFT
+bin_dir: ./install-cuda/bin
+log_dir: ./Logs/single-test
+output_dir: ./results/single

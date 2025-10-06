@@ -1,0 +1,47 @@
+# Test Matrix Configuration
+# Explicit list of test configurations (not all combinations)
+
+type: matrix
+name: "CUDA vs OpenCL Comparison"
+
+# Base configuration
+base:
+  size: 2
+  devices: "0"
+  bin_dir: ./install-full/bin
+  log_dir: ./Logs/matrix
+  output_dir: ./results/matrix
+
+# Explicit matrix of configurations
+matrix:
+  - name: "CUDA-FFT"
+    backend: cuda
+    benchmark: FFT
+
+  - name: "OpenCL-FFT"
+    backend: opencl
+    benchmark: FFT
+
+  - name: "CUDA-GEMM"
+    backend: cuda
+    benchmark: GEMM
+
+  - name: "OpenCL-GEMM"
+    backend: opencl
+    benchmark: GEMM
+
+  - name: "CUDA-Reduction"
+    backend: cuda
+    benchmark: Reduction
+
+  - name: "OpenCL-Reduction"
+    backend: opencl
+    benchmark: Reduction
+
+  - name: "CUDA-Sort"
+    backend: cuda
+    benchmark: Sort
+
+  - name: "OpenCL-Sort"
+    backend: opencl
+    benchmark: Sort
