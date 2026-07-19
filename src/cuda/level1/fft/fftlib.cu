@@ -163,7 +163,7 @@ forward(void* work, const int n_ffts)
             (cufftComplex*)work, CUFFT_FORWARD);
     }
     printCUFFTError(res);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CHECK_CUDA_ERROR();
 #else
     if (do_dp)
@@ -174,7 +174,7 @@ forward(void* work, const int n_ffts)
     {
         FFT512_device<float2, float><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CHECK_CUDA_ERROR();
 #endif
 }
@@ -206,7 +206,7 @@ inverse(void* work, const int n_ffts)
     {
         norm512_device<float2><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CHECK_CUDA_ERROR();
 #else
     if (do_dp)
@@ -217,7 +217,7 @@ inverse(void* work, const int n_ffts)
     {
         IFFT512_device<float2, float><<<grid2D(n_ffts), 64>>>((float2*)work);
     }
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CHECK_CUDA_ERROR();
     // normalization built in to inverse...
 #endif

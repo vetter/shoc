@@ -236,7 +236,7 @@ void RunBenchmark(ResultDatabase &resultDB, OptionParser &op)
                 currStream = !currStream;
             }
 
-            cudaThreadSynchronize();
+            cudaDeviceSynchronize();
             double time = Timer::Stop(TH, "thread synchronize");
 
             double triad = ((double)numMaxFloats * 2.0) / (time*1e9);

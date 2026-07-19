@@ -36,14 +36,11 @@ inline int populateNeighborList(std::list<T>& currDist,
         std::list<int>& currList, const int j, const int nAtom,
         int* neighborList);
 
-// Texture caches for position info
-texture<float4, 1, cudaReadModeElementType> posTexture;
-texture<int4, 1, cudaReadModeElementType> posTexture_dp;
-
 struct texReader_sp {
+   cudaTextureObject_t tex;
    __device__ __forceinline__ float4 operator()(int idx) const
    {
-       return tex1Dfetch(posTexture, idx);
+       return tex1Dfetch<float4>(tex, idx);
    }
 };
 
@@ -51,6 +48,7 @@ struct texReader_sp {
 // here, resulting in a bit of overhead, but it's still faster than
 // an uncoalesced read
 struct texReader_dp {
+   cudaTextureObject_t tex;
    __device__ __forceinline__ double4 operator()(int idx) const
    {
 #if (__CUDA_ARCH__ < 130)
@@ -60,11 +58,11 @@ struct texReader_dp {
        // but since the arch doesn't support DP, it will never be called
        return make_double4(0., 0., 0., 0.);
 #else
-       int4 v = tex1Dfetch(posTexture_dp, idx*2);
+       int4 v = tex1Dfetch<int4>(tex, idx*2);
        double2 a = make_double2(__hiloint2double(v.y, v.x),
                                 __hiloint2double(v.w, v.z));
 
-       v = tex1Dfetch(posTexture_dp, idx*2 + 1);
+       v = tex1Dfetch<int4>(tex, idx*2 + 1);
        double2 b = make_double2(__hiloint2double(v.y, v.x),
                                 __hiloint2double(v.w, v.z));
 
@@ -105,7 +103,8 @@ __global__ void compute_lj_force(forceVecType* __restrict__ force3,
                                  const T cutsq,
                                  const T lj1,
                                  const T lj2,
-                                 const int inum)
+                                 const int inum,
+                                 const texReader positionTexReader)
 {
     // Global ID - one thread per atom
     int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -115,8 +114,6 @@ __global__ void compute_lj_force(forceVecType* __restrict__ force3,
 
     // Force accumulator
     forceVecType f = {0.0f, 0.0f, 0.0f};
-
-    texReader positionTexReader;
 
     int j = 0;
     while (j < neighCount)
@@ -349,20 +346,24 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
         position[i].z = (T)(drand48() * domainEdge);
     }
 
+    texReader positionTexReader = {};
     if (useTexture)
     {
-        // Set up 1D texture to cache position info
-        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
+        // Set up a 1D texture object to cache position info
+        cudaResourceDesc resDesc = {};
+        resDesc.resType = cudaResourceTypeLinear;
+        resDesc.res.linear.devPtr = d_position;
+        // CUDA has no native double4 texture format, so texReader_dp
+        // reinterprets the data as int4 pairs instead.
+        resDesc.res.linear.desc = (sizeof(T) == sizeof(double)) ?
+                cudaCreateChannelDesc<int4>() : cudaCreateChannelDesc<float4>();
+        resDesc.res.linear.sizeInBytes = nAtom*sizeof(posVecType);
 
-        // Bind a 1D texture to the position array
-        CUDA_SAFE_CALL(cudaBindTexture(0, posTexture, d_position, channelDesc,
-                nAtom*sizeof(float4)));
+        cudaTextureDesc texDesc = {};
+        texDesc.readMode = cudaReadModeElementType;
 
-        cudaChannelFormatDesc channelDesc2 = cudaCreateChannelDesc<int4>();
-
-        // Bind a 1D texture to the position array
-        CUDA_SAFE_CALL(cudaBindTexture(0, posTexture_dp, d_position,
-                channelDesc2, nAtom*sizeof(double4)));
+        CUDA_SAFE_CALL(cudaCreateTextureObject(&positionTexReader.tex, &resDesc,
+                &texDesc, NULL));
     }
 
     // Keep track of how many atoms are within the cutoff distance to
@@ -403,8 +404,8 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
     compute_lj_force<T, forceVecType, posVecType, useTexture, texReader>
                     <<<gridSize, blockSize>>>
                     (d_force, d_position, maxNeighbors, d_neighborList,
-                     cutsq, lj1, lj2, nAtom);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
+                     cutsq, lj1, lj2, nAtom, positionTexReader);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
     // Copy back forces
     cudaEvent_t outputTransfer_start, outputTransfer_stop;
@@ -446,7 +447,7 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
             compute_lj_force<T, forceVecType, posVecType, useTexture, texReader>
                 <<<gridSize, blockSize>>>
                 (d_force, d_position, maxNeighbors, d_neighborList, cutsq,
-                 lj1, lj2, nAtom);
+                 lj1, lj2, nAtom, positionTexReader);
         }
         cudaEventRecord(kernel_stop, 0);
         CUDA_SAFE_CALL(cudaEventSynchronize(kernel_stop));
@@ -489,7 +490,10 @@ void runTest(const string& testName, ResultDatabase& resultDB, OptionParser& op)
     CUDA_SAFE_CALL(cudaFreeHost(force));
     CUDA_SAFE_CALL(cudaFreeHost(neighborList));
     // Device
-    CUDA_SAFE_CALL(cudaUnbindTexture(posTexture));
+    if (useTexture)
+    {
+        CUDA_SAFE_CALL(cudaDestroyTextureObject(positionTexReader.tex));
+    }
     CUDA_SAFE_CALL(cudaFree(d_position));
     CUDA_SAFE_CALL(cudaFree(d_force));
     CUDA_SAFE_CALL(cudaFree(d_neighborList));

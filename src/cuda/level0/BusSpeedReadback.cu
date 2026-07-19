@@ -122,7 +122,7 @@ void RunBenchmark(ResultDatabase &resultDB,
 
     cudaMemcpy(device, hostMem1,
                numMaxFloats*sizeof(float), cudaMemcpyHostToDevice);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     const unsigned int passes = op.getOptionInt("passes");
 
     cudaEvent_t start, stop;

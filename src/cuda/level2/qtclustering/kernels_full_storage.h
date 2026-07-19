@@ -2,7 +2,7 @@
 #define _KERNELS_FULL_STORAGE_H_
 
 inline __device__
-int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, float threshold, bool can_use_texture){
+int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, float threshold, bool can_use_texture, cudaTextureObject_t texDistance){
     int point_index = -1;
     float min_dist=2*threshold;
 
@@ -21,7 +21,7 @@ int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mas
 
             float curr_dist_to_clust = dist_to_clust[i+tid];
             if( can_use_texture ){
-                dist_to_new_point = tex2D(texDistance, float(latest_point)+0.5f, float(pnt2_indx)+0.5f );
+                dist_to_new_point = tex2D<float>(texDistance, float(latest_point)+0.5f, float(pnt2_indx)+0.5f );
             }else{
                 dist_to_new_point = work[pnt2_indx*N0 + latest_point];
             }
@@ -56,7 +56,7 @@ do{ \
  \
                     float curr_dist_to_clust = _CAND_PNT_DIST_; \
                     if( can_use_texture ){\
-                    dist_to_new_point = tex2D(texDistance, float(latest_point)+0.5f, float( (_CAND_PNT_) )+0.5f ); \
+                    dist_to_new_point = tex2D<float>(texDistance, float(latest_point)+0.5f, float( (_CAND_PNT_) )+0.5f ); \
                     }else{\
                     dist_to_new_point = work[ (_CAND_PNT_) * N0 + latest_point]; \
                     }\
@@ -79,7 +79,7 @@ do{ \
 
 
 inline __device__
-int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture)
+int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture, cudaTextureObject_t texDistance)
 {
     bool flag;
     int cnt, latest_point;
@@ -194,7 +194,7 @@ int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai
         while( (cnt < point_count) && flag ){
             int min_G_index;
             min_G_index = find_closest_point_to_cluster(seed_point, latest_point, Ai_mask, clustered_pnts_mask, work,
-                                                        indr_mtrx, dist_to_clust, point_count, N0, max_degree, threshold, can_use_texture);
+                                                        indr_mtrx, dist_to_clust, point_count, N0, max_degree, threshold, can_use_texture, texDistance);
             if(min_G_index >= 0 ){
                 if( 0 == tid ){
                     Ai_mask[min_G_index] = 1;

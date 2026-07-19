@@ -10,21 +10,20 @@
 
 using namespace std;
 
-texture<float, 1> vecTex;  // vector textures
-texture<int2, 1>  vecTexD;
-
 // Texture Readers (used so kernels can be templated)
 struct texReaderSP {
+   cudaTextureObject_t tex;
    __device__ __forceinline__ float operator()(const int idx) const
    {
-       return tex1Dfetch(vecTex, idx);
+       return tex1Dfetch<float>(tex, idx);
    }
 };
 
 struct texReaderDP {
+   cudaTextureObject_t tex;
    __device__ __forceinline__ double operator()(const int idx) const
    {
-       int2 v = tex1Dfetch(vecTexD, idx);
+       int2 v = tex1Dfetch<int2>(tex, idx);
 #if (__CUDA_ARCH__ < 130)
        // Devices before arch 130 don't support DP, and having the
        // __hiloint2double() intrinsic will cause compilation to fail.
@@ -43,21 +42,24 @@ __global__ void
 spmv_csr_scalar_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, fpType * __restrict__ out);
+                       const int dim, fpType * __restrict__ out,
+                       const texReader vecTexReader);
 
 template <typename fpType, typename texReader>
 __global__ void
 spmv_csr_vector_kernel(const fpType * __restrict__ val,
              	       const int    * __restrict__ cols,
 		               const int    * __restrict__ rowDelimiters,
-                       const int dim, fpType * __restrict__ out);
+                       const int dim, fpType * __restrict__ out,
+                       const texReader vecTexReader);
 
 template <typename fpType, typename texReader>
 __global__ void
 spmv_ellpackr_kernel(const fpType * __restrict__ val,
 		             const int    * __restrict__ cols,
 		             const int    * __restrict__ rowLengths,
-                     const int dim, fpType * __restrict__ out);
+                     const int dim, fpType * __restrict__ out,
+                     const texReader vecTexReader);
 
 template <typename fpType>
 __global__ void
@@ -216,17 +218,25 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
 
       // Bind texture for position
       string suffix;
+      texReader vecTexReader = {};
+      cudaResourceDesc resDesc = {};
+      resDesc.resType = cudaResourceTypeLinear;
+      resDesc.res.linear.devPtr = d_vec;
+      cudaTextureDesc texDesc = {};
+      texDesc.readMode = cudaReadModeElementType;
       if (sizeof(floatType) == sizeof(float))
       {
-          cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-          CUDA_SAFE_CALL(cudaBindTexture(0, vecTex, d_vec, channelDesc,
-                  numRows * sizeof(float)));
+          resDesc.res.linear.desc = cudaCreateChannelDesc<float>();
+          resDesc.res.linear.sizeInBytes = numRows * sizeof(float);
+          CUDA_SAFE_CALL(cudaCreateTextureObject(&vecTexReader.tex, &resDesc,
+                  &texDesc, NULL));
           suffix = "-SP";
       }
       else {
-          cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<int2>();
-          CUDA_SAFE_CALL(cudaBindTexture(0, vecTexD, d_vec, channelDesc,
-                  numRows * sizeof(int2)));
+          resDesc.res.linear.desc = cudaCreateChannelDesc<int2>();
+          resDesc.res.linear.sizeInBytes = numRows * sizeof(int2);
+          CUDA_SAFE_CALL(cudaCreateTextureObject(&vecTexReader.tex, &resDesc,
+                  &texDesc, NULL));
           suffix = "-DP";
       }
 
@@ -252,7 +262,7 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
           {
               spmv_csr_scalar_kernel<floatType, texReader>
               <<<nBlocksScalar, BLOCK_SIZE>>>
-              (d_val, d_cols, d_rowDelimiters, numRows, d_out);
+              (d_val, d_cols, d_rowDelimiters, numRows, d_out, vecTexReader);
           }
           CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
           CUDA_SAFE_CALL(cudaEventSynchronize(stop));
@@ -280,7 +290,7 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
                             gflop / (scalarKernelTime+totalTransfer));
       }
       zero<floatType><<<nBlocksScalar, BLOCK_SIZE>>>(d_out, numRows);
-      cudaThreadSynchronize();
+      cudaDeviceSynchronize();
 
       cout << "CSR Vector Kernel\n";
       for (int k=0; k<passes; k++)
@@ -291,7 +301,7 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
           {
               spmv_csr_vector_kernel<floatType, texReader>
               <<<nBlocksVector, BLOCK_SIZE>>>
-              (d_val, d_cols, d_rowDelimiters, numRows, d_out);
+              (d_val, d_cols, d_rowDelimiters, numRows, d_out, vecTexReader);
           }
           CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
           CUDA_SAFE_CALL(cudaEventSynchronize(stop));
@@ -299,7 +309,7 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
           CUDA_SAFE_CALL(cudaEventElapsedTime(&vectorKernelTime, start, stop));
           CUDA_SAFE_CALL(cudaMemcpy(h_out, d_out, numRows * sizeof(floatType),
                   cudaMemcpyDeviceToHost));
-          cudaThreadSynchronize();
+          cudaDeviceSynchronize();
           // Compare reference solution to GPU result
           if (! verifyResults(refOut, h_out, numRows, k))
           {
@@ -318,8 +328,7 @@ void csrTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
       CUDA_SAFE_CALL(cudaFree(d_out));
       CUDA_SAFE_CALL(cudaFree(d_val));
       CUDA_SAFE_CALL(cudaFree(d_cols));
-      CUDA_SAFE_CALL(cudaUnbindTexture(vecTexD));
-      CUDA_SAFE_CALL(cudaUnbindTexture(vecTex));
+      CUDA_SAFE_CALL(cudaDestroyTextureObject(vecTexReader.tex));
       CUDA_SAFE_CALL(cudaEventDestroy(start));
       CUDA_SAFE_CALL(cudaEventDestroy(stop));
 }
@@ -377,17 +386,25 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
             cmSize * sizeof(int), cudaMemcpyHostToDevice));
 
     // Bind texture for position
+    texReader vecTexReader = {};
+    cudaResourceDesc resDesc = {};
+    resDesc.resType = cudaResourceTypeLinear;
+    resDesc.res.linear.devPtr = d_vec;
+    cudaTextureDesc texDesc = {};
+    texDesc.readMode = cudaReadModeElementType;
     if (sizeof(floatType) == sizeof(float))
     {
-        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-        CUDA_SAFE_CALL(cudaBindTexture(0, vecTex, d_vec, channelDesc,
-                numRows * sizeof(float)));
+        resDesc.res.linear.desc = cudaCreateChannelDesc<float>();
+        resDesc.res.linear.sizeInBytes = numRows * sizeof(float);
+        CUDA_SAFE_CALL(cudaCreateTextureObject(&vecTexReader.tex, &resDesc,
+                &texDesc, NULL));
     }
     else
     {
-        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<int2>();
-        CUDA_SAFE_CALL(cudaBindTexture(0, vecTexD, d_vec, channelDesc,
-                numRows * sizeof(int2)));
+        resDesc.res.linear.desc = cudaCreateChannelDesc<int2>();
+        resDesc.res.linear.sizeInBytes = numRows * sizeof(int2);
+        CUDA_SAFE_CALL(cudaCreateTextureObject(&vecTexReader.tex, &resDesc,
+                &texDesc, NULL));
     }
     int nBlocks = (int) ceil((floatType) cmSize / BLOCK_SIZE);
     int passes = op.getOptionInt("passes");
@@ -401,7 +418,7 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
         for (int j = 0; j < iters; j++)
         {
             spmv_ellpackr_kernel<floatType, texReader><<<nBlocks, BLOCK_SIZE>>>
-                    (d_val, d_cols, d_rowLengths, cmSize, d_out);
+                    (d_val, d_cols, d_rowLengths, cmSize, d_out, vecTexReader);
         }
         CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
         CUDA_SAFE_CALL(cudaEventSynchronize(stop));
@@ -433,14 +450,7 @@ void ellPackTest(ResultDatabase& resultDB, OptionParser& op, floatType* h_val,
     CUDA_SAFE_CALL(cudaFree(d_out));
     CUDA_SAFE_CALL(cudaFree(d_val));
     CUDA_SAFE_CALL(cudaFree(d_cols));
-    if (sizeof(floatType) == sizeof(double))
-    {
-        CUDA_SAFE_CALL(cudaUnbindTexture(vecTexD));
-    }
-    else
-    {
-        CUDA_SAFE_CALL(cudaUnbindTexture(vecTex));
-    }
+    CUDA_SAFE_CALL(cudaDestroyTextureObject(vecTexReader.tex));
     CUDA_SAFE_CALL(cudaEventDestroy(start));
     CUDA_SAFE_CALL(cudaEventDestroy(stop));
     CUDA_SAFE_CALL(cudaFreeHost(h_rowLengths));
@@ -670,10 +680,10 @@ __global__ void
 spmv_csr_scalar_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, fpType * __restrict__ out)
+                       const int dim, fpType * __restrict__ out,
+                       const texReader vecTexReader)
 {
     int myRow = blockIdx.x * blockDim.x + threadIdx.x;
-    texReader vecTexReader;
 
     if (myRow < dim)
     {
@@ -720,7 +730,8 @@ __global__ void
 spmv_csr_vector_kernel(const fpType * __restrict__ val,
                        const int    * __restrict__ cols,
                        const int    * __restrict__ rowDelimiters,
-                       const int dim, fpType * __restrict__ out)
+                       const int dim, fpType * __restrict__ out,
+                       const texReader vecTexReader)
 {
     // Thread ID in block
     int t = threadIdx.x;
@@ -729,8 +740,6 @@ spmv_csr_vector_kernel(const fpType * __restrict__ val,
     int warpsPerBlock = blockDim.x / warpSize;
     // One row per warp
     int myRow = (blockIdx.x * warpsPerBlock) + (t / warpSize);
-    // Texture reader for the dense vector
-    texReader vecTexReader;
 
     __shared__ volatile fpType partialSums[BLOCK_SIZE];
 
@@ -791,10 +800,10 @@ __global__ void
 spmv_ellpackr_kernel(const fpType * __restrict__ val,
                      const int    * __restrict__ cols,
                      const int    * __restrict__ rowLengths,
-                     const int dim, fpType * __restrict__ out)
+                     const int dim, fpType * __restrict__ out,
+                     const texReader vecTexReader)
 {
     int t = blockIdx.x * blockDim.x + threadIdx.x;
-    texReader vecTexReader;
 
     if (t < dim)
     {
