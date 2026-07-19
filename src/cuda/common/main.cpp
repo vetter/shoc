@@ -100,7 +100,13 @@ void EnumerateDevicesAndChoose(int chooseDevice, bool verbose)
                     deviceProp.totalConstMem) << endl;
             cout << "  major (hw version) = " << deviceProp.major << endl;
             cout << "  minor (hw version) = " << deviceProp.minor << endl;
+#if CUDART_VERSION >= 13000
+            int clockRate;
+            cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, device);
+            cout << "  clockRate          = " << clockRate << endl;
+#else
             cout << "  clockRate          = " << deviceProp.clockRate << endl;
+#endif
             cout << "  textureAlignment   = " << deviceProp.textureAlignment
                     << endl;
         }

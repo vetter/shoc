@@ -12,13 +12,13 @@
 #include "qtc_common.h"
 
 // Forward declarations
-__global__ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int cwrank, int node_rank, int node_count, int total_thread_block_count, bool can_use_texture);
+__global__ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int node_rank, int node_count, int total_thread_block_count, int matrix_type_mask, bool can_use_texture, cudaTextureObject_t texDistance);
 
-__device__ int generate_candidate_cluster_compact_storage(int seed_point, int degree, char *Ai_mask, float *compact_storage_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
+__device__ int generate_candidate_cluster_compact_storage(int seed_point, int degree, char *Ai_mask, float *compact_storage_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture, cudaTextureObject_t texDistance);
 
-__device__ int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture);
+__device__ int generate_candidate_cluster_full_storage(int seed_point, int degree, char *Ai_mask, float *work, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture, cudaTextureObject_t texDistance);
 
-__device__ int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, float threshold);
+__device__ int find_closest_point_to_cluster(int seed_point, int latest_point, char *Ai_mask, char *clustered_pnts_mask, float *work, int *indr_mtrx, float *dist_to_clust, int pointCount, int N0, int max_degree, float threshold, bool can_use_texture, cudaTextureObject_t texDistance);
 
 void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int matrix_type);
 
@@ -138,7 +138,7 @@ update_clustered_pnts_mask(char *clustered_pnts_mask, char *Ai_mask, int N0 ) {
 
 
 __global__ void
-trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dist_matrix, int *result_cluster, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int matrix_type_mask, bool can_use_texture) {
+trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dist_matrix, int *result_cluster, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int matrix_type_mask, bool can_use_texture, cudaTextureObject_t texDistance) {
     int cnt;
     int tid = threadIdx.x;
     int curThreadCount = blockDim.x*blockDim.y*blockDim.z;
@@ -147,10 +147,10 @@ trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dis
     int degree = degrees[seed_index];
     if( matrix_type_mask & FULL_STORAGE_MATRIX ){
         (void)generate_candidate_cluster_full_storage(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
-                                               dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture);
+                                               dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture, texDistance);
     }else{
         (void)generate_candidate_cluster_compact_storage(seed_index, degree, Ai_mask, dist_matrix, clustered_pnts_mask, indr_mtrx,
-                                               dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture);
+                                               dist_to_clust, point_count, N0, max_degree, result_cluster, threshold, can_use_texture, texDistance);
     }
 
     __shared__ int cnt_sh;
@@ -201,7 +201,7 @@ trim_ungrouped_pnts_indr_array(int seed_index, int *ungrpd_pnts_indr, float *dis
 
 
 __global__
-void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int node_rank, int node_count, int total_thread_block_count, int matrix_type_mask, bool can_use_texture) {
+void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, int *indr_mtrx, int *cluster_cardinalities, int *ungrpd_pnts_indr, float *dist_to_clust, int *degrees, int point_count, int N0, int max_degree, float threshold, int node_rank, int node_count, int total_thread_block_count, int matrix_type_mask, bool can_use_texture, cudaTextureObject_t texDistance) {
     int max_cardinality = -1;
     int max_cardinality_index;
     int i, tblock_id, tid, base_offset;
@@ -224,12 +224,12 @@ void QTC_device( float *dist_matrix, char *Ai_mask, char *clustered_pnts_mask, i
             cnt = generate_candidate_cluster_full_storage(seed_index, degree, Ai_mask, dist_matrix,
                                                     clustered_pnts_mask, indr_mtrx, dist_to_clust,
                                                     point_count, N0, max_degree, NULL, threshold,
-                                                    can_use_texture);
+                                                    can_use_texture, texDistance);
         }else{
             cnt = generate_candidate_cluster_compact_storage( seed_index, degree, Ai_mask, dist_matrix,
                                                     clustered_pnts_mask, indr_mtrx, dist_to_clust,
                                                     point_count, N0, max_degree, NULL, threshold,
-                                                    can_use_texture);
+                                                    can_use_texture, texDistance);
         }
         if( cnt > max_cardinality ){
             max_cardinality = cnt;

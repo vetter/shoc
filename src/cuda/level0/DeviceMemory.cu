@@ -21,11 +21,9 @@ __global__ void writeGlobalMemoryCoalesced(float *output, int size, int repeat);
 __global__ void writeGlobalMemoryUnit(float *output, int size, int repeat);
 __global__ void writeLocalMemory(float *output, int size, int repeat);
 __device__ int getRand(int seed, int mod);
-__global__ void readTexels(int n, float *d_out, int width);
-__global__ void readTexelsInCache(int n, float *d_out);
-__global__ void readTexelsRandom(int n, float *d_out, int width, int height);
-// Texture to use for the benchmarks
-texture<float4, 2, cudaReadModeElementType> texA;
+__global__ void readTexels(cudaTextureObject_t tex, int n, float *d_out, int width);
+__global__ void readTexelsInCache(cudaTextureObject_t tex, int n, float *d_out);
+__global__ void readTexelsRandom(cudaTextureObject_t tex, int n, float *d_out, int width, int height);
 
 // ****************************************************************************
 // Function: addBenchmarkSpecOptions
@@ -308,12 +306,6 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
     cudaEventCreate(&stop);
     CHECK_CUDA_ERROR();
 
-    // make sure our texture behaves like we want....
-    texA.normalized = false;
-    texA.addressMode[0] = cudaAddressModeClamp;
-    texA.addressMode[1] = cudaAddressModeClamp;
-    texA.filterMode = cudaFilterModePoint;
-
     for (int j = 0; j < nsizes; j++)
     {
         cout << "Benchmarking Texture Memory, Test Size: " << j+1 << " / 5\n";
@@ -350,7 +342,8 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
 
         // Allocate a cuda array
         cudaArray* cuArray;
-        cudaMallocArray(&cuArray, &texA.channelDesc, width, height);
+        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
+        cudaMallocArray(&cuArray, &channelDesc, width, height);
         CHECK_CUDA_ERROR();
 
         // Copy in source data
@@ -358,7 +351,19 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
         CHECK_CUDA_ERROR();
 
         // Bind texture to the array
-        cudaBindTextureToArray(texA, cuArray);
+        cudaResourceDesc resDesc = {};
+        resDesc.resType = cudaResourceTypeArray;
+        resDesc.res.array.array = cuArray;
+
+        cudaTextureDesc texDesc = {};
+        texDesc.addressMode[0] = cudaAddressModeClamp;
+        texDesc.addressMode[1] = cudaAddressModeClamp;
+        texDesc.filterMode = cudaFilterModePoint;
+        texDesc.readMode = cudaReadModeElementType;
+        texDesc.normalizedCoords = false;
+
+        cudaTextureObject_t texA = 0;
+        cudaCreateTextureObject(&texA, &resDesc, &texDesc, NULL);
         CHECK_CUDA_ERROR();
 
         for (int p = 0; p < passes; p++)
@@ -370,8 +375,8 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
             // read texels from texture
             for (int iter = 0; iter < iterations; iter++)
             {
-                readTexels<<<gridSize, blockSize>>>(kernelRepFactor, d_out,
-                                                    width);
+                readTexels<<<gridSize, blockSize>>>(texA, kernelRepFactor,
+                                                    d_out, width);
             }
             cudaEventRecord(stop, 0);
             CHECK_CUDA_ERROR();
@@ -398,7 +403,7 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
             for (int iter = 0; iter < iterations; iter++)
             {
                 readTexelsInCache<<<gridSize, blockSize>>>
-                        (kernelRepFactor, d_out);
+                        (texA, kernelRepFactor, d_out);
             }
             cudaEventRecord(stop, 0);
             cudaEventSynchronize(stop);
@@ -425,7 +430,7 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
             for (int iter = 0; iter < iterations; iter++)
             {
                 readTexelsRandom<<<gridSize, blockSize>>>
-                                (kernelRepFactor, d_out, width, height);
+                                (texA, kernelRepFactor, d_out, width, height);
             }
 
             cudaEventRecord(stop, 0);
@@ -446,7 +451,7 @@ void TestTextureMem(ResultDatabase &resultDB, OptionParser &op, double scalet)
         delete[] h_out;
         cudaFree(d_out);
         cudaFreeArray(cuArray);
-        cudaUnbindTexture(texA);
+        cudaDestroyTextureObject(texA);
     }
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
@@ -638,7 +643,7 @@ writeLocalMemory(float *output, int size, int repeat)
 }
 
 // Simple Repeated Linear Read from texture memory
-__global__ void readTexels(int n, float *d_out, int width)
+__global__ void readTexels(cudaTextureObject_t tex, int n, float *d_out, int width)
 {
     int idx_x = (blockIdx.x * blockDim.x) + threadIdx.x;
     int idx_y = (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -647,7 +652,7 @@ __global__ void readTexels(int n, float *d_out, int width)
     int width_bits = width-1;
     for (int i = 0; i < n; i++)
     {
-        float4 v = tex2D(texA, float(idx_x), float(idx_y));
+        float4 v = tex2D<float4>(tex, float(idx_x), float(idx_y));
         idx_x = (idx_x+1) & width_bits;
         sum += v.x;
     }
@@ -655,7 +660,7 @@ __global__ void readTexels(int n, float *d_out, int width)
 }
 
 // Repeated read of only 4kb of texels (should fit in texture cache)
-__global__ void readTexelsInCache(int n, float *d_out)
+__global__ void readTexelsInCache(cudaTextureObject_t tex, int n, float *d_out)
 {
     int idx_x = (blockIdx.x * blockDim.x) + threadIdx.x;
     int idx_y = (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -663,14 +668,14 @@ __global__ void readTexelsInCache(int n, float *d_out)
     float sum = 0.0f;
     for (int i = 0; i < n; i++)
     {
-        float4 v = tex2D(texA, float(idx_x), float(idx_y));
+        float4 v = tex2D<float4>(tex, float(idx_x), float(idx_y));
         sum += v.x;
     }
     d_out[out_idx] = sum;
 }
 
 // Read "random" texels
-__global__ void readTexelsRandom(int n, float *d_out, int width, int height)
+__global__ void readTexelsRandom(cudaTextureObject_t tex, int n, float *d_out, int width, int height)
 {
     int idx_x = (blockIdx.x * blockDim.x) + threadIdx.x;
     int idx_y = (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -680,7 +685,7 @@ __global__ void readTexelsRandom(int n, float *d_out, int width, int height)
     int height_bits = height-1;
     for (int i = 0; i < n; i++)
     {
-        float4 v = tex2D(texA, float(idx_x), float(idx_y));
+        float4 v = tex2D<float4>(tex, float(idx_x), float(idx_y));
         idx_x = (idx_x*3+29)&(width_bits);
         idx_y = (idx_y*5+11)&(height_bits);
         sum += v.x;

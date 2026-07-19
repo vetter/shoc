@@ -199,7 +199,7 @@ AS_IF([test "x$with_cuda" != xno],
               
               # get list of supported archs
               supported_NVCC_archs=""
-              for i in `$NVCC --help | grep -o "compute_[[0-9]][[0-9]]" | sed 's,compute,,' | sort | uniq`
+              for i in `$NVCC --help | grep -o "compute_[[0-9]][[0-9]]*" | sed 's,compute,,' | sort | uniq`
               do
                 supported_NVCC_archs+="-gencode=arch=compute$i,code=sm$i "
               done

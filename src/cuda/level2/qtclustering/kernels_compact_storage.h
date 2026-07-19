@@ -26,7 +26,7 @@ do{\
         }\
         if( tmp_pnt == (_CAND_PNT_) ){\
             if( can_use_texture ){ \
-                dist_to_new_point = tex2D(texDistance, float(j)+0.5f, float(latest_point)+0.5f );\
+                dist_to_new_point = tex2D<float>(texDistance, float(j)+0.5f, float(latest_point)+0.5f );\
             }else{\
                 dist_to_new_point = compact_storage_dist_matrix[ latest_p_off + j ];\
             }\
@@ -65,7 +65,7 @@ do{\
 }
 
 inline __device__
-int generate_candidate_cluster_compact_storage(int seed_point, int degree, char *Ai_mask, float *compact_storage_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture)
+int generate_candidate_cluster_compact_storage(int seed_point, int degree, char *Ai_mask, float *compact_storage_dist_matrix, char *clustered_pnts_mask, int *indr_mtrx, float *dist_to_clust, int point_count, int N0, int max_degree, int *candidate_cluster, float threshold, bool can_use_texture, cudaTextureObject_t texDistance)
 {
 
     bool flag;

@@ -228,7 +228,7 @@ void RunTest(string testName, ResultDatabase &resultDB, OptionParser &op)
             // Warm Up
             devGEMM<T>(transa, transb, m, n, k, alpha, dA, lda, dB, ldb, beta,
                     dC, ldc);
-            CUDA_SAFE_CALL(cudaThreadSynchronize());
+            CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
             double cublas_time;
             float kernel_time = 0.0f;

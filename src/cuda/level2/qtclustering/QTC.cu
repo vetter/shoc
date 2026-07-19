@@ -22,8 +22,6 @@
 
 #include "comm.h"
 
-texture<float, 2, cudaReadModeElementType> texDistance;
-
 using namespace std;
 
 #include "kernels_common.h"
@@ -297,6 +295,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     bool be_verbose = false;
     bool synthetic_data = true;
     cudaArray *distance_matrix_txt;
+    cudaTextureObject_t texDistance = 0;
     void *distance_matrix_gmem, *distance_matrix;
     float *dist_source, *pnts;
     float threshold;
@@ -400,14 +399,11 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     output = pmsAllocHostBuffer<int>(max_degree);
 
     if( can_use_texture ){
-        texDistance.addressMode[0] = cudaAddressModeClamp;
-        texDistance.addressMode[1] = cudaAddressModeClamp;
-        texDistance.filterMode = cudaFilterModePoint;
-        texDistance.normalized = false; // do not normalize coordinates
         // This is the actual distance matrix (dst_matrix_elems should be "point_count^2, or point_count*max_degree)
         printf("Allocating: %luMB (%lux%lux%lu) bytes in texture memory\n", dst_matrix_elems*sizeof(float)/(1024*1024),
                                                                         dst_matrix_elems/point_count, point_count, (long unsigned int)sizeof(float));
-        cudaMallocArray(&distance_matrix_txt, &texDistance.channelDesc, dst_matrix_elems/point_count, point_count);
+        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+        cudaMallocArray(&distance_matrix_txt, &channelDesc, dst_matrix_elems/point_count, point_count);
     }else{
         allocDeviceBuffer(&distance_matrix_gmem, dst_matrix_elems*sizeof(float));
     }
@@ -430,7 +426,19 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     if( can_use_texture ){
         cudaMemcpyToArray(distance_matrix_txt, 0, 0, dist_source, dst_matrix_elems*sizeof(float), cudaMemcpyHostToDevice);
         CHECK_CUDA_ERROR();
-        cudaBindTextureToArray(texDistance, distance_matrix_txt);
+
+        cudaResourceDesc resDesc = {};
+        resDesc.resType = cudaResourceTypeArray;
+        resDesc.res.array.array = distance_matrix_txt;
+
+        cudaTextureDesc texDesc = {};
+        texDesc.addressMode[0] = cudaAddressModeClamp;
+        texDesc.addressMode[1] = cudaAddressModeClamp;
+        texDesc.filterMode = cudaFilterModePoint;
+        texDesc.readMode = cudaReadModeElementType;
+        texDesc.normalizedCoords = false; // do not normalize coordinates
+
+        cudaCreateTextureObject(&texDistance, &resDesc, &texDesc, NULL);
     }else{
         copyToDevice(distance_matrix_gmem, dist_source, dst_matrix_elems*sizeof(float));
     }
@@ -444,7 +452,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
     tpb = ( point_count > THREADSPERBLOCK )? THREADSPERBLOCK : point_count;
     compute_degrees<<<grid2D(thread_block_count), tpb>>>((int *)indr_mtrx, (int *)degrees, point_count, max_degree);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     CHECK_CUDA_ERROR();
 
     const char *sizeStr;
@@ -512,10 +520,10 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
                                   (int *)indr_mtrx, (int *)cardnl, (int *)ungrpd_pnts_indr,
                                   (float *)dist_to_clust, (int *)degrees, point_count, max_point_count,
                                   max_degree, threshold, cwrank, active_node_count,
-                                  total_thread_block_count, matrix_type, can_use_texture);
+                                  total_thread_block_count, matrix_type, can_use_texture, texDistance);
         ///////// -----------------               Main kernel                ----------------- /////////
         ////////////////////////////////////////////////////////////////////////////////////////////////
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         t_krn += Timer::Stop(Tkernel, "Kernel Only");
 
@@ -523,7 +531,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         if( thread_block_count > 1 ){
             // We are reducing 128 numbers or less, so one thread should be sufficient.
             reduce_card_device<<<grid2D(1), 1>>>((int *)cardnl, thread_block_count);
-            cudaThreadSynchronize();
+            cudaDeviceSynchronize();
             CHECK_CUDA_ERROR();
         }
 
@@ -548,8 +556,8 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
         trim_ungrouped_pnts_indr_array<<<grid2D(1), tpb>>>(winner_index, (int*)ungrpd_pnts_indr, (float*)distance_matrix,
                                           (int *)result, (char *)Ai_mask, (char *)clustered_pnts_mask,
                                           (int *)indr_mtrx, (int *)cardnl, (float *)dist_to_clust, (int *)degrees,
-                                          point_count, max_point_count, max_degree, threshold, matrix_type, can_use_texture );
-        cudaThreadSynchronize();
+                                          point_count, max_point_count, max_degree, threshold, matrix_type, can_use_texture, texDistance );
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         t_trim += Timer::Stop(Ttrim, "Trim Only");
 
@@ -572,7 +580,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
 
         int Tupdt = Timer::Start();
         update_clustered_pnts_mask<<<grid2D(1), tpb>>>((char *)clustered_pnts_mask, (char *)Ai_mask, max_point_count);
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         t_updt += Timer::Stop(Tupdt, "Update Only");
 
@@ -606,7 +614,7 @@ void QTC(const string& name, ResultDatabase &resultDB, OptionParser& op, int mat
     pmsFreeHostBuffer(indr_mtrx_host);
     if( can_use_texture ){
         cudaFreeArray(distance_matrix_txt);
-        cudaUnbindTexture(texDistance);
+        cudaDestroyTextureObject(texDistance);
     }else{
         freeDeviceBuffer(distance_matrix_gmem);
     }
